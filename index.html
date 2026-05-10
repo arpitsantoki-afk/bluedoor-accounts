@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Blue Door Architects</title>
+<style>
+/* ── Base ─────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:#EEF2F7;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.header{
+  background:#2B5197;
+  padding:16px 20px 14px;
+  display:flex;align-items:center;gap:12px;
+}
+.header-icon{
+  width:36px;height:36px;background:rgba(255,255,255,0.15);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.header-title{color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.2px}
+.header-sub{color:rgba(255,255,255,0.65);font-size:11px;margin-top:1px}
+
+/* ── Page ────────────────────────────────────────────── */
+.page{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:24px 20px;
+}
+.login-card{
+  background:#fff;border-radius:16px;
+  border:1px solid #DDE3EE;
+  padding:28px 24px;width:100%;max-width:380px;
+  box-shadow:0 4px 24px rgba(43,81,151,0.08);
+}
+.login-card h2{
+  font-size:16px;font-weight:700;color:#1A2D5A;
+  margin-bottom:6px;
+}
+.login-card p{font-size:13px;color:#7A8BAA;margin-bottom:24px}
+
+/* ── Form ────────────────────────────────────────────── */
+.field{margin-bottom:16px}
+.field label{
+  display:block;font-size:11px;font-weight:700;
+  color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;
+  margin-bottom:6px;
+}
+.field input{
+  width:100%;padding:12px 14px;
+  border:1.5px solid #DDE3EE;border-radius:10px;
+  font-size:14px;color:#1A2D5A;background:#F7F9FC;
+  outline:none;transition:border-color .2s,background .2s;
+}
+.field input:focus{border-color:#2B5197;background:#fff}
+
+.btn-login{
+  width:100%;padding:13px;margin-top:4px;
+  background:#2B5197;border:none;border-radius:10px;
+  color:#fff;font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:0.2px;
+  transition:background .2s,transform .1s;
+}
+.btn-login:hover{background:#224080}
+.btn-login:active{transform:scale(0.98)}
+
+.error-box{
+  margin-top:14px;padding:10px 14px;
+  background:#FEF2F2;border:1px solid #FECACA;
+  border-radius:8px;color:#B91C1C;font-size:13px;
+  display:none;
+}
+.spinner{
+  display:none;text-align:center;margin-top:14px;
+  font-size:13px;color:#7A8BAA;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🏠</div>
+  <div>
+    <div class="header-title">Blue Door Architects</div>
+    <div class="header-sub">Accounts Management</div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="login-card">
+    <h2>Sign In</h2>
+    <p>Enter your credentials to access the platform.</p>
+
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="your username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="error-box" id="errBox"></div>
+    <div class="spinner" id="spinner">Signing in…</div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG: set this to your deployed Apps Script URL ─────
+var API = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+
+function doLogin() {
+  var u = document.getElementById("username").value.trim();
+  var p = document.getElementById("password").value;
+  if (!u || !p) { showErr("Please enter username and password."); return; }
+
+  setLoading(true);
+  fetch(API, {
+    method:"POST",
+    body: JSON.stringify({ action:"login", username:u, password:p })
+  })
+  .then(r => r.json())
+  .then(d => {
+    setLoading(false);
+    if (d.success) {
+      localStorage.setItem("bd_token",    d.token);
+      localStorage.setItem("bd_role",     d.role);
+      localStorage.setItem("bd_username", d.username);
+      if (d.role === "Admin") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "app.html";
+      }
+    } else {
+      showErr(d.error || "Login failed.");
+    }
+  })
+  .catch(() => { setLoading(false); showErr("Connection error. Please check your network."); });
+}
+
+function setLoading(on) {
+  document.querySelector(".btn-login").disabled = on;
+  document.querySelector(".btn-login").textContent = on ? "Signing in…" : "Sign In";
+  document.getElementById("spinner").style.display = on ? "block" : "none";
+  document.getElementById("errBox").style.display = "none";
+}
+function showErr(msg) {
+  var e = document.getElementById("errBox");
+  e.textContent = msg; e.style.display = "block";
+}
+document.addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
+// Redirect if already logged in
+if (localStorage.getItem("bd_token")) {
+  var role = localStorage.getItem("bd_role");
+  window.location.href = role==="Admin" ? "admin.html" : "app.html";
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Blue Door – Admin</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:#EEF2F7;min-height:100vh;padding-bottom:80px;}
+
+/* ── Header ──────────────────────────────────────────── */
+.header{
+  background:#2B5197;
+  padding:12px 16px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-icon{font-size:20px}
+.header-title{color:#fff;font-size:16px;font-weight:700}
+.header-role{background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
+.header-right{display:flex;align-items:center;gap:8px}
+.fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);
+  border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:4px}
+.online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
+.fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);
+  padding:10px 16px;display:none}
+.fy-option{display:inline-block;padding:6px 14px;border-radius:6px;
+  font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
+.fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
+
+/* ── Page Title ──────────────────────────────────────── */
+.page-title{padding:14px 16px 4px;font-size:17px;font-weight:700;color:#1A2D5A}
+.page-sub{padding:0 16px 12px;font-size:12px;color:#7A8BAA}
+
+/* ── KPI Cards ───────────────────────────────────────── */
+.kpi-row{display:flex;gap:10px;padding:0 16px 12px;overflow-x:auto}
+.kpi{
+  flex:1;min-width:100px;
+  background:#fff;border:1px solid #DDE3EE;border-radius:12px;
+  padding:14px 12px;text-align:center;flex-shrink:0;
+}
+.kpi-label{font-size:10px;font-weight:700;color:#7A8BAA;
+  text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.kpi-value{font-size:16px;font-weight:800;color:#1A2D5A}
+.kpi-value.green{color:#15803D}
+.kpi-value.red{color:#B91C1C}
+.kpi-value.blue{color:#2B5197}
+
+/* ── Card ────────────────────────────────────────────── */
+.card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;
+  margin:0 16px 12px;padding:16px}
+.card-label{font-size:11px;font-weight:700;color:#7A8BAA;
+  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
+
+/* ── Segmented ───────────────────────────────────────── */
+.seg-wrap{padding:0 16px 12px}
+.seg{display:flex;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px;overflow:hidden}
+.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;
+  color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
+.seg-btn.active{background:#2B5197;color:#fff}
+
+/* ── Summary Strips ──────────────────────────────────── */
+.strip-row{display:flex;gap:8px;margin:0 16px 12px}
+.strip{flex:1;border-radius:10px;padding:12px 10px;text-align:center}
+.strip-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.strip-value{font-size:15px;font-weight:800}
+.strip.red{background:#FEE2E2}.strip.red .strip-label{color:#B91C1C}.strip.red .strip-value{color:#B91C1C}
+.strip.green{background:#DCFCE7}.strip.green .strip-label{color:#15803D}.strip.green .strip-value{color:#15803D}
+.strip.blue{background:#DBEAFE}.strip.blue .strip-label{color:#1D4ED8}.strip.blue .strip-value{color:#1D4ED8}
+
+/* ── Table ───────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
+thead th{padding:9px 10px;background:#F7F9FC;color:#7A8BAA;font-size:11px;
+  font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+  border-bottom:1px solid #DDE3EE;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid #F0F4FA;transition:background .1s}
+tbody tr:hover{background:#F7F9FC}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 10px;vertical-align:top}
+.td-main{font-size:13px;font-weight:600;color:#1A2D5A}
+.td-sub{font-size:11px;color:#7A8BAA;margin-top:1px}
+.dr{color:#15803D;font-weight:700}
+.cr{color:#B91C1C;font-weight:700}
+
+/* ── Badges ──────────────────────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700}
+.badge-dr{background:#DCFCE7;color:#15803D}
+.badge-cr{background:#FEE2E2;color:#B91C1C}
+.badge-blue{background:#DBEAFE;color:#1D4ED8}
+.badge-amber{background:#FEF9C3;color:#854D0E}
+.badge-active{background:#DCFCE7;color:#15803D}
+.badge-inactive{background:#F1F5F9;color:#94A3B8}
+
+/* ── Bar Chart ───────────────────────────────────────── */
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bar-item{}
+.bar-name{font-size:12px;font-weight:600;color:#1A2D5A;margin-bottom:4px;
+  display:flex;justify-content:space-between}
+.bar-name span{color:#7A8BAA;font-weight:400}
+.bar-track{height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden;margin-bottom:2px}
+.bar-fill-inc{height:100%;background:#2B5197;border-radius:4px;transition:width .5s}
+.bar-fill-exp{height:100%;background:#EF4444;border-radius:4px;transition:width .5s}
+.bar-legend{display:flex;gap:14px;font-size:11px;color:#7A8BAA;margin-top:2px}
+.bar-legend span{display:flex;align-items:center;gap:4px}
+.dot-blue{width:8px;height:8px;background:#2B5197;border-radius:50%;display:inline-block}
+.dot-red{width:8px;height:8px;background:#EF4444;border-radius:50%;display:inline-block}
+
+/* ── Form ────────────────────────────────────────────── */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;
+  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;
+  border:1.5px solid #DDE3EE;border-radius:9px;
+  font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;
+  transition:border-color .2s;appearance:none;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:#2B5197;background:#fff}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.btn-primary{padding:10px 18px;background:#2B5197;border:none;border-radius:9px;
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:#224080}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-full{width:100%;padding:12px}
+
+/* ── Vendor outstanding row ──────────────────────────── */
+.outstanding-row{padding:12px 0;border-bottom:1px solid #EEF2F7}
+.outstanding-row:last-child{border-bottom:none}
+.or-name{font-size:13px;font-weight:700;color:#1A2D5A}
+.or-type{font-size:11px;color:#7A8BAA}
+.or-strips{display:flex;gap:6px;margin-top:8px}
+.or-strip{flex:1;border-radius:7px;padding:7px 8px;text-align:center}
+.or-strip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+.or-strip-value{font-size:13px;font-weight:800;margin-top:2px}
+
+/* ── Empty ───────────────────────────────────────────── */
+.empty{text-align:center;padding:28px 16px;color:#7A8BAA;font-size:13px}
+.empty-icon{font-size:32px;margin-bottom:8px}
+
+/* ── Bottom Nav ──────────────────────────────────────── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;
+  border-top:1px solid #DDE3EE;display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;padding:10px 4px 8px;text-align:center;cursor:pointer;
+  transition:color .2s;color:#7A8BAA}
+.nav-item.active{color:#2B5197}
+.nav-item .nav-icon{font-size:20px;display:block}
+.nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;
+  text-transform:uppercase;letter-spacing:0.4px}
+
+/* ── Toast ───────────────────────────────────────────── */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;
+  z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;
+  white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
+.toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <span class="header-icon">🏠</span>
+    <div>
+      <div class="header-title">Blue Door <span class="header-role">Admin</span></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="fy-badge" onclick="toggleFYPanel()">
+      <span id="fyLabel">FY —</span> <span>▾</span>
+    </div>
+    <div class="online-dot"></div>
+  </div>
+</div>
+<div class="fy-panel" id="fyPanel"></div>
+
+<!-- ── VIEW: Home / Dashboard ────────────────────────────── -->
+<div id="view-home">
+  <div class="page-title">Dashboard</div>
+  <div class="page-sub" id="dashSub">Loading…</div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Income</div><div class="kpi-value blue" id="kpiInc">—</div></div>
+    <div class="kpi"><div class="kpi-label">Expense</div><div class="kpi-value red" id="kpiExp">—</div></div>
+    <div class="kpi"><div class="kpi-label">Profit</div><div class="kpi-value green" id="kpiPro">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Project P&L</div>
+    <div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Monthly Trend</div>
+    <div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div>
+  </div>
+</div>
+
+<!-- ── VIEW: Ledger ───────────────────────────────────────── -->
+<div id="view-ledger" class="hidden">
+  <div class="page-title">Ledger</div>
+
+  <!-- Sub-tabs -->
+  <div class="seg-wrap">
+    <div class="seg">
+      <div class="seg-btn active" onclick="switchLedgerTab('transactions',this)">Transactions</div>
+      <div class="seg-btn" onclick="switchLedgerTab('vendor',this)">Vendor</div>
+      <div class="seg-btn" onclick="switchLedgerTab('project',this)">Project</div>
+    </div>
+  </div>
+
+  <!-- Transactions -->
+  <div id="lt-transactions">
+    <div class="card">
+      <div class="card-label">All Journal Entries</div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="ledgerSearch"
+          style="width:100%;padding:9px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none"
+          placeholder="Search entries…" oninput="filterLedger()">
+      </div>
+      <div class="tbl-wrap" id="ledgerTable">
+        <div class="empty"><div class="empty-icon">📒</div>Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor -->
+  <div id="lt-vendor" class="hidden">
+    <div class="card">
+      <div class="card-label">Select Vendor</div>
+      <div class="field">
+        <select id="vendorSel" onchange="loadVendorOutstanding()">
+          <option value="">All Vendors</option>
+        </select>
+      </div>
+    </div>
+    <div id="vendorOutstandingOut">
+      <div class="empty"><div class="empty-icon">🤝</div>Loading…</div>
+    </div>
+  </div>
+
+  <!-- Project P&L -->
+  <div id="lt-project" class="hidden">
+    <div class="card">
+      <div class="card-label">Select Project</div>
+      <div class="field">
+        <select id="projSel" onchange="loadProjectPL()">
+          <option value="">All Projects</option>
+        </select>
+      </div>
+    </div>
+    <div id="projectPLOut">
+      <div class="empty"><div class="empty-icon">🏗️</div>Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VIEW: Add ──────────────────────────────────────────── -->
+<div id="view-add" class="hidden">
+  <div class="page-title">Add Master Data</div>
+
+  <!-- Add Project -->
+  <div class="card">
+    <div class="card-label">Add Project</div>
+    <div class="row-2">
+      <div class="field"><label>Project Name *</label><input type="text" id="pName" placeholder="Residence, Office…"></div>
+      <div class="field"><label>Client Name</label><input type="text" id="pClient" placeholder="Client"></div>
+      <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="City"></div>
+      <div class="field"><label>Start Date</label><input type="date" id="pStart"></div>
+      <div class="field"><label>Budget (₹)</label><input type="number" id="pBudget" placeholder="0"></div>
+      <div class="field">
+        <label>Status</label>
+        <select id="pStatus">
+          <option value="Active">Active</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary btn-full" onclick="addProject()">Add Project</button>
+  </div>
+
+  <!-- Add Vendor -->
+  <div class="card">
+    <div class="card-label">Add Vendor / Contractor</div>
+    <div class="row-2">
+      <div class="field"><label>Vendor Name *</label><input type="text" id="vName" placeholder="Name"></div>
+      <div class="field">
+        <label>Type</label>
+        <select id="vType">
+          <option>Contractor</option><option>Supplier</option>
+          <option>Consultant</option><option>Labour</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>GSTIN</label><input type="text" id="vGST" placeholder="Optional"></div>
+      <div class="field"><label>Contact</label><input type="text" id="vContact" placeholder="Phone"></div>
+    </div>
+    <button class="btn-primary btn-full" onclick="addVendor()">Add Vendor</button>
+  </div>
+</div>
+
+<!-- ── VIEW: Reports ─────────────────────────────────────── -->
+<div id="view-reports" class="hidden">
+  <div class="page-title">Reports</div>
+
+  <!-- Project P&L Summary -->
+  <div class="card">
+    <div class="card-label">Project P&L Summary</div>
+    <div id="reportPLTable">
+      <div class="empty"><div class="empty-icon">📊</div>Loading…</div>
+    </div>
+  </div>
+
+  <!-- Vendor Outstanding Summary -->
+  <div class="card">
+    <div class="card-label">Vendor Outstanding Summary</div>
+    <div id="reportVendorTable">
+      <div class="empty"><div class="empty-icon">🤝</div>Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VIEW: More (Users) ─────────────────────────────────── -->
+<div id="view-more" class="hidden">
+  <div class="page-title">Users</div>
+
+  <div class="card">
+    <div class="card-label">Add User</div>
+    <div class="row-2">
+      <div class="field"><label>Username *</label><input type="text" id="uName" placeholder="username"></div>
+      <div class="field"><label>Password *</label><input type="password" id="uPass" placeholder="••••••••"></div>
+      <div class="field">
+        <label>Role</label>
+        <select id="uRole"><option value="Supervisor">Supervisor</option><option value="Admin">Admin</option></select>
+      </div>
+    </div>
+    <button class="btn-primary btn-full" onclick="addUser()">Add User</button>
+  </div>
+
+  <div class="card">
+    <div class="card-label">All Users</div>
+    <div id="userList"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="showView('home',this)">
+    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+  </div>
+  <div class="nav-item" onclick="showView('ledger',this)">
+    <span class="nav-icon">📋</span><span class="nav-label">Ledger</span>
+  </div>
+  <div class="nav-item" onclick="showView('add',this)">
+    <span class="nav-icon">➕</span><span class="nav-label">Add</span>
+  </div>
+  <div class="nav-item" onclick="showView('reports',this)">
+    <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
+  </div>
+  <div class="nav-item" onclick="showView('more',this)">
+    <span class="nav-icon">···</span><span class="nav-label">More</span>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+var token    = localStorage.getItem("bd_token");
+var curFY    = localStorage.getItem("bd_fy") || "";
+var fyList   = [];
+var allLedger= [];
+var projMap  = {};
+var vendorMap= {};
+
+if (!token || localStorage.getItem("bd_role") !== "Admin") {
+  window.location.href = "index.html";
+}
+
+// ── INIT ───────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function(){
+  loadFY();
+  loadDashboard();
+});
+
+// ── FY ─────────────────────────────────────────────────────
+function loadFY() {
+  api({ action:"getFYList", token:token }, function(d){
+    if (!d.success) return;
+    fyList = d.list;
+    var active = d.list.find(f=>f.active)||d.list[0];
+    if (!curFY && active) { curFY=active.id; localStorage.setItem("bd_fy",curFY); }
+    updateFYLabel(); renderFYPanel();
+  });
+}
+function updateFYLabel() {
+  var f=fyList.find(x=>x.id===curFY);
+  document.getElementById("fyLabel").textContent = f?f.label:curFY;
+}
+function toggleFYPanel() {
+  var p=document.getElementById("fyPanel");
+  p.style.display=p.style.display==="block"?"none":"block";
+}
+function renderFYPanel() {
+  document.getElementById("fyPanel").innerHTML = fyList.map(f=>
+    "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>"
+  ).join("");
+}
+function setFY(id) {
+  curFY=id; localStorage.setItem("bd_fy",id);
+  updateFYLabel(); renderFYPanel();
+  document.getElementById("fyPanel").style.display="none";
+  loadDashboard();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+function loadDashboard() {
+  document.getElementById("dashSub").textContent = "Loading…";
+  api({ action:"getDashboard", token:token, fyid:curFY }, function(d){
+    if (!d.success) { document.getElementById("dashSub").textContent="Error loading data."; return; }
+    var s=d.summary;
+    document.getElementById("dashSub").textContent = "Financial overview · "+( fyList.find(f=>f.id===curFY)||{label:curFY}).label;
+    document.getElementById("kpiInc").textContent = "₹ "+shortNum(s.income);
+    document.getElementById("kpiExp").textContent = "₹ "+shortNum(s.expense);
+    var pEl=document.getElementById("kpiPro");
+    pEl.textContent = "₹ "+shortNum(s.profit);
+    pEl.className = "kpi-value "+(s.profit>=0?"green":"red");
+    renderProjChart(d.byProject);
+    renderMonthChart(d.byMonth);
+  });
+}
+
+function renderProjChart(data) {
+  var el=document.getElementById("projChart");
+  if (!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📊</div>No data yet.</div>";return;}
+  var max=Math.max(...data.map(p=>Math.max(p.income,p.expense,1)));
+  var html="<div class='bar-chart'>";
+  data.forEach(function(p){
+    var iw=Math.round(p.income/max*100), ew=Math.round(p.expense/max*100);
+    html+="<div class='bar-item'>"+
+      "<div class='bar-name'>"+p.project+" <span>₹"+shortNum(p.income)+" / ₹"+shortNum(p.expense)+"</span></div>"+
+      "<div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div>"+
+      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div>"+
+      "</div>";
+  });
+  html+="</div><div class='bar-legend' style='margin-top:10px'>"+
+    "<span><i class='dot-blue'></i> Income</span><span><i class='dot-red'></i> Expense</span></div>";
+  el.innerHTML=html;
+}
+
+function renderMonthChart(data) {
+  var el=document.getElementById("monthChart");
+  if (!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📅</div>No data yet.</div>";return;}
+  var max=Math.max(...data.map(m=>Math.max(m.income,m.expense,1)));
+  var html="<div class='bar-chart'>";
+  data.slice(-6).forEach(function(m){
+    var iw=Math.round(m.income/max*100), ew=Math.round(m.expense/max*100);
+    html+="<div class='bar-item'>"+
+      "<div class='bar-name'>"+m.month+" <span>₹"+shortNum(m.income)+" / ₹"+shortNum(m.expense)+"</span></div>"+
+      "<div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div>"+
+      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div>"+
+      "</div>";
+  });
+  html+="</div>";
+  el.innerHTML=html;
+}
+
+// ── LEDGER TABS ────────────────────────────────────────────
+var curLedgerTab = "transactions";
+
+function switchLedgerTab(tab, el) {
+  curLedgerTab = tab;
+  document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  ["transactions","vendor","project"].forEach(function(t){
+    document.getElementById("lt-"+t).classList[t===tab?"remove":"add"]("hidden");
+  });
+  if (tab==="transactions") loadLedger();
+  if (tab==="vendor")       loadVendorSelects();
+  if (tab==="project")      loadProjectSelects();
+}
+
+// Full ledger
+function loadLedger() {
+  var el=document.getElementById("ledgerTable");
+  el.innerHTML="<div class='empty'>Loading…</div>";
+  api({ action:"getLedger", token:token, fyid:curFY }, function(d){
+    if (!d.success) { el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    allLedger=d.ledger;
+    renderLedger(allLedger);
+  });
+}
+function renderLedger(rows) {
+  var el=document.getElementById("ledgerTable");
+  if (!rows.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>No entries yet.</div>";return;}
+  var html="<table><thead><tr><th>Date</th><th>Account</th><th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Narration</th></tr></thead><tbody>";
+  rows.forEach(function(r){
+    html+="<tr>"+
+      "<td style='white-space:nowrap'><div class='td-main'>"+r.date+"</div><div class='td-sub'>"+r.entryId+"</div></td>"+
+      "<td><div class='td-main'>"+r.acName+"</div><div class='td-sub'>"+r.acCode+(r.project?" · "+r.project:"")+"</div></td>"+
+      "<td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td>"+
+      "<td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td>"+
+      "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
+      "<td style='max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7A8BAA'>"+r.narration+"</td>"+
+      "</tr>";
+  });
+  html+="</tbody></table>";
+  el.innerHTML=html;
+}
+function filterLedger() {
+  var q=document.getElementById("ledgerSearch").value.toLowerCase();
+  renderLedger(q?allLedger.filter(r=>
+    (r.narration||"").toLowerCase().includes(q)||
+    (r.acName||"").toLowerCase().includes(q)||
+    (r.project||"").toLowerCase().includes(q)||
+    (r.entryId||"").toLowerCase().includes(q)
+  ):allLedger);
+}
+
+// Vendor selects for Ledger tab
+function loadVendorSelects() {
+  api({ action:"getVendors", token:token }, function(d){
+    if (!d.success) return;
+    var sel=document.getElementById("vendorSel");
+    sel.innerHTML="<option value=''>All Vendors</option>";
+    d.vendors.forEach(v=>{
+      vendorMap[v.id]=v.name;
+      sel.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";
+    });
+    loadVendorOutstanding();
+  });
+}
+function loadVendorOutstanding() {
+  var vid=document.getElementById("vendorSel")?document.getElementById("vendorSel").value:"";
+  var el=document.getElementById("vendorOutstandingOut");
+  el.innerHTML="<div class='empty'>Loading…</div>";
+  api({ action:"getVendorOutstanding", token:token, fyid:curFY, vendorId:vid }, function(d){
+    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    if (!d.vendors.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendor data.</div>";return;}
+    var html=d.vendors.map(function(v){
+      return "<div class='card' style='margin:0 16px 10px'><div class='outstanding-row'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:flex-start'>"+
+        "<div><div class='or-name'>"+v.vendorName+"</div><div class='or-type'>"+v.vendorType+"</div></div>"+
+        "</div>"+
+        "<div class='or-strips'>"+
+          "<div class='or-strip red'><div class='or-strip-label'>Bills</div><div class='or-strip-value'>₹"+shortNum(v.bills)+"</div></div>"+
+          "<div class='or-strip green'><div class='or-strip-label'>Paid</div><div class='or-strip-value'>₹"+shortNum(v.paid)+"</div></div>"+
+          "<div class='or-strip blue'><div class='or-strip-label'>Due</div><div class='or-strip-value'>₹"+shortNum(v.outstanding)+"</div></div>"+
+        "</div>"+
+        (v.advances>0?"<div style='margin-top:6px;font-size:11px;color:#7A8BAA'>Advance paid: ₹"+fmt(v.advances)+"</div>":"")+
+      "</div></div>";
+    }).join("");
+    el.innerHTML=html;
+  });
+}
+
+// Project selects for Ledger tab
+function loadProjectSelects() {
+  api({ action:"getProjects", token:token }, function(d){
+    if (!d.success) return;
+    var sel=document.getElementById("projSel");
+    sel.innerHTML="<option value=''>All Projects</option>";
+    d.projects.forEach(p=>{
+      projMap[p.id]=p.name;
+      sel.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";
+    });
+    loadProjectPL();
+  });
+}
+function loadProjectPL() {
+  var pid=document.getElementById("projSel")?document.getElementById("projSel").value:"";
+  var el=document.getElementById("projectPLOut");
+  el.innerHTML="<div class='empty'>Loading…</div>";
+  api({ action:"getProjectPL", token:token, fyid:curFY, projectId:pid }, function(d){
+    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    if (!d.projects.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>No project data.</div>";return;}
+    var html=d.projects.map(function(p){
+      var chRows=(p.costHeads||[]).map(c=>
+        "<div style='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px'>"+
+        "<span style='color:#7A8BAA'>"+c.costHead+"</span>"+
+        "<span style='color:#1A2D5A;font-weight:600'>₹ "+fmt(c.amount)+"</span></div>"
+      ).join("");
+      return "<div class='card' style='margin:0 16px 10px'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px'>"+
+        "<div><div style='font-size:14px;font-weight:700;color:#1A2D5A'>"+p.projectName+"</div>"+
+        "<div style='font-size:11px;color:#7A8BAA'>"+p.client+"</div></div>"+
+        "</div>"+
+        "<div class='strip-row' style='margin:0 0 12px'>"+
+          "<div class='strip blue'><div class='strip-label'>Income</div><div class='strip-value'>₹"+shortNum(p.income)+"</div></div>"+
+          "<div class='strip red'><div class='strip-label'>Expense</div><div class='strip-value'>₹"+shortNum(p.expense)+"</div></div>"+
+          "<div class='strip "+(p.profit>=0?"green":"red")+"'><div class='strip-label'>P&L</div><div class='strip-value'>₹"+shortNum(p.profit)+"</div></div>"+
+        "</div>"+
+        (p.budget?"<div style='font-size:11px;color:#7A8BAA;margin-bottom:8px'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
+        "<div class='card-label' style='margin-bottom:6px'>Cost Head Breakdown</div>"+
+        chRows+
+      "</div>";
+    }).join("");
+    el.innerHTML=html;
+  });
+}
+
+// ── ADD MASTER DATA ────────────────────────────────────────
+function addProject() {
+  var name=document.getElementById("pName").value.trim();
+  if (!name){toast("Project name is required.",false);return;}
+  api({ action:"addProject", token:token,
+    name:name, client:document.getElementById("pClient").value,
+    location:document.getElementById("pLoc").value,
+    startDate:document.getElementById("pStart").value,
+    budget:document.getElementById("pBudget").value,
+    status:document.getElementById("pStatus").value,
+    fyid:curFY }, function(d){
+    if (d.success) toast("✓ Project added: "+d.id, true);
+    else toast(d.error||"Failed.",false);
+  });
+}
+function addVendor() {
+  var name=document.getElementById("vName").value.trim();
+  if (!name){toast("Vendor name is required.",false);return;}
+  api({ action:"addVendor", token:token,
+    name:name, type:document.getElementById("vType").value,
+    gstin:document.getElementById("vGST").value,
+    contact:document.getElementById("vContact").value }, function(d){
+    if (d.success) toast("✓ Vendor added: "+d.id, true);
+    else toast(d.error||"Failed.",false);
+  });
+}
+
+// ── REPORTS VIEW ───────────────────────────────────────────
+function loadReports() {
+  // Project P&L
+  api({ action:"getProjectPL", token:token, fyid:curFY }, function(d){
+    var el=document.getElementById("reportPLTable");
+    if (!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
+    d.projects.forEach(function(p){
+      html+="<tr>"+
+        "<td><div class='td-main'>"+p.projectName+"</div></td>"+
+        "<td style='color:#7A8BAA'>"+p.client+"</td>"+
+        "<td class='dr'>"+fmt(p.income)+"</td>"+
+        "<td class='cr'>"+fmt(p.expense)+"</td>"+
+        "<td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td>"+
+        "</tr>";
+    });
+    html+="</tbody></table></div>";
+    el.innerHTML=html;
+  });
+  // Vendor outstanding
+  api({ action:"getVendorOutstanding", token:token, fyid:curFY }, function(d){
+    var el=document.getElementById("reportVendorTable");
+    if (!d.success||!d.vendors.length){el.innerHTML="<div class='empty'>No vendor data.</div>";return;}
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Vendor</th><th>Bills ₹</th><th>Paid ₹</th><th>Due ₹</th></tr></thead><tbody>";
+    d.vendors.forEach(function(v){
+      html+="<tr>"+
+        "<td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td>"+
+        "<td style='color:#B91C1C'>"+fmt(v.bills)+"</td>"+
+        "<td style='color:#15803D'>"+fmt(v.paid)+"</td>"+
+        "<td style='font-weight:700;color:"+(v.outstanding>0?"#B91C1C":"#15803D")+"'>"+fmt(v.outstanding)+"</td>"+
+        "</tr>";
+    });
+    html+="</tbody></table></div>";
+    el.innerHTML=html;
+  });
+}
+
+// ── USERS ──────────────────────────────────────────────────
+function loadUsers() {
+  api({ action:"getUsers", token:token }, function(d){
+    var el=document.getElementById("userList");
+    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    var html="";
+    d.users.forEach(function(u){
+      html+="<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EEF2F7'>"+
+        "<div><div style='font-size:13px;font-weight:600;color:#1A2D5A'>"+u.username+"</div>"+
+        "<span class='badge "+(u.role==="Admin"?"badge-amber":"badge-blue")+"'>"+u.role+"</span></div>"+
+        "<div style='display:flex;align-items:center;gap:8px'>"+
+        "<span class='badge "+(u.active?"badge-active":"badge-inactive")+"'>"+(u.active?"Active":"Inactive")+"</span>"+
+        "<button onclick='toggleUser(\""+u.username+"\")' style='border:1px solid #DDE3EE;background:#F7F9FC;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1A2D5A'>"+(u.active?"Deactivate":"Activate")+"</button>"+
+        "</div>"+
+        "</div>";
+    });
+    el.innerHTML=html||"<div class='empty'>No users.</div>";
+  });
+}
+function addUser() {
+  var u=document.getElementById("uName").value.trim();
+  var p=document.getElementById("uPass").value;
+  if (!u||!p){toast("Username and password required.",false);return;}
+  api({ action:"addUser", token:token, username:u, password:p,
+        role:document.getElementById("uRole").value }, function(d){
+    if (d.success){toast("✓ User added.",true);loadUsers();}
+    else toast(d.error||"Failed.",false);
+  });
+}
+function toggleUser(uname) {
+  api({ action:"toggleUser", token:token, username:uname }, function(d){
+    if (d.success){toast("✓ Updated.",true);loadUsers();}
+    else toast(d.error,false);
+  });
+}
+
+// ── VIEW ROUTING ───────────────────────────────────────────
+var views=["home","ledger","add","reports","more"];
+function showView(name, el) {
+  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active"));
+  el.classList.add("active");
+  views.forEach(v=>document.getElementById("view-"+v).classList.add("hidden"));
+  document.getElementById("view-"+name).classList.remove("hidden");
+  if (name==="ledger")  { switchLedgerTab("transactions", document.querySelector("#view-ledger .seg-btn")); }
+  if (name==="reports") { loadReports(); }
+  if (name==="more")    { loadUsers(); }
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function api(body,cb){
+  fetch(API,{method:"POST",body:JSON.stringify(body)})
+    .then(r=>r.json()).then(cb)
+    .catch(()=>cb({success:false,error:"Network error."}));
+}
+function toast(msg,ok){
+  var t=document.getElementById("toast");
+  t.textContent=msg; t.className="toast show "+(ok?"ok":"err");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000);
+}
+function fmt(n){return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function shortNum(n){
+  n=parseFloat(n||0);
+  if(n>=10000000)return(n/10000000).toFixed(1)+"Cr";
+  if(n>=100000)return(n/100000).toFixed(1)+"L";
+  if(n>=1000)return(n/1000).toFixed(1)+"K";
+  return n.toFixed(0);
+}
+function logout(){localStorage.clear();window.location.href="index.html";}
+</script>
+</body>
+</html>
