@@ -5,187 +5,99 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Blue Door – Entry</title>
 <style>
-/* ── Reset & Base ─────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-  background:#EEF2F7;min-height:100vh;padding-bottom:80px;}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F7;min-height:100vh;padding-bottom:80px}
 
 /* ── Header ──────────────────────────────────────────── */
-.header{
-  background:#2B5197;
-  padding:12px 16px 10px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
+.header{background:#2B5197;padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .header-left{display:flex;align-items:center;gap:10px}
 .header-icon{font-size:20px}
 .header-title{color:#fff;font-size:16px;font-weight:700}
-.header-role{
-  background:rgba(255,255,255,0.18);color:#fff;
-  font-size:10px;font-weight:700;padding:2px 8px;
-  border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;
-}
+.header-role{background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
 .header-right{display:flex;align-items:center;gap:8px}
-.fy-badge{
-  background:rgba(255,255,255,0.12);
-  border:1px solid rgba(255,255,255,0.25);
-  border-radius:6px;padding:4px 10px;
-  color:#fff;font-size:12px;font-weight:600;cursor:pointer;
-  display:flex;align-items:center;gap:4px;
-}
+.fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
-
-/* ── FY Dropdown ─────────────────────────────────────── */
-.fy-panel{
-  background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);
-  padding:10px 16px;display:none;
-}
-.fy-option{
-  display:inline-block;padding:6px 14px;border-radius:6px;
-  font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px;
-  transition:background .15s;
-}
+.fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
+.fy-option{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
 .fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
+
+/* ── Version ─────────────────────────────────────────── */
+.version-bar{background:#1E3F7A;padding:4px 16px;text-align:right}
+.version-bar span{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.3px}
 
 /* ── Page Title ──────────────────────────────────────── */
 .page-title{padding:14px 16px 4px;font-size:17px;font-weight:700;color:#1A2D5A}
 
 /* ── Segmented Toggle ────────────────────────────────── */
 .seg-wrap{padding:0 16px 12px}
-.seg{
-  display:flex;background:#fff;border:1px solid #DDE3EE;
-  border-radius:10px;padding:3px;overflow:hidden;
-}
-.seg-btn{
-  flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;
-  color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s;
-}
+.seg{display:flex;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px;overflow:hidden}
+.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s}
 .seg-btn.active{background:#2B5197;color:#fff}
 
 /* ── Card ────────────────────────────────────────────── */
-.card{
-  background:#fff;border:1px solid #DDE3EE;
-  border-radius:14px;margin:0 16px 12px;padding:16px;
-}
-.card-label{
-  font-size:11px;font-weight:700;color:#7A8BAA;
-  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;
-}
+.card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:16px}
+.card-label{font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
 
-/* ── Entry Type Grid ─────────────────────────────────── */
+/* ── Entry Type Options ──────────────────────────────── */
 .type-grid{display:flex;flex-direction:column;gap:6px}
-.type-opt{
-  padding:11px 14px;border:1.5px solid #DDE3EE;border-radius:10px;
-  cursor:pointer;transition:all .15s;background:#F7F9FC;
-}
+.type-opt{padding:11px 14px;border:1.5px solid #DDE3EE;border-radius:10px;cursor:pointer;transition:all .15s;background:#F7F9FC}
 .type-opt:hover{border-color:#2B5197;background:#F0F4FF}
 .type-opt.selected{border-color:#2B5197;background:#EEF3FF}
 .type-opt-label{font-size:14px;font-weight:600;color:#1A2D5A}
 .type-opt-hint{font-size:11px;color:#7A8BAA;margin-top:2px}
-.type-opt-accounts{
-  display:none;margin-top:8px;padding:8px 10px;
-  background:#F7F9FC;border-radius:7px;
-}
+.type-opt-accounts{display:none;margin-top:8px;padding:8px 10px;background:#F7F9FC;border-radius:7px}
 .type-opt.selected .type-opt-accounts{display:block}
 .ac-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0}
-.ac-dr{color:#15803D;font-weight:700;font-size:10px;
-  background:#DCFCE7;padding:1px 6px;border-radius:3px}
-.ac-cr{color:#B91C1C;font-weight:700;font-size:10px;
-  background:#FEE2E2;padding:1px 6px;border-radius:3px}
+.ac-dr{color:#15803D;font-weight:700;font-size:10px;background:#DCFCE7;padding:1px 6px;border-radius:3px}
+.ac-cr{color:#B91C1C;font-weight:700;font-size:10px;background:#FEE2E2;padding:1px 6px;border-radius:3px}
 .ac-name{color:#1A2D5A;font-weight:500}
 
 /* ── Form Fields ─────────────────────────────────────── */
 .field{margin-bottom:13px}
 .field:last-child{margin-bottom:0}
-.field label{
-  display:block;font-size:11px;font-weight:700;color:#7A8BAA;
-  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;
-}
-.field select,.field input{
-  width:100%;padding:11px 13px;
-  border:1.5px solid #DDE3EE;border-radius:9px;
-  font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;
-  transition:border-color .2s,background .2s;
-  appearance:none;-webkit-appearance:none;
-}
-.field select{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 13px center;
-  padding-right:36px;
-}
+.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
+.field select,.field input{width:100%;padding:11px 13px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;transition:border-color .2s,background .2s;appearance:none;-webkit-appearance:none;font-family:inherit}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px}
 .field select:focus,.field input:focus{border-color:#2B5197;background:#fff}
 .field input[type=number]{font-size:16px;font-weight:700;color:#2B5197}
 
-.btn-save{
-  width:100%;padding:14px;margin-top:4px;
-  background:#2B5197;border:none;border-radius:11px;
-  color:#fff;font-size:16px;font-weight:700;
-  cursor:pointer;letter-spacing:0.2px;
-  transition:background .2s,transform .1s;
-}
+.btn-save{width:100%;padding:14px;margin-top:4px;background:#2B5197;border:none;border-radius:11px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s,transform .1s;font-family:inherit}
 .btn-save:hover{background:#224080}
 .btn-save:active{transform:scale(0.98)}
 .btn-save:disabled{background:#B0BED4;cursor:not-allowed}
 
-/* ── Recent Entry Row ────────────────────────────────── */
-.entry-row{
-  padding:12px 0;border-bottom:1px solid #EEF2F7;
-  display:flex;justify-content:space-between;align-items:flex-start;
-}
+/* ── Recent Entry Rows ───────────────────────────────── */
+.entry-row{padding:12px 0;border-bottom:1px solid #EEF2F7;display:flex;justify-content:space-between;align-items:flex-start}
 .entry-row:last-child{border-bottom:none}
 .entry-main{font-size:13px;font-weight:600;color:#1A2D5A}
 .entry-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
-.entry-badge{
-  display:inline-block;font-size:10px;font-weight:700;
-  padding:2px 7px;border-radius:4px;margin-top:3px;
-}
+.entry-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px}
 .badge-income{background:#DCFCE7;color:#15803D}
 .badge-expense{background:#FEE2E2;color:#B91C1C}
 .badge-vendor{background:#E0E7FF;color:#3730A3}
 .badge-advance{background:#FEF9C3;color:#854D0E}
-.entry-amount{
-  font-size:15px;font-weight:700;color:#2B5197;
-  white-space:nowrap;text-align:right;
-}
+.entry-amount{font-size:15px;font-weight:700;color:#2B5197;white-space:nowrap;text-align:right}
 .entry-date{font-size:11px;color:#7A8BAA;text-align:right;margin-top:2px}
-
-/* ── Empty State ─────────────────────────────────────── */
 .empty{text-align:center;padding:32px 16px;color:#7A8BAA;font-size:14px}
 .empty-icon{font-size:36px;margin-bottom:10px}
 
 /* ── Bottom Nav ──────────────────────────────────────── */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  background:#fff;border-top:1px solid #DDE3EE;
-  display:flex;z-index:100;
-  padding-bottom:env(safe-area-inset-bottom);
-}
-.nav-item{
-  flex:1;padding:10px 4px 8px;text-align:center;
-  cursor:pointer;transition:color .2s;color:#7A8BAA;
-}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #DDE3EE;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;padding:10px 4px 8px;text-align:center;cursor:pointer;transition:color .2s;color:#7A8BAA}
 .nav-item.active{color:#2B5197}
 .nav-item .nav-icon{font-size:22px;display:block}
-.nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;
-  text-transform:uppercase;letter-spacing:0.4px}
+.nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:0.4px}
 
 /* ── Toast ───────────────────────────────────────────── */
-.toast{
-  position:fixed;top:80px;left:50%;transform:translateX(-50%);
-  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;
-  z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;
-  white-space:nowrap;max-width:90vw;text-align:center;
-}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
-
 .hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<!-- Header -->
 <div class="header">
   <div class="header-left">
     <span class="header-icon">🏠</span>
@@ -194,19 +106,16 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
     </div>
   </div>
   <div class="header-right">
-    <div class="fy-badge" onclick="toggleFYPanel()">
-      <span id="fyLabel">FY —</span> <span>▾</span>
-    </div>
+    <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
     <div class="online-dot" title="Online"></div>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
+<div class="version-bar"><span>v1.1</span></div>
 
 <!-- VIEW: New Entry -->
 <div id="view-entry">
   <div class="page-title">New Entry</div>
-
-  <!-- Category tabs -->
   <div class="seg-wrap">
     <div class="seg">
       <div class="seg-btn active" onclick="selectCat('income',this)">Income</div>
@@ -216,47 +125,28 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
     </div>
   </div>
 
-  <!-- Entry type selection -->
   <div class="card">
     <div class="card-label">Select Entry Type</div>
     <div class="type-grid" id="typeGrid"></div>
   </div>
 
-  <!-- Entry form -->
-  <div class="card" id="entryForm">
+  <div class="card">
     <div class="card-label">Entry Details</div>
-
-    <div class="field">
-      <label>Date</label>
-      <input type="date" id="eDate">
-    </div>
+    <div class="field"><label>Date</label><input type="date" id="eDate"></div>
     <div class="field">
       <label>Project</label>
-      <select id="eProject">
-        <option value="">— Select Project —</option>
-      </select>
+      <select id="eProject"><option value="">— Select Project —</option></select>
     </div>
     <div class="field" id="costHeadField">
       <label>Cost Head</label>
-      <select id="eCostHead">
-        <option value="">— Select Cost Head —</option>
-      </select>
+      <select id="eCostHead"><option value="">— Select Cost Head —</option></select>
     </div>
-    <div class="field" id="vendorField">
+    <div class="field">
       <label>Vendor / Party</label>
-      <select id="eVendor">
-        <option value="">— Select (optional) —</option>
-      </select>
+      <select id="eVendor"><option value="">— Select Vendor (optional) —</option></select>
     </div>
-    <div class="field">
-      <label>Amount (₹)</label>
-      <input type="number" id="eAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal">
-    </div>
-    <div class="field">
-      <label>Narration / Remarks</label>
-      <input type="text" id="eNarration" placeholder="Brief note about this entry">
-    </div>
-
+    <div class="field"><label>Amount (₹)</label><input type="number" id="eAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Narration / Remarks</label><input type="text" id="eNarration" placeholder="Brief note about this entry"></div>
     <button class="btn-save" id="saveBtn" onclick="saveEntry()">Save Entry</button>
   </div>
 </div>
@@ -266,282 +156,146 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
   <div class="page-title">My Entries</div>
   <div class="card">
     <div class="card-label">Recent Entries (Last 50)</div>
-    <div id="recentList">
-      <div class="empty"><div class="empty-icon">📋</div>Loading…</div>
-    </div>
+    <div id="recentList"><div class="empty"><div class="empty-icon">📋</div>Loading…</div></div>
   </div>
 </div>
 
-<!-- Bottom Nav -->
 <nav class="bottom-nav">
-  <div class="nav-item active" onclick="showView('entry',this)">
-    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
-  </div>
-  <div class="nav-item" onclick="showView('add',this)">
-    <span class="nav-icon">➕</span><span class="nav-label">Add</span>
-  </div>
-  <div class="nav-item" onclick="showView('recent',this)">
-    <span class="nav-icon">📋</span><span class="nav-label">Entries</span>
-  </div>
-  <div class="nav-item" onclick="logout()">
-    <span class="nav-icon">⏻</span><span class="nav-label">Sign Out</span>
-  </div>
+  <div class="nav-item active" onclick="showView('entry',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+  <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
+  <div class="nav-item" onclick="showView('recent',this)"><span class="nav-icon">📋</span><span class="nav-label">Entries</span></div>
+  <div class="nav-item" onclick="logout()"><span class="nav-icon">⏻</span><span class="nav-label">Sign Out</span></div>
 </nav>
-
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ─────────────────────────────────────────────────
-var API = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+var VERSION  = "v1.1";
+var token    = localStorage.getItem("bd_token");
+var username = localStorage.getItem("bd_username");
+var role     = localStorage.getItem("bd_role");
+var curFY    = localStorage.getItem("bd_fy") || "";
+var fyList=[], projects=[], costHeads=[], vendors=[], selType=null;
 
-// ── STATE ──────────────────────────────────────────────────
-var token    = ls("bd_token");
-var username = ls("bd_username");
-var role     = ls("bd_role");
-var curFY    = ls("bd_fy") || "";
-var fyList   = [];
-var projects = [];
-var costHeads= [];
-var vendors  = [];
-var selType  = null;
-
-// ── ENTRY TYPE DEFINITIONS ─────────────────────────────────
 var CATS = {
   income: [
-    { key:"invoice_raised",   label:"Invoice Raised to Client",      hint:"Client owes us money",         dr:"Accounts Receivable", cr:"Consultancy Fees",    needsCH:false },
-    { key:"payment_received", label:"Payment Received from Client",   hint:"Client paid us",               dr:"Bank Account",        cr:"Accounts Receivable", needsCH:false },
-    { key:"advance_received", label:"Advance Received from Client",   hint:"Advance payment from client",  dr:"Bank Account",        cr:"Advances Received",   needsCH:false }
+    { key:"invoice_raised",    label:"Invoice Raised to Client",     hint:"Client owes us money",          dr:"Accounts Receivable", cr:"Consultancy Fees",   needsCH:false },
+    { key:"payment_received",  label:"Payment Received from Client", hint:"Client paid us",                dr:"Bank Account",        cr:"Accounts Receivable",needsCH:false },
+    { key:"advance_received",  label:"Advance Received from Client", hint:"Advance payment from client",   dr:"Bank Account",        cr:"Advances Received",  needsCH:false }
   ],
   expense: [
-    { key:"expense_cash",     label:"Expense Paid in Cash",          hint:"Direct cash payment",          dr:"[Cost Head]",         cr:"Cash in Hand",        needsCH:true  },
-    { key:"expense_bank",     label:"Expense Paid via Bank",         hint:"NEFT / UPI / cheque",          dr:"[Cost Head]",         cr:"Bank Account",        needsCH:true  }
+    { key:"expense_cash",      label:"Expense Paid in Cash",         hint:"Direct cash payment",           dr:"[Cost Head]",         cr:"Cash in Hand",       needsCH:true  },
+    { key:"expense_bank",      label:"Expense Paid via Bank",        hint:"NEFT / UPI / cheque",           dr:"[Cost Head]",         cr:"Bank Account",       needsCH:true  }
   ],
   vendor: [
-    { key:"vendor_bill",      label:"Vendor Bill Received",          hint:"Bill arrived, not yet paid",   dr:"[Cost Head]",         cr:"Accounts Payable",    needsCH:true  },
-    { key:"vendor_paid_bank", label:"Vendor Payment via Bank",       hint:"Paid vendor by NEFT / UPI",    dr:"Accounts Payable",    cr:"Bank Account",        needsCH:false },
-    { key:"vendor_paid_cash", label:"Vendor Payment in Cash",        hint:"Paid vendor in cash",          dr:"Accounts Payable",    cr:"Cash in Hand",        needsCH:false }
+    { key:"vendor_bill",       label:"Vendor Bill Received",         hint:"Bill arrived, not yet paid",    dr:"[Cost Head]",         cr:"Accounts Payable",   needsCH:true  },
+    { key:"vendor_paid_bank",  label:"Vendor Payment via Bank",      hint:"Paid vendor by NEFT / UPI",     dr:"Accounts Payable",    cr:"Bank Account",       needsCH:false },
+    { key:"vendor_paid_cash",  label:"Vendor Payment in Cash",       hint:"Paid vendor in cash",           dr:"Accounts Payable",    cr:"Cash in Hand",       needsCH:false }
   ],
   advance: [
-    { key:"advance_paid_vendor",label:"Advance Paid to Vendor",      hint:"Mobilisation / advance payment",dr:"Advances Paid",      cr:"Bank Account",        needsCH:false },
-    { key:"advance_adjusted",   label:"Advance Adjusted vs Bill",    hint:"Settle advance against invoice",dr:"Accounts Payable",   cr:"Advances Paid",       needsCH:false }
+    { key:"advance_paid_vendor",label:"Advance Paid to Vendor",      hint:"Mobilisation advance",          dr:"Advances Paid",       cr:"Bank Account",       needsCH:false },
+    { key:"advance_adjusted",   label:"Advance Adjusted vs Bill",    hint:"Settle advance against invoice",dr:"Accounts Payable",    cr:"Advances Paid",      needsCH:false }
   ]
 };
-
 var CAT_BADGE = { income:"badge-income", expense:"badge-expense", vendor:"badge-vendor", advance:"badge-advance" };
 var curCat = "income";
 
-// ── INIT ───────────────────────────────────────────────────
-if (!token) { window.location.href="index.html"; }
+if (!token) window.location.href = "index.html";
 document.getElementById("headerRole").textContent = role || "Supervisor";
-setToday();
-loadFY();
-loadDropdowns();
+setToday(); loadFY(); loadDropdowns();
 selectCat("income", document.querySelector(".seg-btn.active"));
 
-function setToday() {
-  var d=new Date(), y=d.getFullYear(),
-      m=String(d.getMonth()+1).padStart(2,"0"),
-      dd=String(d.getDate()).padStart(2,"0");
-  document.getElementById("eDate").value = y+"-"+m+"-"+dd;
-}
-
-function ls(k){ return localStorage.getItem(k)||""; }
-function setSess(k,v){ localStorage.setItem(k,v); }
+function setToday(){var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");document.getElementById("eDate").value=y+"-"+m+"-"+dd}
+function ls(k){return localStorage.getItem(k)||""}
 
 // ── FY ─────────────────────────────────────────────────────
-function loadFY() {
-  api({ action:"getFYList", token:token }, function(d){
-    if (!d.success) return;
-    fyList = d.list;
-    var active = d.list.find(f=>f.active) || d.list[0];
-    if (!curFY && active) { curFY = active.id; setSess("bd_fy", curFY); }
-    updateFYLabel();
-    renderFYPanel();
-  });
-}
-function updateFYLabel() {
-  var f = fyList.find(x=>x.id===curFY);
-  document.getElementById("fyLabel").textContent = f ? f.label : curFY;
-}
-function toggleFYPanel() {
-  var p=document.getElementById("fyPanel");
-  p.style.display = p.style.display==="block" ? "none" : "block";
-}
-function renderFYPanel() {
-  var html = fyList.map(f=>
-    "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>"
-  ).join("");
-  document.getElementById("fyPanel").innerHTML = html;
-}
-function setFY(id) {
-  curFY = id; setSess("bd_fy", id);
-  updateFYLabel(); renderFYPanel();
-  document.getElementById("fyPanel").style.display="none";
-}
+function loadFY(){api({action:"getFYList",token:token},function(d){if(!d.success)return;fyList=d.list;var a=d.list.find(f=>f.active)||d.list[0];if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);}updateFYLabel();renderFYPanel();})}
+function updateFYLabel(){var f=fyList.find(x=>x.id===curFY);document.getElementById("fyLabel").textContent=f?f.label:curFY}
+function toggleFYPanel(){var p=document.getElementById("fyPanel");p.style.display=p.style.display==="block"?"none":"block"}
+function renderFYPanel(){document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join("")}
+function setFY(id){curFY=id;localStorage.setItem("bd_fy",id);updateFYLabel();renderFYPanel();document.getElementById("fyPanel").style.display="none"}
 
 // ── DROPDOWNS ──────────────────────────────────────────────
-function loadDropdowns() {
-  api({ action:"getProjects", token:token }, function(d){
-    if (!d.success) return;
-    projects = d.projects;
-    var sel = document.getElementById("eProject");
-    sel.innerHTML = "<option value=''>— Select Project —</option>";
-    d.projects.forEach(p => sel.innerHTML += "<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>");
-  });
-  api({ action:"getCostHeads", token:token }, function(d){
-    if (!d.success) return;
-    costHeads = d.costHeads;
-    var sel = document.getElementById("eCostHead");
-    sel.innerHTML = "<option value=''>— Select Cost Head —</option>";
-    d.costHeads.forEach(c => sel.innerHTML += "<option value='"+c.id+"'>"+c.name+"</option>");
-  });
-  api({ action:"getVendors", token:token }, function(d){
-    if (!d.success) return;
-    vendors = d.vendors;
-    var sel = document.getElementById("eVendor");
-    sel.innerHTML = "<option value=''>— Select Vendor (optional) —</option>";
-    d.vendors.forEach(v => sel.innerHTML += "<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>");
-  });
+function loadDropdowns(){
+  api({action:"getProjects",token:token},function(d){if(!d.success)return;projects=d.projects;var s=document.getElementById("eProject");s.innerHTML="<option value=''>— Select Project —</option>";d.projects.forEach(p=>s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>")});
+  api({action:"getCostHeads",token:token},function(d){if(!d.success)return;costHeads=d.costHeads;var s=document.getElementById("eCostHead");s.innerHTML="<option value=''>— Select Cost Head —</option>";d.costHeads.forEach(c=>s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>")});
+  api({action:"getVendors",token:token},function(d){if(!d.success)return;vendors=d.vendors;var s=document.getElementById("eVendor");s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";d.vendors.forEach(v=>s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>")});
 }
 
-// ── CATEGORY & TYPE SELECTION ──────────────────────────────
-function selectCat(cat, el) {
-  curCat = cat;
-  document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active");
-  selType = null;
-
-  var items = CATS[cat];
-  var html  = items.map(function(t){
-    var drLabel = t.dr==="[Cost Head]" ? "<em>Selected Cost Head</em>" : t.dr;
+// ── CATEGORY & TYPE ────────────────────────────────────────
+function selectCat(cat,el){
+  curCat=cat;selType=null;
+  document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");
+  var html=CATS[cat].map(function(t){
+    var drL=t.dr==="[Cost Head]"?"<em>Selected Cost Head</em>":t.dr;
     return "<div class='type-opt' onclick='selectType(this,\""+t.key+"\","+t.needsCH+")'>"+
       "<div class='type-opt-label'>"+t.label+"</div>"+
       "<div class='type-opt-hint'>"+t.hint+"</div>"+
       "<div class='type-opt-accounts'>"+
-        "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+drLabel+"</span></div>"+
+        "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+drL+"</span></div>"+
         "<div class='ac-row'><span class='ac-cr'>CR</span> <span class='ac-name'>"+t.cr+"</span></div>"+
-      "</div>"+
-    "</div>";
+      "</div></div>";
   }).join("");
-  document.getElementById("typeGrid").innerHTML = html;
-  document.getElementById("costHeadField").style.display = "none";
+  document.getElementById("typeGrid").innerHTML=html;
+  document.getElementById("costHeadField").style.display="none";
 }
-
-function selectType(el, key, needsCH) {
-  document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
-  el.classList.add("selected");
-  var catItems = CATS[curCat];
-  selType = catItems.find(t=>t.key===key);
-  document.getElementById("costHeadField").style.display = needsCH ? "" : "none";
-  // Vendor field: always show for vendor category
-  document.getElementById("vendorField").style.display = (curCat==="vendor"||curCat==="advance") ? "" : "";
+function selectType(el,key,needsCH){
+  document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));el.classList.add("selected");
+  selType=CATS[curCat].find(t=>t.key===key);
+  document.getElementById("costHeadField").style.display=needsCH?"":"none";
 }
 
 // ── SAVE ENTRY ─────────────────────────────────────────────
-function saveEntry() {
-  if (!selType) { toast("Please select an entry type first.", false); return; }
-  var proj   = document.getElementById("eProject").value;
-  var amount = parseFloat(document.getElementById("eAmount").value);
-  if (!proj)           { toast("Please select a project.", false); return; }
-  if (!amount || amount<=0) { toast("Please enter a valid amount.", false); return; }
-  if (selType.needsCH && !document.getElementById("eCostHead").value) {
-    toast("Please select a cost head for this entry type.", false); return;
-  }
-
-  var btn = document.getElementById("saveBtn");
-  btn.disabled = true; btn.textContent = "Saving…";
-
-  api({
-    action:      "saveEntry",
-    token:       token,
-    fyid:        curFY,
-    entryType:   selType.key,
-    projectId:   proj,
-    costHeadId:  document.getElementById("eCostHead").value,
-    vendorId:    document.getElementById("eVendor").value,
-    date:        document.getElementById("eDate").value,
-    amount:      amount,
-    narration:   document.getElementById("eNarration").value
-  }, function(d){
-    btn.disabled = false; btn.textContent = "Save Entry";
-    if (d.success) {
-      toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr, true);
-      document.getElementById("eAmount").value = "";
-      document.getElementById("eNarration").value = "";
-      selType = null;
-      document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
-    } else {
-      toast(d.error || "Save failed.", false);
-    }
+function saveEntry(){
+  if(!selType){toast("Please select an entry type first.",false);return}
+  var proj=document.getElementById("eProject").value;
+  var amt=parseFloat(document.getElementById("eAmount").value);
+  if(!proj){toast("Please select a project.",false);return}
+  if(!amt||amt<=0){toast("Please enter a valid amount.",false);return}
+  if(selType.needsCH&&!document.getElementById("eCostHead").value){toast("Please select a cost head for this entry type.",false);return}
+  var btn=document.getElementById("saveBtn");btn.disabled=true;btn.textContent="Saving…";
+  api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
+    costHeadId:document.getElementById("eCostHead").value,
+    vendorId:document.getElementById("eVendor").value,
+    date:document.getElementById("eDate").value,
+    amount:amt,narration:document.getElementById("eNarration").value},
+  function(d){
+    btn.disabled=false;btn.textContent="Save Entry";
+    if(d.success){toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);document.getElementById("eAmount").value="";document.getElementById("eNarration").value="";selType=null;document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));}
+    else toast(d.error||"Save failed.",false);
   });
 }
 
 // ── RECENT ENTRIES ─────────────────────────────────────────
-function loadRecent() {
-  var el = document.getElementById("recentList");
-  el.innerHTML = "<div class='empty'><div class='empty-icon'>📋</div>Loading…</div>";
-  api({ action:"getMyEntries", token:token, fyid:curFY }, function(d){
-    if (!d.success || !d.entries.length) {
-      el.innerHTML = "<div class='empty'><div class='empty-icon'>📋</div>No entries yet for this period.</div>";
-      return;
-    }
-    var html = "";
+function loadRecent(){
+  var el=document.getElementById("recentList");
+  el.innerHTML="<div class='empty'><div class='empty-icon'>📋</div>Loading…</div>";
+  api({action:"getMyEntries",token:token,fyid:curFY},function(d){
+    if(!d.success||!d.entries.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📋</div>No entries yet for this period.</div>";return}
+    var html="";
     d.entries.forEach(function(e){
-      var cat   = e.entryType.startsWith("invoice")||e.entryType.startsWith("payment")||e.entryType.startsWith("advance_r") ? "income"
-                : e.entryType.startsWith("vendor") ? "vendor"
-                : e.entryType.startsWith("advance") ? "advance" : "expense";
-      var badge = CAT_BADGE[cat];
-      html += "<div class='entry-row'>"+
-        "<div><div class='entry-main'>"+humanize(e.entryType)+"</div>"+
-        "<div class='entry-sub'>"+e.projectId+(e.costHeadId?" · "+e.costHeadId:"")+"</div>"+
-        "<span class='entry-badge "+badge+"'>"+e.entryId+"</span></div>"+
-        "<div><div class='entry-amount'>₹ "+fmt(e.amount)+"</div>"+
-        "<div class='entry-date'>"+e.date+"</div></div>"+
-        "</div>";
+      var cat=e.entryType.startsWith("invoice")||e.entryType.startsWith("payment")||e.entryType.startsWith("advance_r")?"income":e.entryType.startsWith("vendor")?"vendor":e.entryType.startsWith("advance")?"advance":"expense";
+      html+="<div class='entry-row'><div><div class='entry-main'>"+humanize(e.entryType)+"</div><div class='entry-sub'>"+e.projectId+(e.costHeadId?" · "+e.costHeadId:"")+"</div><span class='entry-badge "+CAT_BADGE[cat]+"'>"+e.entryId+"</span></div><div><div class='entry-amount'>₹ "+fmt(e.amount)+"</div><div class='entry-date'>"+e.date+"</div></div></div>";
     });
-    el.innerHTML = html;
+    el.innerHTML=html;
   });
 }
 
 // ── VIEW ROUTING ───────────────────────────────────────────
-function showView(name, el) {
-  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active"));
-  el.classList.add("active");
+function showView(name,el){
+  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active"));el.classList.add("active");
   document.getElementById("view-entry").classList.add("hidden");
   document.getElementById("view-recent").classList.add("hidden");
-  if (name==="entry"||name==="add") {
-    document.getElementById("view-entry").classList.remove("hidden");
-  } else if (name==="recent") {
-    document.getElementById("view-recent").classList.remove("hidden");
-    loadRecent();
-  }
+  if(name==="entry"||name==="add")document.getElementById("view-entry").classList.remove("hidden");
+  else if(name==="recent"){document.getElementById("view-recent").classList.remove("hidden");loadRecent();}
 }
 
 // ── UTILS ──────────────────────────────────────────────────
-function api(body, cb) {
-  fetch(API, { method:"POST", body: JSON.stringify(body) })
-    .then(r=>r.json()).then(cb)
-    .catch(()=>cb({ success:false, error:"Network error. Please check connection." }));
-}
-function toast(msg, ok) {
-  var t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = "toast show " + (ok ? "ok" : "err");
-  clearTimeout(t._t);
-  t._t = setTimeout(()=>t.className="toast", 4000);
-}
-function fmt(n) {
-  return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-function humanize(s) {
-  return (s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
-}
-function logout() {
-  localStorage.removeItem("bd_token");
-  localStorage.removeItem("bd_role");
-  localStorage.removeItem("bd_username");
-  window.location.href="index.html";
-}
+function api(body,cb){fetch(API,{method:"POST",body:JSON.stringify(body)}).then(r=>r.json()).then(cb).catch(()=>cb({success:false,error:"Network error. Please check connection."}))}
+function toast(msg,ok){var t=document.getElementById("toast");t.textContent=msg;t.className="toast show "+(ok?"ok":"err");clearTimeout(t._t);t._t=setTimeout(()=>t.className="toast",4000)}
+function fmt(n){return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function humanize(s){return(s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
+function logout(){localStorage.removeItem("bd_token");localStorage.removeItem("bd_role");localStorage.removeItem("bd_username");window.location.href="index.html"}
 </script>
 </body>
 </html>
