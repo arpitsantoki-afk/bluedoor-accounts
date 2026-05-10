@@ -5,33 +5,27 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Blue Door – Admin</title>
 <style>
-/* ── Reset & Base ─────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-  background:#EEF2F7;min-height:100vh;padding-bottom:80px;}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F7;min-height:100vh;padding-bottom:80px}
 
 /* ── Header ──────────────────────────────────────────── */
-.header{
-  background:#2B5197;
-  padding:12px 16px 10px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
+.header{background:#2B5197;padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .header-left{display:flex;align-items:center;gap:10px}
 .header-icon{font-size:20px}
 .header-title{color:#fff;font-size:16px;font-weight:700}
-.header-role{background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:700;
-  padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
+.header-role{background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
 .header-right{display:flex;align-items:center;gap:8px}
-.fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);
-  border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;
-  cursor:pointer;display:flex;align-items:center;gap:4px}
+.fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
-.fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);
-  padding:10px 16px;display:none}
-.fy-option{display:inline-block;padding:6px 14px;border-radius:6px;
-  font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
+.btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 11px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;font-family:inherit}
+.btn-logout:hover{background:rgba(239,68,68,0.35);border-color:rgba(239,68,68,0.5)}
+.fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
+.fy-option{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
 .fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
+
+/* ── Version bar ─────────────────────────────────────── */
+.version-bar{background:#1E3F7A;padding:4px 16px;text-align:right}
+.version-bar span{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.3px}
 
 /* ── Page Title ──────────────────────────────────────── */
 .page-title{padding:14px 16px 4px;font-size:17px;font-weight:700;color:#1A2D5A}
@@ -39,33 +33,30 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 
 /* ── KPI Cards ───────────────────────────────────────── */
 .kpi-row{display:flex;gap:10px;padding:0 16px 12px;overflow-x:auto}
-.kpi{
-  flex:1;min-width:100px;
-  background:#fff;border:1px solid #DDE3EE;border-radius:12px;
-  padding:14px 12px;text-align:center;flex-shrink:0;
-}
-.kpi-label{font-size:10px;font-weight:700;color:#7A8BAA;
-  text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.kpi{flex:1;min-width:100px;background:#fff;border:1px solid #DDE3EE;border-radius:12px;padding:14px 12px;text-align:center;flex-shrink:0}
+.kpi-label{font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
 .kpi-value{font-size:16px;font-weight:800;color:#1A2D5A}
 .kpi-value.green{color:#15803D}
 .kpi-value.red{color:#B91C1C}
 .kpi-value.blue{color:#2B5197}
 
 /* ── Card ────────────────────────────────────────────── */
-.card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;
-  margin:0 16px 12px;padding:16px}
-.card-label{font-size:11px;font-weight:700;color:#7A8BAA;
-  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
+.card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:16px}
+.card-label{font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
 
-/* ── Segmented ───────────────────────────────────────── */
+/* ── Segmented (main tabs) ───────────────────────────── */
 .seg-wrap{padding:0 16px 12px}
 .seg{display:flex;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px;overflow:hidden}
-.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;
-  color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
+.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
 .seg-btn.active{background:#2B5197;color:#fff}
 
-/* ── Summary Strips ──────────────────────────────────── */
-.strip-row{display:flex;gap:8px;margin:0 16px 12px}
+/* ── Sub-tabs (within Add) ───────────────────────────── */
+.subtab-row{display:flex;gap:0;margin:0 16px 12px;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px}
+.subtab{flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s}
+.subtab.active{background:#2B5197;color:#fff}
+
+/* ── Strip summaries ─────────────────────────────────── */
+.strip-row{display:flex;gap:8px;margin:0 0 12px}
 .strip{flex:1;border-radius:10px;padding:12px 10px;text-align:center}
 .strip-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
 .strip-value{font-size:15px;font-weight:800}
@@ -73,12 +64,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 .strip.green{background:#DCFCE7}.strip.green .strip-label{color:#15803D}.strip.green .strip-value{color:#15803D}
 .strip.blue{background:#DBEAFE}.strip.blue .strip-label{color:#1D4ED8}.strip.blue .strip-value{color:#1D4ED8}
 
-/* ── Table ───────────────────────────────────────────── */
+/* ── Tables ──────────────────────────────────────────── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
-thead th{padding:9px 10px;background:#F7F9FC;color:#7A8BAA;font-size:11px;
-  font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
-  border-bottom:1px solid #DDE3EE;text-align:left;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:400px}
+thead th{padding:9px 10px;background:#F7F9FC;color:#7A8BAA;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #DDE3EE;text-align:left;white-space:nowrap}
 tbody tr{border-bottom:1px solid #F0F4FA;transition:background .1s}
 tbody tr:hover{background:#F7F9FC}
 tbody tr:last-child{border-bottom:none}
@@ -97,42 +86,50 @@ td{padding:10px 10px;vertical-align:top}
 .badge-active{background:#DCFCE7;color:#15803D}
 .badge-inactive{background:#F1F5F9;color:#94A3B8}
 
-/* ── Bar Chart ───────────────────────────────────────── */
+/* ── Bar Charts ──────────────────────────────────────── */
 .bar-chart{display:flex;flex-direction:column;gap:10px}
 .bar-item{}
-.bar-name{font-size:12px;font-weight:600;color:#1A2D5A;margin-bottom:4px;
-  display:flex;justify-content:space-between}
+.bar-name{font-size:12px;font-weight:600;color:#1A2D5A;margin-bottom:4px;display:flex;justify-content:space-between}
 .bar-name span{color:#7A8BAA;font-weight:400}
 .bar-track{height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden;margin-bottom:2px}
 .bar-fill-inc{height:100%;background:#2B5197;border-radius:4px;transition:width .5s}
 .bar-fill-exp{height:100%;background:#EF4444;border-radius:4px;transition:width .5s}
 .bar-legend{display:flex;gap:14px;font-size:11px;color:#7A8BAA;margin-top:2px}
-.bar-legend span{display:flex;align-items:center;gap:4px}
 .dot-blue{width:8px;height:8px;background:#2B5197;border-radius:50%;display:inline-block}
 .dot-red{width:8px;height:8px;background:#EF4444;border-radius:50%;display:inline-block}
 
-/* ── Form ────────────────────────────────────────────── */
+/* ── Form Fields ─────────────────────────────────────── */
 .field{margin-bottom:12px}
-.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;
-  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
-.field input,.field select{width:100%;padding:10px 12px;
-  border:1.5px solid #DDE3EE;border-radius:9px;
-  font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;
-  transition:border-color .2s;appearance:none;-webkit-appearance:none}
+.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;font-family:inherit}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
 .field input:focus,.field select:focus{border-color:#2B5197;background:#fff}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-.btn-primary{padding:10px 18px;background:#2B5197;border:none;border-radius:9px;
-  color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-primary{padding:10px 18px;background:#2B5197;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;font-family:inherit}
 .btn-primary:hover{background:#224080}
-.btn-sm{padding:7px 14px;font-size:12px}
-.btn-full{width:100%;padding:12px}
+.btn-full{width:100%;padding:12px;font-size:14px}
 
-/* ── Vendor outstanding row ──────────────────────────── */
-.outstanding-row{padding:12px 0;border-bottom:1px solid #EEF2F7}
-.outstanding-row:last-child{border-bottom:none}
-.or-name{font-size:13px;font-weight:700;color:#1A2D5A}
-.or-type{font-size:11px;color:#7A8BAA}
+/* ── Entry type options (in Admin Add > Entry) ───────── */
+.type-grid{display:flex;flex-direction:column;gap:6px}
+.type-opt{padding:11px 14px;border:1.5px solid #DDE3EE;border-radius:10px;cursor:pointer;transition:all .15s;background:#F7F9FC}
+.type-opt:hover{border-color:#2B5197;background:#F0F4FF}
+.type-opt.selected{border-color:#2B5197;background:#EEF3FF}
+.type-opt-label{font-size:13px;font-weight:600;color:#1A2D5A}
+.type-opt-hint{font-size:11px;color:#7A8BAA;margin-top:2px}
+.type-opt-accounts{display:none;margin-top:8px;padding:8px 10px;background:#F7F9FC;border-radius:7px}
+.type-opt.selected .type-opt-accounts{display:block}
+.ac-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0}
+.ac-dr{color:#15803D;font-weight:700;font-size:10px;background:#DCFCE7;padding:1px 6px;border-radius:3px}
+.ac-cr{color:#B91C1C;font-weight:700;font-size:10px;background:#FEE2E2;padding:1px 6px;border-radius:3px}
+.ac-name{color:#1A2D5A;font-weight:500}
+
+/* ── Entry category seg ──────────────────────────────── */
+.entry-cat-seg{display:flex;background:#EEF2F7;border-radius:9px;padding:3px;margin-bottom:12px;gap:2px}
+.entry-cat-btn{flex:1;padding:7px 4px;text-align:center;font-size:12px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:7px;transition:all .2s}
+.entry-cat-btn.active{background:#2B5197;color:#fff}
+
+/* ── Vendor outstanding ──────────────────────────────── */
 .or-strips{display:flex;gap:6px;margin-top:8px}
 .or-strip{flex:1;border-radius:7px;padding:7px 8px;text-align:center}
 .or-strip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
@@ -143,63 +140,50 @@ td{padding:10px 10px;vertical-align:top}
 .empty-icon{font-size:32px;margin-bottom:8px}
 
 /* ── Bottom Nav ──────────────────────────────────────── */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;
-  border-top:1px solid #DDE3EE;display:flex;z-index:100;
-  padding-bottom:env(safe-area-inset-bottom)}
-.nav-item{flex:1;padding:10px 4px 8px;text-align:center;cursor:pointer;
-  transition:color .2s;color:#7A8BAA}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #DDE3EE;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;padding:10px 4px 8px;text-align:center;cursor:pointer;transition:color .2s;color:#7A8BAA}
 .nav-item.active{color:#2B5197}
 .nav-item .nav-icon{font-size:20px;display:block}
-.nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;
-  text-transform:uppercase;letter-spacing:0.4px}
+.nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:0.4px}
 
 /* ── Toast ───────────────────────────────────────────── */
-.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);
-  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;
-  z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;
-  white-space:nowrap;max-width:90vw;text-align:center}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
-
 .hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<!-- Header -->
+<!-- Header with logout -->
 <div class="header">
   <div class="header-left">
     <span class="header-icon">🏠</span>
-    <div>
-      <div class="header-title">Blue Door <span class="header-role">Admin</span></div>
-    </div>
+    <div><div class="header-title">Blue Door <span class="header-role">Admin</span></div></div>
   </div>
   <div class="header-right">
-    <div class="fy-badge" onclick="toggleFYPanel()">
-      <span id="fyLabel">FY —</span> <span>▾</span>
-    </div>
+    <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
     <div class="online-dot"></div>
+    <button class="btn-logout" onclick="logout()">⏻ Sign Out</button>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
+<div class="version-bar"><span>v1.1</span></div>
 
 <!-- ── VIEW: Home / Dashboard ────────────────────────────── -->
 <div id="view-home">
   <div class="page-title">Dashboard</div>
   <div class="page-sub" id="dashSub">Loading…</div>
-
   <div class="kpi-row">
     <div class="kpi"><div class="kpi-label">Income</div><div class="kpi-value blue" id="kpiInc">—</div></div>
     <div class="kpi"><div class="kpi-label">Expense</div><div class="kpi-value red" id="kpiExp">—</div></div>
     <div class="kpi"><div class="kpi-label">Profit</div><div class="kpi-value green" id="kpiPro">—</div></div>
   </div>
-
   <div class="card">
     <div class="card-label">Project P&L</div>
     <div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div>
   </div>
-
   <div class="card">
     <div class="card-label">Monthly Trend</div>
     <div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div>
@@ -209,8 +193,6 @@ td{padding:10px 10px;vertical-align:top}
 <!-- ── VIEW: Ledger ───────────────────────────────────────── -->
 <div id="view-ledger" class="hidden">
   <div class="page-title">Ledger</div>
-
-  <!-- Sub-tabs -->
   <div class="seg-wrap">
     <div class="seg">
       <div class="seg-btn active" onclick="switchLedgerTab('transactions',this)">Transactions</div>
@@ -219,121 +201,138 @@ td{padding:10px 10px;vertical-align:top}
     </div>
   </div>
 
-  <!-- Transactions -->
   <div id="lt-transactions">
     <div class="card">
       <div class="card-label">All Journal Entries</div>
       <div style="margin-bottom:10px">
-        <input type="text" id="ledgerSearch"
-          style="width:100%;padding:9px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none"
-          placeholder="Search entries…" oninput="filterLedger()">
+        <input type="text" id="ledgerSearch" style="width:100%;padding:9px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit" placeholder="Search entries…" oninput="filterLedger()">
       </div>
-      <div class="tbl-wrap" id="ledgerTable">
-        <div class="empty"><div class="empty-icon">📒</div>Loading…</div>
-      </div>
+      <div class="tbl-wrap" id="ledgerTable"><div class="empty">Loading…</div></div>
     </div>
   </div>
 
-  <!-- Vendor -->
   <div id="lt-vendor" class="hidden">
     <div class="card">
       <div class="card-label">Select Vendor</div>
-      <div class="field">
-        <select id="vendorSel" onchange="loadVendorOutstanding()">
-          <option value="">All Vendors</option>
-        </select>
-      </div>
+      <div class="field"><select id="vendorSel" onchange="loadVendorOutstanding()"><option value="">All Vendors</option></select></div>
     </div>
-    <div id="vendorOutstandingOut">
-      <div class="empty"><div class="empty-icon">🤝</div>Loading…</div>
-    </div>
+    <div id="vendorOutstandingOut"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
   </div>
 
-  <!-- Project P&L -->
   <div id="lt-project" class="hidden">
     <div class="card">
       <div class="card-label">Select Project</div>
-      <div class="field">
-        <select id="projSel" onchange="loadProjectPL()">
-          <option value="">All Projects</option>
-        </select>
-      </div>
+      <div class="field"><select id="projSel" onchange="loadProjectPL()"><option value="">All Projects</option></select></div>
     </div>
-    <div id="projectPLOut">
-      <div class="empty"><div class="empty-icon">🏗️</div>Loading…</div>
-    </div>
+    <div id="projectPLOut"><div class="empty"><div class="empty-icon">🏗️</div>Loading…</div></div>
   </div>
 </div>
 
-<!-- ── VIEW: Add ──────────────────────────────────────────── -->
+<!-- ── VIEW: Add (3 sub-tabs: Entry / Project / Vendor) ───── -->
 <div id="view-add" class="hidden">
-  <div class="page-title">Add Master Data</div>
+  <div class="page-title">Add</div>
 
-  <!-- Add Project -->
-  <div class="card">
-    <div class="card-label">Add Project</div>
-    <div class="row-2">
-      <div class="field"><label>Project Name *</label><input type="text" id="pName" placeholder="Residence, Office…"></div>
-      <div class="field"><label>Client Name</label><input type="text" id="pClient" placeholder="Client"></div>
-      <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="City"></div>
-      <div class="field"><label>Start Date</label><input type="date" id="pStart"></div>
-      <div class="field"><label>Budget (₹)</label><input type="number" id="pBudget" placeholder="0"></div>
-      <div class="field">
-        <label>Status</label>
-        <select id="pStatus">
-          <option value="Active">Active</option>
-          <option value="On Hold">On Hold</option>
-          <option value="Completed">Completed</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn-primary btn-full" onclick="addProject()">Add Project</button>
+  <!-- Sub-tab selector -->
+  <div class="subtab-row">
+    <div class="subtab active" onclick="switchAddTab('entry',this)">Entry</div>
+    <div class="subtab" onclick="switchAddTab('project',this)">Project</div>
+    <div class="subtab" onclick="switchAddTab('vendor',this)">Vendor</div>
   </div>
 
-  <!-- Add Vendor -->
-  <div class="card">
-    <div class="card-label">Add Vendor / Contractor</div>
-    <div class="row-2">
-      <div class="field"><label>Vendor Name *</label><input type="text" id="vName" placeholder="Name"></div>
-      <div class="field">
-        <label>Type</label>
-        <select id="vType">
-          <option>Contractor</option><option>Supplier</option>
-          <option>Consultant</option><option>Labour</option><option>Other</option>
-        </select>
+  <!-- ── ADD ENTRY ──────────────────────────────────────── -->
+  <div id="at-entry">
+    <div class="card">
+      <div class="card-label">Category</div>
+      <div class="entry-cat-seg">
+        <div class="entry-cat-btn active" onclick="aSelCat('income',this)">Income</div>
+        <div class="entry-cat-btn" onclick="aSelCat('expense',this)">Expense</div>
+        <div class="entry-cat-btn" onclick="aSelCat('vendor',this)">Vendor</div>
+        <div class="entry-cat-btn" onclick="aSelCat('advance',this)">Advance</div>
       </div>
-      <div class="field"><label>GSTIN</label><input type="text" id="vGST" placeholder="Optional"></div>
-      <div class="field"><label>Contact</label><input type="text" id="vContact" placeholder="Phone"></div>
+      <div class="card-label" style="margin-top:4px">Entry Type</div>
+      <div class="type-grid" id="aTypeGrid"></div>
     </div>
-    <button class="btn-primary btn-full" onclick="addVendor()">Add Vendor</button>
+    <div class="card">
+      <div class="card-label">Entry Details</div>
+      <div class="field"><label>Date</label><input type="date" id="aDate"></div>
+      <div class="field">
+        <label>Project</label>
+        <select id="aProject"><option value="">— Select Project —</option></select>
+      </div>
+      <div class="field" id="aCostHeadField">
+        <label>Cost Head</label>
+        <select id="aCostHead"><option value="">— Select Cost Head —</option></select>
+      </div>
+      <div class="field">
+        <label>Vendor / Party</label>
+        <select id="aVendor"><option value="">— Select Vendor (optional) —</option></select>
+      </div>
+      <div class="field"><label>Amount (₹)</label><input type="number" id="aAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Narration / Remarks</label><input type="text" id="aNarration" placeholder="Brief note about this entry"></div>
+      <button class="btn-primary btn-full" id="aSaveBtn" onclick="adminSaveEntry()">Save Entry</button>
+    </div>
+  </div>
+
+  <!-- ── ADD PROJECT ────────────────────────────────────── -->
+  <div id="at-project" class="hidden">
+    <div class="card">
+      <div class="card-label">New Project</div>
+      <div class="row-2">
+        <div class="field"><label>Project Name *</label><input type="text" id="pName" placeholder="Residence, Office…"></div>
+        <div class="field"><label>Client Name</label><input type="text" id="pClient" placeholder="Client"></div>
+        <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="City"></div>
+        <div class="field"><label>Start Date</label><input type="date" id="pStart"></div>
+        <div class="field"><label>Budget (₹)</label><input type="number" id="pBudget" placeholder="0"></div>
+        <div class="field">
+          <label>Status</label>
+          <select id="pStatus">
+            <option value="Active">Active</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary btn-full" onclick="addProject()">Add Project</button>
+    </div>
+  </div>
+
+  <!-- ── ADD VENDOR ─────────────────────────────────────── -->
+  <div id="at-vendor" class="hidden">
+    <div class="card">
+      <div class="card-label">New Vendor / Contractor</div>
+      <div class="row-2">
+        <div class="field"><label>Vendor Name *</label><input type="text" id="vName" placeholder="Name"></div>
+        <div class="field">
+          <label>Type</label>
+          <select id="vType">
+            <option>Contractor</option><option>Supplier</option>
+            <option>Consultant</option><option>Labour</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>GSTIN</label><input type="text" id="vGST" placeholder="Optional"></div>
+        <div class="field"><label>Contact</label><input type="text" id="vContact" placeholder="Phone"></div>
+      </div>
+      <button class="btn-primary btn-full" onclick="addVendor()">Add Vendor</button>
+    </div>
   </div>
 </div>
 
 <!-- ── VIEW: Reports ─────────────────────────────────────── -->
 <div id="view-reports" class="hidden">
   <div class="page-title">Reports</div>
-
-  <!-- Project P&L Summary -->
   <div class="card">
     <div class="card-label">Project P&L Summary</div>
-    <div id="reportPLTable">
-      <div class="empty"><div class="empty-icon">📊</div>Loading…</div>
-    </div>
+    <div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div>
   </div>
-
-  <!-- Vendor Outstanding Summary -->
   <div class="card">
     <div class="card-label">Vendor Outstanding Summary</div>
-    <div id="reportVendorTable">
-      <div class="empty"><div class="empty-icon">🤝</div>Loading…</div>
-    </div>
+    <div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
   </div>
 </div>
 
 <!-- ── VIEW: More (Users) ─────────────────────────────────── -->
 <div id="view-more" class="hidden">
   <div class="page-title">Users</div>
-
   <div class="card">
     <div class="card-label">Add User</div>
     <div class="row-2">
@@ -346,7 +345,6 @@ td{padding:10px 10px;vertical-align:top}
     </div>
     <button class="btn-primary btn-full" onclick="addUser()">Add User</button>
   </div>
-
   <div class="card">
     <div class="card-label">All Users</div>
     <div id="userList"><div class="empty">Loading…</div></div>
@@ -355,329 +353,288 @@ td{padding:10px 10px;vertical-align:top}
 
 <!-- Bottom Nav -->
 <nav class="bottom-nav">
-  <div class="nav-item active" onclick="showView('home',this)">
-    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
-  </div>
-  <div class="nav-item" onclick="showView('ledger',this)">
-    <span class="nav-icon">📋</span><span class="nav-label">Ledger</span>
-  </div>
-  <div class="nav-item" onclick="showView('add',this)">
-    <span class="nav-icon">➕</span><span class="nav-label">Add</span>
-  </div>
-  <div class="nav-item" onclick="showView('reports',this)">
-    <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
-  </div>
-  <div class="nav-item" onclick="showView('more',this)">
-    <span class="nav-icon">···</span><span class="nav-label">More</span>
-  </div>
+  <div class="nav-item active" onclick="showView('home',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+  <div class="nav-item" onclick="showView('ledger',this)"><span class="nav-icon">📋</span><span class="nav-label">Ledger</span></div>
+  <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
+  <div class="nav-item" onclick="showView('reports',this)"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></div>
+  <div class="nav-item" onclick="showView('more',this)"><span class="nav-icon">···</span><span class="nav-label">More</span></div>
 </nav>
-
 <div class="toast" id="toast"></div>
 
 <script>
-var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
-var token    = localStorage.getItem("bd_token");
-var curFY    = localStorage.getItem("bd_fy") || "";
-var fyList   = [];
-var allLedger= [];
-var projMap  = {};
-var vendorMap= {};
+var API     = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+var VERSION = "v1.1";
+var token   = localStorage.getItem("bd_token");
+var curFY   = localStorage.getItem("bd_fy") || "";
+var fyList=[], allLedger=[], projMap={}, vendorMap={};
+var aSelType=null, aCurCat="income";
 
-if (!token || localStorage.getItem("bd_role") !== "Admin") {
-  window.location.href = "index.html";
-}
+if (!token || localStorage.getItem("bd_role") !== "Admin") window.location.href = "index.html";
+
+// ── Entry type definitions (same as supervisor) ────────────
+var CATS = {
+  income: [
+    { key:"invoice_raised",    label:"Invoice Raised to Client",     hint:"Client owes us money",          dr:"Accounts Receivable", cr:"Consultancy Fees",   needsCH:false },
+    { key:"payment_received",  label:"Payment Received from Client", hint:"Client paid us",                dr:"Bank Account",        cr:"Accounts Receivable",needsCH:false },
+    { key:"advance_received",  label:"Advance Received from Client", hint:"Advance payment from client",   dr:"Bank Account",        cr:"Advances Received",  needsCH:false }
+  ],
+  expense: [
+    { key:"expense_cash",      label:"Expense Paid in Cash",         hint:"Direct cash payment",           dr:"[Cost Head]",         cr:"Cash in Hand",       needsCH:true  },
+    { key:"expense_bank",      label:"Expense Paid via Bank",        hint:"NEFT / UPI / cheque",           dr:"[Cost Head]",         cr:"Bank Account",       needsCH:true  }
+  ],
+  vendor: [
+    { key:"vendor_bill",       label:"Vendor Bill Received",         hint:"Bill arrived, not yet paid",    dr:"[Cost Head]",         cr:"Accounts Payable",   needsCH:true  },
+    { key:"vendor_paid_bank",  label:"Vendor Payment via Bank",      hint:"Paid vendor by NEFT / UPI",     dr:"Accounts Payable",    cr:"Bank Account",       needsCH:false },
+    { key:"vendor_paid_cash",  label:"Vendor Payment in Cash",       hint:"Paid vendor in cash",           dr:"Accounts Payable",    cr:"Cash in Hand",       needsCH:false }
+  ],
+  advance: [
+    { key:"advance_paid_vendor",label:"Advance Paid to Vendor",      hint:"Mobilisation advance",          dr:"Advances Paid",       cr:"Bank Account",       needsCH:false },
+    { key:"advance_adjusted",   label:"Advance Adjusted vs Bill",    hint:"Settle advance against invoice",dr:"Accounts Payable",    cr:"Advances Paid",      needsCH:false }
+  ]
+};
 
 // ── INIT ───────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function(){
-  loadFY();
-  loadDashboard();
+  loadFY(); loadDashboard(); loadAddDropdowns();
 });
 
 // ── FY ─────────────────────────────────────────────────────
-function loadFY() {
-  api({ action:"getFYList", token:token }, function(d){
-    if (!d.success) return;
-    fyList = d.list;
-    var active = d.list.find(f=>f.active)||d.list[0];
-    if (!curFY && active) { curFY=active.id; localStorage.setItem("bd_fy",curFY); }
-    updateFYLabel(); renderFYPanel();
-  });
-}
-function updateFYLabel() {
-  var f=fyList.find(x=>x.id===curFY);
-  document.getElementById("fyLabel").textContent = f?f.label:curFY;
-}
-function toggleFYPanel() {
-  var p=document.getElementById("fyPanel");
-  p.style.display=p.style.display==="block"?"none":"block";
-}
-function renderFYPanel() {
-  document.getElementById("fyPanel").innerHTML = fyList.map(f=>
-    "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>"
-  ).join("");
-}
-function setFY(id) {
-  curFY=id; localStorage.setItem("bd_fy",id);
-  updateFYLabel(); renderFYPanel();
-  document.getElementById("fyPanel").style.display="none";
-  loadDashboard();
-}
+function loadFY(){api({action:"getFYList",token:token},function(d){if(!d.success)return;fyList=d.list;var a=d.list.find(f=>f.active)||d.list[0];if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);}updateFYLabel();renderFYPanel();})}
+function updateFYLabel(){var f=fyList.find(x=>x.id===curFY);document.getElementById("fyLabel").textContent=f?f.label:curFY}
+function toggleFYPanel(){var p=document.getElementById("fyPanel");p.style.display=p.style.display==="block"?"none":"block"}
+function renderFYPanel(){document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join("")}
+function setFY(id){curFY=id;localStorage.setItem("bd_fy",id);updateFYLabel();renderFYPanel();document.getElementById("fyPanel").style.display="none";loadDashboard()}
 
 // ── DASHBOARD ──────────────────────────────────────────────
-function loadDashboard() {
-  document.getElementById("dashSub").textContent = "Loading…";
-  api({ action:"getDashboard", token:token, fyid:curFY }, function(d){
-    if (!d.success) { document.getElementById("dashSub").textContent="Error loading data."; return; }
+function loadDashboard(){
+  document.getElementById("dashSub").textContent="Loading…";
+  api({action:"getDashboard",token:token,fyid:curFY},function(d){
+    if(!d.success){document.getElementById("dashSub").textContent="Error loading.";return}
     var s=d.summary;
-    document.getElementById("dashSub").textContent = "Financial overview · "+( fyList.find(f=>f.id===curFY)||{label:curFY}).label;
-    document.getElementById("kpiInc").textContent = "₹ "+shortNum(s.income);
-    document.getElementById("kpiExp").textContent = "₹ "+shortNum(s.expense);
-    var pEl=document.getElementById("kpiPro");
-    pEl.textContent = "₹ "+shortNum(s.profit);
-    pEl.className = "kpi-value "+(s.profit>=0?"green":"red");
-    renderProjChart(d.byProject);
-    renderMonthChart(d.byMonth);
+    var fyLabel=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
+    document.getElementById("dashSub").textContent="Financial overview · "+fyLabel;
+    document.getElementById("kpiInc").textContent="₹ "+shortNum(s.income);
+    document.getElementById("kpiExp").textContent="₹ "+shortNum(s.expense);
+    var pEl=document.getElementById("kpiPro");pEl.textContent="₹ "+shortNum(s.profit);
+    pEl.className="kpi-value "+(s.profit>=0?"green":"red");
+    renderProjChart(d.byProject);renderMonthChart(d.byMonth);
   });
 }
-
-function renderProjChart(data) {
+function renderProjChart(data){
   var el=document.getElementById("projChart");
-  if (!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📊</div>No data yet.</div>";return;}
+  if(!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📊</div>No data yet.</div>";return}
   var max=Math.max(...data.map(p=>Math.max(p.income,p.expense,1)));
   var html="<div class='bar-chart'>";
   data.forEach(function(p){
-    var iw=Math.round(p.income/max*100), ew=Math.round(p.expense/max*100);
-    html+="<div class='bar-item'>"+
-      "<div class='bar-name'>"+p.project+" <span>₹"+shortNum(p.income)+" / ₹"+shortNum(p.expense)+"</span></div>"+
+    var iw=Math.round(p.income/max*100),ew=Math.round(p.expense/max*100);
+    html+="<div class='bar-item'><div class='bar-name'>"+p.project+" <span>₹"+shortNum(p.income)+" / ₹"+shortNum(p.expense)+"</span></div>"+
       "<div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div>"+
-      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div>"+
-      "</div>";
+      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div></div>";
   });
-  html+="</div><div class='bar-legend' style='margin-top:10px'>"+
-    "<span><i class='dot-blue'></i> Income</span><span><i class='dot-red'></i> Expense</span></div>";
+  html+="</div><div class='bar-legend' style='margin-top:10px'><span><i class='dot-blue'></i> Income</span><span><i class='dot-red'></i> Expense</span></div>";
   el.innerHTML=html;
 }
-
-function renderMonthChart(data) {
+function renderMonthChart(data){
   var el=document.getElementById("monthChart");
-  if (!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📅</div>No data yet.</div>";return;}
+  if(!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📅</div>No data yet.</div>";return}
   var max=Math.max(...data.map(m=>Math.max(m.income,m.expense,1)));
   var html="<div class='bar-chart'>";
   data.slice(-6).forEach(function(m){
-    var iw=Math.round(m.income/max*100), ew=Math.round(m.expense/max*100);
-    html+="<div class='bar-item'>"+
-      "<div class='bar-name'>"+m.month+" <span>₹"+shortNum(m.income)+" / ₹"+shortNum(m.expense)+"</span></div>"+
+    var iw=Math.round(m.income/max*100),ew=Math.round(m.expense/max*100);
+    html+="<div class='bar-item'><div class='bar-name'>"+m.month+" <span>₹"+shortNum(m.income)+" / ₹"+shortNum(m.expense)+"</span></div>"+
       "<div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div>"+
-      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div>"+
-      "</div>";
+      "<div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div></div>";
   });
-  html+="</div>";
-  el.innerHTML=html;
+  html+="</div>";el.innerHTML=html;
 }
 
 // ── LEDGER TABS ────────────────────────────────────────────
-var curLedgerTab = "transactions";
-
-function switchLedgerTab(tab, el) {
-  curLedgerTab = tab;
-  document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active");
-  ["transactions","vendor","project"].forEach(function(t){
-    document.getElementById("lt-"+t).classList[t===tab?"remove":"add"]("hidden");
-  });
-  if (tab==="transactions") loadLedger();
-  if (tab==="vendor")       loadVendorSelects();
-  if (tab==="project")      loadProjectSelects();
+function switchLedgerTab(tab,el){
+  document.querySelectorAll("#view-ledger .seg-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");
+  ["transactions","vendor","project"].forEach(t=>document.getElementById("lt-"+t).classList[t===tab?"remove":"add"]("hidden"));
+  if(tab==="transactions")loadLedger();
+  if(tab==="vendor")loadVendorSelects();
+  if(tab==="project")loadProjectSelects();
 }
-
-// Full ledger
-function loadLedger() {
-  var el=document.getElementById("ledgerTable");
-  el.innerHTML="<div class='empty'>Loading…</div>";
-  api({ action:"getLedger", token:token, fyid:curFY }, function(d){
-    if (!d.success) { el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
-    allLedger=d.ledger;
-    renderLedger(allLedger);
+function loadLedger(){
+  var el=document.getElementById("ledgerTable");el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getLedger",token:token,fyid:curFY},function(d){
+    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return}
+    allLedger=d.ledger;renderLedger(allLedger);
   });
 }
-function renderLedger(rows) {
+function renderLedger(rows){
   var el=document.getElementById("ledgerTable");
-  if (!rows.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>No entries yet.</div>";return;}
+  if(!rows.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>No entries yet.</div>";return}
   var html="<table><thead><tr><th>Date</th><th>Account</th><th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Narration</th></tr></thead><tbody>";
   rows.forEach(function(r){
-    html+="<tr>"+
-      "<td style='white-space:nowrap'><div class='td-main'>"+r.date+"</div><div class='td-sub'>"+r.entryId+"</div></td>"+
+    html+="<tr><td style='white-space:nowrap'><div class='td-main'>"+r.date+"</div><div class='td-sub'>"+r.entryId+"</div></td>"+
       "<td><div class='td-main'>"+r.acName+"</div><div class='td-sub'>"+r.acCode+(r.project?" · "+r.project:"")+"</div></td>"+
       "<td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td>"+
       "<td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td>"+
       "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
-      "<td style='max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7A8BAA'>"+r.narration+"</td>"+
-      "</tr>";
+      "<td style='max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7A8BAA'>"+r.narration+"</td></tr>";
   });
-  html+="</tbody></table>";
-  el.innerHTML=html;
+  html+="</tbody></table>";el.innerHTML=html;
 }
-function filterLedger() {
+function filterLedger(){
   var q=document.getElementById("ledgerSearch").value.toLowerCase();
-  renderLedger(q?allLedger.filter(r=>
-    (r.narration||"").toLowerCase().includes(q)||
-    (r.acName||"").toLowerCase().includes(q)||
-    (r.project||"").toLowerCase().includes(q)||
-    (r.entryId||"").toLowerCase().includes(q)
-  ):allLedger);
+  renderLedger(q?allLedger.filter(r=>(r.narration||"").toLowerCase().includes(q)||(r.acName||"").toLowerCase().includes(q)||(r.project||"").toLowerCase().includes(q)||(r.entryId||"").toLowerCase().includes(q)):allLedger);
 }
-
-// Vendor selects for Ledger tab
-function loadVendorSelects() {
-  api({ action:"getVendors", token:token }, function(d){
-    if (!d.success) return;
-    var sel=document.getElementById("vendorSel");
-    sel.innerHTML="<option value=''>All Vendors</option>";
-    d.vendors.forEach(v=>{
-      vendorMap[v.id]=v.name;
-      sel.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";
-    });
+function loadVendorSelects(){
+  api({action:"getVendors",token:token},function(d){
+    if(!d.success)return;
+    var sel=document.getElementById("vendorSel");sel.innerHTML="<option value=''>All Vendors</option>";
+    d.vendors.forEach(v=>{vendorMap[v.id]=v.name;sel.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>"});
     loadVendorOutstanding();
   });
 }
-function loadVendorOutstanding() {
-  var vid=document.getElementById("vendorSel")?document.getElementById("vendorSel").value:"";
-  var el=document.getElementById("vendorOutstandingOut");
-  el.innerHTML="<div class='empty'>Loading…</div>";
-  api({ action:"getVendorOutstanding", token:token, fyid:curFY, vendorId:vid }, function(d){
-    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    if (!d.vendors.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendor data.</div>";return;}
-    var html=d.vendors.map(function(v){
-      return "<div class='card' style='margin:0 16px 10px'><div class='outstanding-row'>"+
+function loadVendorOutstanding(){
+  var vid=document.getElementById("vendorSel").value;
+  var el=document.getElementById("vendorOutstandingOut");el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getVendorOutstanding",token:token,fyid:curFY,vendorId:vid},function(d){
+    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return}
+    if(!d.vendors.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendor data.</div>";return}
+    el.innerHTML=d.vendors.map(function(v){
+      return "<div class='card' style='margin:0 16px 10px'>"+
         "<div style='display:flex;justify-content:space-between;align-items:flex-start'>"+
-        "<div><div class='or-name'>"+v.vendorName+"</div><div class='or-type'>"+v.vendorType+"</div></div>"+
-        "</div>"+
+        "<div><div style='font-size:14px;font-weight:700;color:#1A2D5A'>"+v.vendorName+"</div>"+
+        "<div style='font-size:11px;color:#7A8BAA'>"+v.vendorType+"</div></div></div>"+
         "<div class='or-strips'>"+
           "<div class='or-strip red'><div class='or-strip-label'>Bills</div><div class='or-strip-value'>₹"+shortNum(v.bills)+"</div></div>"+
           "<div class='or-strip green'><div class='or-strip-label'>Paid</div><div class='or-strip-value'>₹"+shortNum(v.paid)+"</div></div>"+
           "<div class='or-strip blue'><div class='or-strip-label'>Due</div><div class='or-strip-value'>₹"+shortNum(v.outstanding)+"</div></div>"+
-        "</div>"+
-        (v.advances>0?"<div style='margin-top:6px;font-size:11px;color:#7A8BAA'>Advance paid: ₹"+fmt(v.advances)+"</div>":"")+
-      "</div></div>";
+        "</div>"+(v.advances>0?"<div style='margin-top:6px;font-size:11px;color:#7A8BAA'>Advance paid: ₹"+fmt(v.advances)+"</div>":"")+
+      "</div>";
     }).join("");
-    el.innerHTML=html;
   });
 }
-
-// Project selects for Ledger tab
-function loadProjectSelects() {
-  api({ action:"getProjects", token:token }, function(d){
-    if (!d.success) return;
-    var sel=document.getElementById("projSel");
-    sel.innerHTML="<option value=''>All Projects</option>";
-    d.projects.forEach(p=>{
-      projMap[p.id]=p.name;
-      sel.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";
-    });
+function loadProjectSelects(){
+  api({action:"getProjects",token:token},function(d){
+    if(!d.success)return;
+    var sel=document.getElementById("projSel");sel.innerHTML="<option value=''>All Projects</option>";
+    d.projects.forEach(p=>{projMap[p.id]=p.name;sel.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>"});
     loadProjectPL();
   });
 }
-function loadProjectPL() {
-  var pid=document.getElementById("projSel")?document.getElementById("projSel").value:"";
-  var el=document.getElementById("projectPLOut");
-  el.innerHTML="<div class='empty'>Loading…</div>";
-  api({ action:"getProjectPL", token:token, fyid:curFY, projectId:pid }, function(d){
-    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    if (!d.projects.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>No project data.</div>";return;}
-    var html=d.projects.map(function(p){
-      var chRows=(p.costHeads||[]).map(c=>
-        "<div style='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px'>"+
-        "<span style='color:#7A8BAA'>"+c.costHead+"</span>"+
-        "<span style='color:#1A2D5A;font-weight:600'>₹ "+fmt(c.amount)+"</span></div>"
-      ).join("");
+function loadProjectPL(){
+  var pid=document.getElementById("projSel").value;
+  var el=document.getElementById("projectPLOut");el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getProjectPL",token:token,fyid:curFY,projectId:pid},function(d){
+    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return}
+    if(!d.projects.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>No project data.</div>";return}
+    el.innerHTML=d.projects.map(function(p){
+      var chRows=(p.costHeads||[]).map(c=>"<div style='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px'><span style='color:#7A8BAA'>"+c.costHead+"</span><span style='color:#1A2D5A;font-weight:600'>₹ "+fmt(c.amount)+"</span></div>").join("");
       return "<div class='card' style='margin:0 16px 10px'>"+
-        "<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px'>"+
-        "<div><div style='font-size:14px;font-weight:700;color:#1A2D5A'>"+p.projectName+"</div>"+
-        "<div style='font-size:11px;color:#7A8BAA'>"+p.client+"</div></div>"+
-        "</div>"+
+        "<div style='font-size:14px;font-weight:700;color:#1A2D5A;margin-bottom:4px'>"+p.projectName+"</div>"+
+        "<div style='font-size:11px;color:#7A8BAA;margin-bottom:10px'>"+p.client+"</div>"+
         "<div class='strip-row' style='margin:0 0 12px'>"+
           "<div class='strip blue'><div class='strip-label'>Income</div><div class='strip-value'>₹"+shortNum(p.income)+"</div></div>"+
           "<div class='strip red'><div class='strip-label'>Expense</div><div class='strip-value'>₹"+shortNum(p.expense)+"</div></div>"+
           "<div class='strip "+(p.profit>=0?"green":"red")+"'><div class='strip-label'>P&L</div><div class='strip-value'>₹"+shortNum(p.profit)+"</div></div>"+
-        "</div>"+
-        (p.budget?"<div style='font-size:11px;color:#7A8BAA;margin-bottom:8px'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
-        "<div class='card-label' style='margin-bottom:6px'>Cost Head Breakdown</div>"+
-        chRows+
-      "</div>";
+        "</div>"+(p.budget?"<div style='font-size:11px;color:#7A8BAA;margin-bottom:8px'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
+        "<div class='card-label' style='margin-bottom:6px'>Cost Head Breakdown</div>"+chRows+"</div>";
     }).join("");
-    el.innerHTML=html;
   });
 }
 
-// ── ADD MASTER DATA ────────────────────────────────────────
-function addProject() {
+// ── ADD SUB-TABS ───────────────────────────────────────────
+function switchAddTab(tab,el){
+  document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active"));el.classList.add("active");
+  ["entry","project","vendor"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
+}
+
+// ── ADMIN ENTRY FORM ───────────────────────────────────────
+function loadAddDropdowns(){
+  setAToday();
+  api({action:"getProjects",token:token},function(d){if(!d.success)return;var s=document.getElementById("aProject");s.innerHTML="<option value=''>— Select Project —</option>";d.projects.forEach(p=>s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>")});
+  api({action:"getCostHeads",token:token},function(d){if(!d.success)return;var s=document.getElementById("aCostHead");s.innerHTML="<option value=''>— Select Cost Head —</option>";d.costHeads.forEach(c=>s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>")});
+  api({action:"getVendors",token:token},function(d){if(!d.success)return;var s=document.getElementById("aVendor");s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";d.vendors.forEach(v=>s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>")});
+  aSelCat("income",document.querySelector(".entry-cat-btn.active"));
+}
+function setAToday(){var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");document.getElementById("aDate").value=y+"-"+m+"-"+dd}
+
+function aSelCat(cat,el){
+  aCurCat=cat;aSelType=null;
+  document.querySelectorAll(".entry-cat-btn").forEach(b=>b.classList.remove("active"));el.classList.add("active");
+  var html=CATS[cat].map(function(t){
+    var drL=t.dr==="[Cost Head]"?"<em>Selected Cost Head</em>":t.dr;
+    return "<div class='type-opt' onclick='aPickType(this,\""+t.key+"\","+t.needsCH+")'>"+
+      "<div class='type-opt-label'>"+t.label+"</div>"+
+      "<div class='type-opt-hint'>"+t.hint+"</div>"+
+      "<div class='type-opt-accounts'>"+
+        "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+drL+"</span></div>"+
+        "<div class='ac-row'><span class='ac-cr'>CR</span> <span class='ac-name'>"+t.cr+"</span></div>"+
+      "</div></div>";
+  }).join("");
+  document.getElementById("aTypeGrid").innerHTML=html;
+  document.getElementById("aCostHeadField").style.display="none";
+}
+function aPickType(el,key,needsCH){
+  document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected"));el.classList.add("selected");
+  aSelType=CATS[aCurCat].find(t=>t.key===key);
+  document.getElementById("aCostHeadField").style.display=needsCH?"":"none";
+}
+function adminSaveEntry(){
+  if(!aSelType){toast("Please select an entry type.",false);return}
+  var proj=document.getElementById("aProject").value;
+  var amt=parseFloat(document.getElementById("aAmount").value);
+  if(!proj){toast("Please select a project.",false);return}
+  if(!amt||amt<=0){toast("Please enter a valid amount.",false);return}
+  if(aSelType.needsCH&&!document.getElementById("aCostHead").value){toast("Please select a cost head.",false);return}
+  var btn=document.getElementById("aSaveBtn");btn.disabled=true;btn.textContent="Saving…";
+  api({action:"saveEntry",token:token,fyid:curFY,entryType:aSelType.key,projectId:proj,
+    costHeadId:document.getElementById("aCostHead").value,
+    vendorId:document.getElementById("aVendor").value,
+    date:document.getElementById("aDate").value,
+    amount:amt,narration:document.getElementById("aNarration").value},
+  function(d){
+    btn.disabled=false;btn.textContent="Save Entry";
+    if(d.success){toast("✓ Entry saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);document.getElementById("aAmount").value="";document.getElementById("aNarration").value="";aSelType=null;document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected"));}
+    else toast(d.error||"Save failed.",false);
+  });
+}
+
+// ── ADD PROJECT / VENDOR ───────────────────────────────────
+function addProject(){
   var name=document.getElementById("pName").value.trim();
-  if (!name){toast("Project name is required.",false);return;}
-  api({ action:"addProject", token:token,
-    name:name, client:document.getElementById("pClient").value,
-    location:document.getElementById("pLoc").value,
-    startDate:document.getElementById("pStart").value,
-    budget:document.getElementById("pBudget").value,
-    status:document.getElementById("pStatus").value,
-    fyid:curFY }, function(d){
-    if (d.success) toast("✓ Project added: "+d.id, true);
-    else toast(d.error||"Failed.",false);
-  });
+  if(!name){toast("Project name is required.",false);return}
+  api({action:"addProject",token:token,name:name,client:document.getElementById("pClient").value,
+    location:document.getElementById("pLoc").value,startDate:document.getElementById("pStart").value,
+    budget:document.getElementById("pBudget").value,status:document.getElementById("pStatus").value,fyid:curFY},
+  function(d){if(d.success){toast("✓ Project added: "+d.id,true);loadAddDropdowns();}else toast(d.error||"Failed.",false)});
 }
-function addVendor() {
+function addVendor(){
   var name=document.getElementById("vName").value.trim();
-  if (!name){toast("Vendor name is required.",false);return;}
-  api({ action:"addVendor", token:token,
-    name:name, type:document.getElementById("vType").value,
-    gstin:document.getElementById("vGST").value,
-    contact:document.getElementById("vContact").value }, function(d){
-    if (d.success) toast("✓ Vendor added: "+d.id, true);
-    else toast(d.error||"Failed.",false);
-  });
+  if(!name){toast("Vendor name is required.",false);return}
+  api({action:"addVendor",token:token,name:name,type:document.getElementById("vType").value,
+    gstin:document.getElementById("vGST").value,contact:document.getElementById("vContact").value},
+  function(d){if(d.success){toast("✓ Vendor added: "+d.id,true);loadAddDropdowns();}else toast(d.error||"Failed.",false)});
 }
 
-// ── REPORTS VIEW ───────────────────────────────────────────
-function loadReports() {
-  // Project P&L
-  api({ action:"getProjectPL", token:token, fyid:curFY }, function(d){
+// ── REPORTS ────────────────────────────────────────────────
+function loadReports(){
+  api({action:"getProjectPL",token:token,fyid:curFY},function(d){
     var el=document.getElementById("reportPLTable");
-    if (!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
+    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return}
     var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
-    d.projects.forEach(function(p){
-      html+="<tr>"+
-        "<td><div class='td-main'>"+p.projectName+"</div></td>"+
-        "<td style='color:#7A8BAA'>"+p.client+"</td>"+
-        "<td class='dr'>"+fmt(p.income)+"</td>"+
-        "<td class='cr'>"+fmt(p.expense)+"</td>"+
-        "<td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td>"+
-        "</tr>";
-    });
-    html+="</tbody></table></div>";
-    el.innerHTML=html;
+    d.projects.forEach(function(p){html+="<tr><td><div class='td-main'>"+p.projectName+"</div></td><td style='color:#7A8BAA'>"+p.client+"</td><td class='dr'>"+fmt(p.income)+"</td><td class='cr'>"+fmt(p.expense)+"</td><td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td></tr>"});
+    html+="</tbody></table></div>";el.innerHTML=html;
   });
-  // Vendor outstanding
-  api({ action:"getVendorOutstanding", token:token, fyid:curFY }, function(d){
+  api({action:"getVendorOutstanding",token:token,fyid:curFY},function(d){
     var el=document.getElementById("reportVendorTable");
-    if (!d.success||!d.vendors.length){el.innerHTML="<div class='empty'>No vendor data.</div>";return;}
+    if(!d.success||!d.vendors.length){el.innerHTML="<div class='empty'>No vendor data.</div>";return}
     var html="<div class='tbl-wrap'><table><thead><tr><th>Vendor</th><th>Bills ₹</th><th>Paid ₹</th><th>Due ₹</th></tr></thead><tbody>";
-    d.vendors.forEach(function(v){
-      html+="<tr>"+
-        "<td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td>"+
-        "<td style='color:#B91C1C'>"+fmt(v.bills)+"</td>"+
-        "<td style='color:#15803D'>"+fmt(v.paid)+"</td>"+
-        "<td style='font-weight:700;color:"+(v.outstanding>0?"#B91C1C":"#15803D")+"'>"+fmt(v.outstanding)+"</td>"+
-        "</tr>";
-    });
-    html+="</tbody></table></div>";
-    el.innerHTML=html;
+    d.vendors.forEach(function(v){html+="<tr><td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td><td style='color:#B91C1C'>"+fmt(v.bills)+"</td><td style='color:#15803D'>"+fmt(v.paid)+"</td><td style='font-weight:700;color:"+(v.outstanding>0?"#B91C1C":"#15803D")+"'>"+fmt(v.outstanding)+"</td></tr>"});
+    html+="</tbody></table></div>";el.innerHTML=html;
   });
 }
 
 // ── USERS ──────────────────────────────────────────────────
-function loadUsers() {
-  api({ action:"getUsers", token:token }, function(d){
+function loadUsers(){
+  api({action:"getUsers",token:token},function(d){
     var el=document.getElementById("userList");
-    if (!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return}
     var html="";
     d.users.forEach(function(u){
       html+="<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EEF2F7'>"+
@@ -685,62 +642,40 @@ function loadUsers() {
         "<span class='badge "+(u.role==="Admin"?"badge-amber":"badge-blue")+"'>"+u.role+"</span></div>"+
         "<div style='display:flex;align-items:center;gap:8px'>"+
         "<span class='badge "+(u.active?"badge-active":"badge-inactive")+"'>"+(u.active?"Active":"Inactive")+"</span>"+
-        "<button onclick='toggleUser(\""+u.username+"\")' style='border:1px solid #DDE3EE;background:#F7F9FC;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1A2D5A'>"+(u.active?"Deactivate":"Activate")+"</button>"+
-        "</div>"+
-        "</div>";
+        "<button onclick='toggleUser(\""+u.username+"\")' style='border:1px solid #DDE3EE;background:#F7F9FC;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1A2D5A;font-family:inherit'>"+(u.active?"Deactivate":"Activate")+"</button>"+
+        "</div></div>";
     });
     el.innerHTML=html||"<div class='empty'>No users.</div>";
   });
 }
-function addUser() {
-  var u=document.getElementById("uName").value.trim();
-  var p=document.getElementById("uPass").value;
-  if (!u||!p){toast("Username and password required.",false);return;}
-  api({ action:"addUser", token:token, username:u, password:p,
-        role:document.getElementById("uRole").value }, function(d){
-    if (d.success){toast("✓ User added.",true);loadUsers();}
-    else toast(d.error||"Failed.",false);
-  });
+function addUser(){
+  var u=document.getElementById("uName").value.trim(),p=document.getElementById("uPass").value;
+  if(!u||!p){toast("Username and password required.",false);return}
+  api({action:"addUser",token:token,username:u,password:p,role:document.getElementById("uRole").value},
+  function(d){if(d.success){toast("✓ User added.",true);loadUsers();}else toast(d.error||"Failed.",false)});
 }
-function toggleUser(uname) {
-  api({ action:"toggleUser", token:token, username:uname }, function(d){
-    if (d.success){toast("✓ Updated.",true);loadUsers();}
-    else toast(d.error,false);
-  });
+function toggleUser(uname){
+  api({action:"toggleUser",token:token,username:uname},
+  function(d){if(d.success){toast("✓ Updated.",true);loadUsers();}else toast(d.error,false)});
 }
 
 // ── VIEW ROUTING ───────────────────────────────────────────
-var views=["home","ledger","add","reports","more"];
-function showView(name, el) {
-  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active"));
-  el.classList.add("active");
-  views.forEach(v=>document.getElementById("view-"+v).classList.add("hidden"));
+var VIEWS=["home","ledger","add","reports","more"];
+function showView(name,el){
+  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active"));el.classList.add("active");
+  VIEWS.forEach(v=>document.getElementById("view-"+v).classList.add("hidden"));
   document.getElementById("view-"+name).classList.remove("hidden");
-  if (name==="ledger")  { switchLedgerTab("transactions", document.querySelector("#view-ledger .seg-btn")); }
-  if (name==="reports") { loadReports(); }
-  if (name==="more")    { loadUsers(); }
+  if(name==="ledger"){switchLedgerTab("transactions",document.querySelector("#view-ledger .seg-btn"))}
+  if(name==="reports")loadReports();
+  if(name==="more")loadUsers();
 }
 
 // ── UTILS ──────────────────────────────────────────────────
-function api(body,cb){
-  fetch(API,{method:"POST",body:JSON.stringify(body)})
-    .then(r=>r.json()).then(cb)
-    .catch(()=>cb({success:false,error:"Network error."}));
-}
-function toast(msg,ok){
-  var t=document.getElementById("toast");
-  t.textContent=msg; t.className="toast show "+(ok?"ok":"err");
-  clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000);
-}
-function fmt(n){return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});}
-function shortNum(n){
-  n=parseFloat(n||0);
-  if(n>=10000000)return(n/10000000).toFixed(1)+"Cr";
-  if(n>=100000)return(n/100000).toFixed(1)+"L";
-  if(n>=1000)return(n/1000).toFixed(1)+"K";
-  return n.toFixed(0);
-}
-function logout(){localStorage.clear();window.location.href="index.html";}
+function api(body,cb){fetch(API,{method:"POST",body:JSON.stringify(body)}).then(r=>r.json()).then(cb).catch(()=>cb({success:false,error:"Network error."}))}
+function toast(msg,ok){var t=document.getElementById("toast");t.textContent=msg;t.className="toast show "+(ok?"ok":"err");clearTimeout(t._t);t._t=setTimeout(()=>t.className="toast",4000)}
+function fmt(n){return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function shortNum(n){n=parseFloat(n||0);if(n>=10000000)return(n/10000000).toFixed(1)+"Cr";if(n>=100000)return(n/100000).toFixed(1)+"L";if(n>=1000)return(n/1000).toFixed(1)+"K";return n.toFixed(0)}
+function logout(){localStorage.removeItem("bd_token");localStorage.removeItem("bd_role");localStorage.removeItem("bd_username");window.location.href="index.html"}
 </script>
 </body>
 </html>
