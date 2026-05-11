@@ -96,6 +96,24 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .strip.green{background:#DCFCE7}.strip.green .strip-label{color:#15803D}.strip.green .strip-value{color:#15803D}
 .strip.blue{background:#DBEAFE}.strip.blue .strip-label{color:#1D4ED8}.strip.blue .strip-value{color:#1D4ED8}
 .strip.amber{background:#FEF9C3}.strip.amber .strip-label{color:#854D0E}.strip.amber .strip-value{color:#854D0E}
+/* Filter panel */
+.filter-panel{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:14px 16px}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filter-field label{display:block;font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.filter-field select,.filter-field input{width:100%;padding:8px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:12px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;appearance:none;-webkit-appearance:none}
+.filter-field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.filter-field select:focus,.filter-field input:focus{border-color:#2B5197;background:#fff}
+.filter-field.full{grid-column:1/-1}
+.filter-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
+.btn-apply{padding:8px 16px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-apply:hover{background:#224080}
+.btn-reset{padding:8px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:8px;color:#7A8BAA;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-reset:hover{background:#E2E8F0;color:#1A2D5A}
+.filter-count{font-size:11px;color:#7A8BAA;margin-left:auto}
+.filter-active-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:4px;font-size:10px;font-weight:600;color:#2B5197;margin:2px}
+.filter-active-tag span{cursor:pointer;color:#7A8BAA;font-size:12px;line-height:1}
+.filter-active-tag span:hover{color:#B91C1C}
+.active-filters{display:flex;flex-wrap:wrap;padding:0 16px 8px;min-height:0}
 /* Tables */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
@@ -194,7 +212,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.2.1</span>
+  <span>v1.3</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -228,39 +246,88 @@ td{padding:9px 10px;vertical-align:top}
 <!-- LEDGER -->
 <div id="view-ledger" class="hidden">
   <div class="page-title">Ledger</div>
-  <div class="seg-wrap">
-    <div class="seg">
-      <div class="seg-btn active" onclick="switchLedgerTab('transactions',this)">Journal</div>
-      <div class="seg-btn" onclick="switchLedgerTab('vendor',this)">Vendor</div>
-      <div class="seg-btn" onclick="switchLedgerTab('project',this)">Project</div>
+
+  <!-- Filter Panel -->
+  <div class="filter-panel">
+    <div class="card-label" style="margin-bottom:10px">🔍 Filters</div>
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label>Account Type</label>
+        <select id="fAccType" onchange="syncAccountFilter()">
+          <option value="">All Types</option>
+          <option value="Asset">Asset</option>
+          <option value="Liability">Liability</option>
+          <option value="Income">Income</option>
+          <option value="Expense">Expense</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Account</label>
+        <select id="fAccount">
+          <option value="">All Accounts</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Project</label>
+        <select id="fProject">
+          <option value="">All Projects</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Vendor</label>
+        <select id="fVendor">
+          <option value="">All Vendors</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Cost Head</label>
+        <select id="fCostHead">
+          <option value="">All Cost Heads</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Dr / Cr</label>
+        <select id="fDrCr">
+          <option value="">All</option>
+          <option value="Dr">Debit only</option>
+          <option value="Cr">Credit only</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>From Date</label>
+        <input type="date" id="fDateFrom">
+      </div>
+      <div class="filter-field">
+        <label>To Date</label>
+        <input type="date" id="fDateTo">
+      </div>
+      <div class="filter-field full">
+        <label>Search (narration / voucher no)</label>
+        <input type="text" id="fSearch" placeholder="Type to search…">
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn-apply" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      <span class="filter-count" id="filterCount"></span>
     </div>
   </div>
 
-  <!-- Journal -->
-  <div id="lt-transactions">
-    <div class="card">
-      <div class="card-label">All Journal Entries</div>
-      <input type="text" id="ledgerSearch" style="width:100%;padding:9px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;margin-bottom:10px" placeholder="Search entries…" oninput="filterLedger()">
-      <div class="tbl-wrap" id="ledgerTable"><div class="empty">Loading…</div></div>
-    </div>
+  <!-- Active filter tags -->
+  <div class="active-filters" id="activeTags"></div>
+
+  <!-- Summary strips -->
+  <div class="strip-row" id="ledgerSummary" style="margin:0 16px 12px;display:none">
+    <div class="strip blue"><div class="strip-label">Total Dr</div><div class="strip-value" id="sumDr">—</div></div>
+    <div class="strip red"><div class="strip-label">Total Cr</div><div class="strip-value" id="sumCr">—</div></div>
+    <div class="strip green"><div class="strip-label">Net Balance</div><div class="strip-value" id="sumNet">—</div></div>
+    <div class="strip amber"><div class="strip-label">Entries</div><div class="strip-value" id="sumCount">—</div></div>
   </div>
 
-  <!-- Vendor Ledger -->
-  <div id="lt-vendor" class="hidden">
-    <div class="card">
-      <div class="card-label">Select Vendor</div>
-      <div class="field"><select id="vendorSel" onchange="loadVendorLedger()"><option value="">— Select a Vendor —</option></select></div>
-    </div>
-    <div id="vendorLedgerOut"><div class="empty"><div class="empty-icon">🤝</div>Select a vendor above.</div></div>
-  </div>
-
-  <!-- Project Ledger -->
-  <div id="lt-project" class="hidden">
-    <div class="card">
-      <div class="card-label">Select Project</div>
-      <div class="field"><select id="projSel" onchange="loadProjectLedger()"><option value="">— Select a Project —</option></select></div>
-    </div>
-    <div id="projectLedgerOut"><div class="empty"><div class="empty-icon">🏗️</div>Select a project above.</div></div>
+  <!-- Running ledger table -->
+  <div class="card">
+    <div class="card-label" id="ledgerTableLabel">All Entries</div>
+    <div class="tbl-wrap" id="ledgerTable"><div class="empty"><div class="empty-icon">📒</div>Loading ledger…</div></div>
   </div>
 </div>
 
@@ -457,133 +524,210 @@ function renderMonthChart(data){
   html+="</div>"; el.innerHTML=html;
 }
 
-// ── LEDGER TABS ────────────────────────────────────────────
-function switchLedgerTab(tab,el){
-  document.querySelectorAll("#view-ledger .seg-btn").forEach(b=>b.classList.remove("active")); el.classList.add("active");
-  ["transactions","vendor","project"].forEach(t=>document.getElementById("lt-"+t).classList[t===tab?"remove":"add"]("hidden"));
-  if(tab==="transactions") loadJournal();
-  if(tab==="vendor")       loadVendorSelects();
-  if(tab==="project")      loadProjectSelects();
-}
+// ── LEDGER — Unified Filter System v1.3 ───────────────────
+// allLedger holds the full FY dataset; all filters run in JS
 
-// Journal
-function loadJournal(){
-  var el=document.getElementById("ledgerTable"); el.innerHTML="<div class='empty'>Loading…</div>";
-  api({action:"getLedger",token:token,fyid:curFY},function(d){
-    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    allLedger=d.ledger; renderJournal(allLedger);
-  });
-}
-function renderJournal(rows){
+function initLedger() {
   var el=document.getElementById("ledgerTable");
-  if(!rows.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>No entries yet.</div>";return;}
-  var html="<table><thead><tr><th>Date</th><th>Account</th><th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Narration</th></tr></thead><tbody>";
-  rows.forEach(function(r){ html+="<tr><td style='white-space:nowrap'><div class='td-main'>"+r.date+"</div><div class='td-sub'>"+r.entryId+"</div></td><td><div class='td-main'>"+r.acName+"</div><div class='td-sub'>"+r.acCode+(r.project?" · "+r.project:"")+"</div></td><td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td><td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td><td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td><td style='max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7A8BAA'>"+r.narration+"</td></tr>"; });
-  html+="</tbody></table>"; el.innerHTML=html;
-}
-function filterLedger(){ var q=document.getElementById("ledgerSearch").value.toLowerCase(); renderJournal(q?allLedger.filter(r=>(r.narration||"").toLowerCase().includes(q)||(r.acName||"").toLowerCase().includes(q)||(r.project||"").toLowerCase().includes(q)||(r.entryId||"").toLowerCase().includes(q)):allLedger); }
-
-// ── VENDOR LEDGER (full running) ───────────────────────────
-function loadVendorSelects(){
-  api({action:"getVendors",token:token},function(d){
-    if(!d.success)return;
-    var sel=document.getElementById("vendorSel"); sel.innerHTML="<option value=''>— Select a Vendor —</option>";
-    d.vendors.forEach(v=>{ vendorMap[v.id]=v.name; sel.innerHTML+="<option value='"+v.id+"'>"+v.name+" ("+v.type+")</option>"; });
-  });
-}
-function loadVendorLedger(){
-  var vid=document.getElementById("vendorSel").value;
-  var el=document.getElementById("vendorLedgerOut");
-  if(!vid){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>Select a vendor above.</div>"; return; }
-  el.innerHTML="<div class='empty'>Loading…</div>";
-  api({action:"getVendorLedger",token:token,fyid:curFY,vendorId:vid},function(d){
+  el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>Loading…</div>";
+  api({action:"getLedger",token:token,fyid:curFY}, function(d){
     if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    if(!d.entries.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No transactions for this vendor in the selected period.</div>";return;}
-
-    var outClass = d.outstanding>0?"cr":d.outstanding<0?"dr":"";
-    var outLabel = d.outstanding>0?"Payable":d.outstanding<0?"Advance Excess":"NIL";
-
-    var html="<div class='card' style='margin:0 16px 12px'>"+
-      "<div class='ledger-header'>"+
-        "<div class='ledger-header-title'>"+d.vendor.name+"</div>"+
-        "<div class='ledger-header-sub'>"+d.vendor.type+"</div>"+
-      "</div>"+
-      "<div class='strip-row'>"+
-        "<div class='strip red'><div class='strip-label'>Bills</div><div class='strip-value'>₹"+shortNum(d.totalCr)+"</div></div>"+
-        "<div class='strip green'><div class='strip-label'>Paid</div><div class='strip-value'>₹"+shortNum(d.totalDr)+"</div></div>"+
-        "<div class='strip "+(d.outstanding>0?"amber":"green")+"'><div class='strip-label'>Outstanding</div><div class='strip-value'>₹"+shortNum(Math.abs(d.outstanding))+"</div></div>"+
-      "</div>"+
-      "<div class='tbl-wrap'>"+
-      "<table><thead><tr><th>Date</th><th>Particulars</th><th>Vch No</th><th>Dr ₹</th><th>Cr ₹</th><th>Balance</th></tr></thead><tbody>";
-
-    d.entries.forEach(function(e){
-      var balClass = e.balanceSide==="Payable"?"bal-cr":e.balanceSide==="Advance"?"bal-dr":"bal-nil";
-      html+="<tr>"+
-        "<td style='white-space:nowrap;font-size:12px'>"+e.date+"</td>"+
-        "<td><div class='td-main' style='font-size:12px'>"+e.acName+"</div><div class='td-sub'>"+e.narration+(e.project?" · "+e.project:"")+"</div></td>"+
-        "<td style='font-size:11px;color:#7A8BAA'>"+e.entryId+"</td>"+
-        "<td class='dr'>"+(e.debit>0?"₹ "+fmt(e.debit):"—")+"</td>"+
-        "<td class='cr'>"+(e.credit>0?"₹ "+fmt(e.credit):"—")+"</td>"+
-        "<td><div class='"+balClass+"'>₹ "+fmt(e.balance)+"</div><div style='font-size:10px;color:#7A8BAA'>"+e.balanceSide+"</div></td>"+
-        "</tr>";
-    });
-    html+="</tbody></table></div></div>";
-    el.innerHTML=html;
+    allLedger = d.ledger;
+    populateFilterDropdowns(d.ledger);
+    applyFilters();
   });
 }
 
-// ── PROJECT LEDGER (full running) ──────────────────────────
-function loadProjectSelects(){
-  api({action:"getProjects",token:token},function(d){
-    if(!d.success)return;
-    var sel=document.getElementById("projSel"); sel.innerHTML="<option value=''>— Select a Project —</option>";
-    d.projects.forEach(p=>{ projMap[p.id]=p.name; sel.innerHTML+="<option value='"+p.id+"'>"+p.name+" ("+p.client+")</option>"; });
+function populateFilterDropdowns(rows) {
+  // Build unique sets from data
+  var accounts={}, projects={}, vendors={}, costHeads={};
+  rows.forEach(function(r){
+    if(r.acCode) accounts[r.acCode] = { name:r.acName, type:r.acType };
+    if(r.projectId)   projects[r.projectId]   = r.projectName||r.projectId;
+    if(r.vendorId)    vendors[r.vendorId]      = r.vendorName||r.vendorId;
+    if(r.costHeadId)  costHeads[r.costHeadId]  = r.costHeadName||r.costHeadId;
   });
+
+  // Account dropdown — grouped by type
+  var fAc = document.getElementById("fAccount");
+  var types = ["Asset","Liability","Income","Expense"];
+  var acHtml = "<option value=''>All Accounts</option>";
+  types.forEach(function(t){
+    var group = Object.keys(accounts).filter(function(k){ return accounts[k].type===t; });
+    if(!group.length) return;
+    acHtml += "<optgroup label='"+t+"'>";
+    group.sort().forEach(function(k){ acHtml+="<option value='"+k+"'>"+accounts[k].name+"</option>"; });
+    acHtml += "</optgroup>";
+  });
+  fAc.innerHTML = acHtml;
+
+  // Project
+  var fPr = document.getElementById("fProject");
+  fPr.innerHTML = "<option value=''>All Projects</option>";
+  Object.keys(projects).sort().forEach(function(k){ fPr.innerHTML+="<option value='"+k+"'>"+projects[k]+"</option>"; });
+
+  // Vendor
+  var fVe = document.getElementById("fVendor");
+  fVe.innerHTML = "<option value=''>All Vendors</option>";
+  Object.keys(vendors).sort().forEach(function(k){ fVe.innerHTML+="<option value='"+k+"'>"+vendors[k]+"</option>"; });
+
+  // Cost Head
+  var fCh = document.getElementById("fCostHead");
+  fCh.innerHTML = "<option value=''>All Cost Heads</option>";
+  Object.keys(costHeads).sort().forEach(function(k){ fCh.innerHTML+="<option value='"+k+"'>"+costHeads[k]+"</option>"; });
 }
-function loadProjectLedger(){
-  var pid=document.getElementById("projSel").value;
-  var el=document.getElementById("projectLedgerOut");
-  if(!pid){ el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>Select a project above.</div>"; return; }
-  el.innerHTML="<div class='empty'>Loading…</div>";
-  api({action:"getProjectLedger",token:token,fyid:curFY,projectId:pid},function(d){
-    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    if(!d.entries.length){el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>No transactions for this project in the selected period.</div>";return;}
 
-    var html="<div class='card' style='margin:0 16px 12px'>"+
-      "<div class='ledger-header'>"+
-        "<div class='ledger-header-title'>"+d.project.name+"</div>"+
-        "<div class='ledger-header-sub'>"+d.project.client+(d.project.budget?" · Budget: ₹"+fmt(d.project.budget):"")+"</div>"+
-      "</div>"+
-      "<div class='strip-row'>"+
-        "<div class='strip blue'><div class='strip-label'>Total Dr</div><div class='strip-value'>₹"+shortNum(d.totalDr)+"</div></div>"+
-        "<div class='strip red'><div class='strip-label'>Total Cr</div><div class='strip-value'>₹"+shortNum(d.totalCr)+"</div></div>"+
-        "<div class='strip "+(d.closing>=0?"green":"red")+"'><div class='strip-label'>Closing Bal</div><div class='strip-value'>₹"+shortNum(Math.abs(d.closing))+"</div></div>"+
-      "</div>"+
-      "<div class='tbl-wrap'>"+
-      "<table><thead><tr><th>Date</th><th>Particulars</th><th>Vch No</th><th>Dr ₹</th><th>Cr ₹</th><th>Balance</th></tr></thead><tbody>";
-
-    // Opening balance row
-    if(d.opening !== 0){
-      html+="<tr style='background:#FEF9C3'><td colspan='3' style='font-size:12px;font-weight:700;color:#854D0E'>Opening Balance</td><td class='dr'>"+(d.opening>0?"₹ "+fmt(d.opening):"—")+"</td><td class='cr'>"+(d.opening<0?"₹ "+fmt(Math.abs(d.opening)):"—")+"</td><td><div class='bal-dr'>₹ "+fmt(Math.abs(d.opening))+"</div></td></tr>";
+// When account type changes, filter the account dropdown
+function syncAccountFilter() {
+  var type  = document.getElementById("fAccType").value;
+  var fAc   = document.getElementById("fAccount");
+  var opts  = fAc.querySelectorAll("option, optgroup");
+  fAc.querySelectorAll("optgroup").forEach(function(g){
+    g.style.display = (!type || g.label===type) ? "" : "none";
+  });
+  // Reset account selection if it no longer matches type
+  if(type && fAc.value) {
+    var selOpt = fAc.querySelector("option[value='"+fAc.value+"']");
+    if(selOpt && selOpt.closest("optgroup") && selOpt.closest("optgroup").label !== type) {
+      fAc.value = "";
     }
+  }
+}
 
-    d.entries.forEach(function(e){
-      var balClass = e.balanceSide==="Dr"?"bal-dr":"bal-cr";
-      html+="<tr>"+
-        "<td style='white-space:nowrap;font-size:12px'>"+e.date+"</td>"+
-        "<td><div class='td-main' style='font-size:12px'>"+e.acName+"</div><div class='td-sub'>"+e.narration+(e.vendor?" · "+e.vendor:"")+(e.costHead?" · "+e.costHead:"")+"</div></td>"+
-        "<td style='font-size:11px;color:#7A8BAA'>"+e.entryId+"</td>"+
-        "<td class='dr'>"+(e.debit>0?"₹ "+fmt(e.debit):"—")+"</td>"+
-        "<td class='cr'>"+(e.credit>0?"₹ "+fmt(e.credit):"—")+"</td>"+
-        "<td><div class='"+balClass+"'>₹ "+fmt(Math.abs(e.balance))+"</div><div style='font-size:10px;color:#7A8BAA'>"+e.balanceSide+"</div></td>"+
-        "</tr>";
-    });
+function applyFilters() {
+  var accType  = document.getElementById("fAccType").value;
+  var account  = document.getElementById("fAccount").value;
+  var project  = document.getElementById("fProject").value;
+  var vendor   = document.getElementById("fVendor").value;
+  var costHead = document.getElementById("fCostHead").value;
+  var drCr     = document.getElementById("fDrCr").value;
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var search   = document.getElementById("fSearch").value.toLowerCase().trim();
 
-    // Closing row
-    html+="<tr style='background:#F0F4FF;border-top:2px solid #C7D7FF'><td colspan='3' style='font-size:12px;font-weight:700;color:#1D4ED8'>Closing Balance</td><td></td><td></td><td><div class='bal-dr' style='color:#1D4ED8'>₹ "+fmt(Math.abs(d.closing))+"</div><div style='font-size:10px;color:#7A8BAA'>"+(d.closing>=0?"Dr":"Cr")+"</div></td></tr>";
-    html+="</tbody></table></div></div>";
-    el.innerHTML=html;
+  var dfTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+  var dtTs = dateTo   ? new Date(dateTo).getTime()   : Infinity;
+
+  var filtered = allLedger.filter(function(r){
+    if(accType  && r.acType     !== accType)  return false;
+    if(account  && r.acCode     !== account)  return false;
+    if(project  && r.projectId  !== project)  return false;
+    if(vendor   && r.vendorId   !== vendor)   return false;
+    if(costHead && r.costHeadId !== costHead) return false;
+    if(drCr     && r.drCr       !== drCr)     return false;
+    if(dfTs && r.dateRaw < dfTs) return false;
+    if(dtTs < Infinity && r.dateRaw > dtTs) return false;
+    if(search && !(
+      (r.narration||"").toLowerCase().includes(search) ||
+      (r.acName||"").toLowerCase().includes(search)    ||
+      (r.projectName||"").toLowerCase().includes(search) ||
+      (r.vendorName||"").toLowerCase().includes(search)  ||
+      (r.entryId||"").toLowerCase().includes(search)
+    )) return false;
+    return true;
   });
+
+  // Sort oldest first for running balance
+  filtered.sort(function(a,b){ return a.dateRaw-b.dateRaw || a.entryId.localeCompare(b.entryId); });
+
+  renderFilteredLedger(filtered);
+  updateActiveTags(accType, account, project, vendor, costHead, drCr, dateFrom, dateTo, search);
+  document.getElementById("filterCount").textContent = filtered.length+" of "+allLedger.length+" entries";
+}
+
+function renderFilteredLedger(rows) {
+  var el = document.getElementById("ledgerTable");
+  if(!rows.length){
+    el.innerHTML="<div class='empty'><div class='empty-icon'>🔍</div>No entries match the current filters.</div>";
+    document.getElementById("ledgerSummary").style.display="none";
+    return;
+  }
+
+  // Compute running balance + totals
+  var totalDr=0, totalCr=0, balance=0;
+  var html="<table><thead><tr>"+
+    "<th>Date</th><th>Voucher</th><th>Account</th><th>Particulars</th>"+
+    "<th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Balance ₹</th>"+
+    "</tr></thead><tbody>";
+
+  rows.forEach(function(r){
+    totalDr  += r.debit;
+    totalCr  += r.credit;
+    balance  += r.debit - r.credit;
+    var balAbs  = Math.abs(balance);
+    var balSide = balance>0?"Dr":balance<0?"Cr":"NIL";
+    var balClass= balance>0?"bal-dr":balance<0?"bal-cr":"bal-nil";
+
+    // Build particulars: narration + context tags
+    var ctx=[];
+    if(r.projectName) ctx.push(r.projectName);
+    if(r.vendorName)  ctx.push(r.vendorName);
+    if(r.costHeadName)ctx.push(r.costHeadName);
+
+    html+="<tr>"+
+      "<td style='white-space:nowrap;font-size:12px;color:#1A2D5A'>"+r.date+"</td>"+
+      "<td style='font-size:10px;color:#94A3B8;white-space:nowrap'>"+r.entryId+"</td>"+
+      "<td><div style='font-size:12px;font-weight:600;color:#1A2D5A'>"+r.acName+"</div>"+
+          "<div style='font-size:10px;color:#94A3B8'>"+r.acCode+" · "+r.acType+"</div></td>"+
+      "<td><div style='font-size:12px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
+          (ctx.length?"<div style='font-size:10px;color:#7A8BAA'>"+ctx.join(" · ")+"</div>":"")+
+      "</td>"+
+      "<td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td>"+
+      "<td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td>"+
+      "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
+      "<td><div class='"+balClass+"'>₹ "+fmt(balAbs)+"</div>"+
+          "<div style='font-size:10px;color:#7A8BAA'>"+balSide+"</div></td>"+
+      "</tr>";
+  });
+  html+="</tbody></table>";
+  el.innerHTML=html;
+
+  // Update summary strips
+  var net=totalDr-totalCr, netAbs=Math.abs(net);
+  document.getElementById("sumDr").textContent    = "₹ "+shortNum(totalDr);
+  document.getElementById("sumCr").textContent    = "₹ "+shortNum(totalCr);
+  document.getElementById("sumNet").textContent   = "₹ "+shortNum(netAbs)+(net>0?" Dr":net<0?" Cr":"");
+  document.getElementById("sumCount").textContent = rows.length;
+  document.getElementById("ledgerSummary").style.display="flex";
+}
+
+function updateActiveTags(accType, account, project, vendor, costHead, drCr, dateFrom, dateTo, search) {
+  var tags=[];
+  if(accType)  tags.push({label:"Type: "+accType,  clear:"fAccType"});
+  if(account)  tags.push({label:"Ac: "+document.getElementById("fAccount").options[document.getElementById("fAccount").selectedIndex].text, clear:"fAccount"});
+  if(project)  tags.push({label:"Project: "+document.getElementById("fProject").options[document.getElementById("fProject").selectedIndex].text, clear:"fProject"});
+  if(vendor)   tags.push({label:"Vendor: "+document.getElementById("fVendor").options[document.getElementById("fVendor").selectedIndex].text, clear:"fVendor"});
+  if(costHead) tags.push({label:"Cost: "+document.getElementById("fCostHead").options[document.getElementById("fCostHead").selectedIndex].text, clear:"fCostHead"});
+  if(drCr)     tags.push({label:drCr+" only", clear:"fDrCr"});
+  if(dateFrom) tags.push({label:"From: "+dateFrom, clear:"fDateFrom"});
+  if(dateTo)   tags.push({label:"To: "+dateTo, clear:"fDateTo"});
+  if(search)   tags.push({label:"""+search+""", clear:"fSearch"});
+
+  var el=document.getElementById("activeTags");
+  el.innerHTML=tags.map(function(t){
+    return "<span class='filter-active-tag'>"+t.label+
+      " <span onclick='clearFilter(""+t.clear+"")'>×</span></span>";
+  }).join("");
+
+  // Update ledger label
+  var labelParts=[];
+  if(project) labelParts.push(document.getElementById("fProject").options[document.getElementById("fProject").selectedIndex].text);
+  if(vendor)  labelParts.push(document.getElementById("fVendor").options[document.getElementById("fVendor").selectedIndex].text);
+  if(accType) labelParts.push(accType+" Accounts");
+  document.getElementById("ledgerTableLabel").textContent = labelParts.length ? labelParts.join(" · ")+" Ledger" : "All Entries";
+}
+
+function clearFilter(id) {
+  document.getElementById(id).value="";
+  applyFilters();
+}
+
+function resetFilters() {
+  ["fAccType","fAccount","fProject","fVendor","fCostHead","fDrCr","fDateFrom","fDateTo"].forEach(function(id){
+    document.getElementById(id).value="";
+  });
+  document.getElementById("fSearch").value="";
+  applyFilters();
 }
 
 // ── ADD SUB-TABS ───────────────────────────────────────────
@@ -719,7 +863,7 @@ function showView(name,el){
   document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active")); el.classList.add("active");
   VIEWS.forEach(v=>document.getElementById("view-"+v).classList.add("hidden"));
   document.getElementById("view-"+name).classList.remove("hidden");
-  if(name==="ledger") switchLedgerTab("transactions",document.querySelector("#view-ledger .seg-btn"));
+  if(name==="ledger") { if(!allLedger.length) initLedger(); else applyFilters(); }
   if(name==="reports") loadReports();
   if(name==="more") loadUsers();
 }
