@@ -75,6 +75,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .kpi-value.green{color:#15803D}
 .kpi-value.red{color:#B91C1C}
 .kpi-value.blue{color:#2B5197}
+.kpi-value.amber{color:#92400E}
 /* Card */
 .card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:16px}
 .card-label{font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
@@ -212,7 +213,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.3</span>
+  <span>v1.3.1</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -237,7 +238,8 @@ td{padding:9px 10px;vertical-align:top}
   <div class="kpi-row">
     <div class="kpi"><div class="kpi-label">Income</div><div class="kpi-value blue" id="kpiInc">—</div></div>
     <div class="kpi"><div class="kpi-label">Expense</div><div class="kpi-value red" id="kpiExp">—</div></div>
-    <div class="kpi"><div class="kpi-label">Profit</div><div class="kpi-value green" id="kpiPro">—</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value green" id="kpiPro">—</div></div>
+    <div class="kpi"><div class="kpi-label">Drawings</div><div class="kpi-value amber" id="kpiDraw">—</div></div>
   </div>
   <div class="card"><div class="card-label">Project P&L</div><div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
   <div class="card"><div class="card-label">Monthly Trend</div><div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div></div>
@@ -259,6 +261,7 @@ td{padding:9px 10px;vertical-align:top}
           <option value="Liability">Liability</option>
           <option value="Income">Income</option>
           <option value="Expense">Expense</option>
+          <option value="Contra-Equity">Contra-Equity (Drawings)</option>
         </select>
       </div>
       <div class="filter-field">
@@ -350,6 +353,7 @@ td{padding:9px 10px;vertical-align:top}
         <div class="entry-cat-btn" onclick="aSelCat('expense',this)">Expense</div>
         <div class="entry-cat-btn" onclick="aSelCat('vendor',this)">Vendor</div>
         <div class="entry-cat-btn" onclick="aSelCat('advance',this)">Advance</div>
+        <div class="entry-cat-btn" onclick="aSelCat('drawings',this)">Drawings</div>
       </div>
       <div class="card-label" style="margin-top:4px">Entry Type</div>
       <div class="type-grid" id="aTypeGrid"><div class="empty" style="padding:16px">Loading…</div></div>
@@ -503,6 +507,7 @@ function loadDashboard(){
     document.getElementById("kpiInc").textContent="₹ "+shortNum(s.income);
     document.getElementById("kpiExp").textContent="₹ "+shortNum(s.expense);
     var pEl=document.getElementById("kpiPro"); pEl.textContent="₹ "+shortNum(s.profit); pEl.className="kpi-value "+(s.profit>=0?"green":"red");
+    var dEl=document.getElementById("kpiDraw"); dEl.textContent=s.drawings>0?"₹ "+shortNum(s.drawings):"—"; dEl.className="kpi-value "+(s.drawings>0?"amber":"");
     renderProjChart(d.byProject); renderMonthChart(d.byMonth);
   });
 }
