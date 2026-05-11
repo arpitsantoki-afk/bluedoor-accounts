@@ -893,7 +893,9 @@ function api(body, cb) {
   var display = Object.assign({}, body);
   if (display.token) display.token = display.token.substring(0,8)+"…";
 
-  fetch(API, { method:"POST", body:JSON.stringify(body) })
+  // Append payload as query param — survives GAS POST→GET redirect
+  var url = API + "?payload=" + encodeURIComponent(JSON.stringify(body));
+  fetch(url, { method:"POST", redirect:"follow", body:JSON.stringify(body) })
     .then(function(r){ return r.json(); })
     .then(function(d){
       var ms = Date.now()-t0;
