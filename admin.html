@@ -701,13 +701,21 @@ function updateActiveTags(accType, account, project, vendor, costHead, drCr, dat
   if(drCr)     tags.push({label:drCr+" only", clear:"fDrCr"});
   if(dateFrom) tags.push({label:"From: "+dateFrom, clear:"fDateFrom"});
   if(dateTo)   tags.push({label:"To: "+dateTo, clear:"fDateTo"});
-  if(search)   tags.push({label:"""+search+""", clear:"fSearch"});
+  if(search)   tags.push({label:"Search: "+search, clear:"fSearch"});
 
   var el=document.getElementById("activeTags");
-  el.innerHTML=tags.map(function(t){
-    return "<span class='filter-active-tag'>"+t.label+
-      " <span onclick='clearFilter(""+t.clear+"")'>×</span></span>";
-  }).join("");
+  el.innerHTML="";
+  tags.forEach(function(t){
+    var wrap=document.createElement("span");
+    wrap.className="filter-active-tag";
+    wrap.innerHTML=t.label;
+    var x=document.createElement("span");
+    x.textContent=" ×";
+    x.style.cursor="pointer";
+    x.onclick=(function(id){return function(){clearFilter(id);};})(t.clear);
+    wrap.appendChild(x);
+    el.appendChild(wrap);
+  });
 
   // Update ledger label
   var labelParts=[];
