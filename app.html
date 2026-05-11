@@ -251,7 +251,12 @@ function showView(name,el){
   else if(name==="recent"){ document.getElementById("view-recent").classList.remove("hidden"); loadRecent(); }
 }
 
-function api(body,cb){ fetch(API,{method:"POST",body:JSON.stringify(body)}).then(r=>r.json()).then(cb).catch(()=>cb({success:false,error:"Network error."})); }
+function api(body,cb){
+  var url = API + "?payload=" + encodeURIComponent(JSON.stringify(body));
+  fetch(url,{method:"POST",redirect:"follow",body:JSON.stringify(body)})
+    .then(r=>r.json()).then(cb)
+    .catch(()=>cb({success:false,error:"Network error."}));
+}
 function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err"); clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000); }
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function humanize(s){ return (s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
