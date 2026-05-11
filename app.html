@@ -89,16 +89,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span>v1.2</span></div>
+<div class="version-bar"><span>v1.4</span></div>
 
 <div id="view-entry">
   <div class="page-title">New Entry</div>
   <div class="seg-wrap">
     <div class="seg" id="catSeg">
-      <div class="seg-btn active" onclick="selectCat('income',this)">Income</div>
-      <div class="seg-btn" onclick="selectCat('expense',this)">Expense</div>
+      <div class="seg-btn active" onclick="selectCat('client',this)">Client</div>
       <div class="seg-btn" onclick="selectCat('vendor',this)">Vendor</div>
-      <div class="seg-btn" onclick="selectCat('advance',this)">Advance</div>
+      <div class="seg-btn" onclick="selectCat('expense',this)">Expense</div>
+      <div class="seg-btn" onclick="selectCat('transfer',this)">Transfer</div>
+      <div class="seg-btn" onclick="selectCat('drawings',this)">Drawings</div>
     </div>
   </div>
   <div class="card">
@@ -135,7 +136,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 
 <script>
 var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
-var VERSION  = "v1.2";
+var VERSION  = "v1.4";
 var token    = localStorage.getItem("bd_token");
 var role     = localStorage.getItem("bd_role");
 var curFY    = localStorage.getItem("bd_fy") || "";
