@@ -179,7 +179,7 @@ td{padding:9px 10px;vertical-align:top}
 .ac-cr{color:#B91C1C;font-weight:700;font-size:10px;background:#FEE2E2;padding:1px 6px;border-radius:3px}
 .ac-name{color:#1A2D5A;font-weight:500}
 .entry-cat-seg{display:flex;background:#EEF2F7;border-radius:9px;padding:3px;margin-bottom:12px;gap:2px}
-.entry-cat-btn{flex:1;padding:7px 4px;text-align:center;font-size:12px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:7px;transition:all .2s}
+.entry-cat-btn{flex:1;padding:6px 3px;text-align:center;font-size:11px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:7px;transition:all .2s;white-space:nowrap}
 .entry-cat-btn.active{background:#2B5197;color:#fff}
 /* Empty */
 .empty{text-align:center;padding:28px 16px;color:#7A8BAA;font-size:13px}
@@ -213,7 +213,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.3.1</span>
+  <span>v1.4</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -349,10 +349,10 @@ td{padding:9px 10px;vertical-align:top}
     <div class="card">
       <div class="card-label">Category</div>
       <div class="entry-cat-seg">
-        <div class="entry-cat-btn active" onclick="aSelCat('income',this)">Income</div>
-        <div class="entry-cat-btn" onclick="aSelCat('expense',this)">Expense</div>
+        <div class="entry-cat-btn active" onclick="aSelCat('client',this)">Client</div>
         <div class="entry-cat-btn" onclick="aSelCat('vendor',this)">Vendor</div>
-        <div class="entry-cat-btn" onclick="aSelCat('advance',this)">Advance</div>
+        <div class="entry-cat-btn" onclick="aSelCat('expense',this)">Expense</div>
+        <div class="entry-cat-btn" onclick="aSelCat('transfer',this)">Transfer</div>
         <div class="entry-cat-btn" onclick="aSelCat('drawings',this)">Drawings</div>
       </div>
       <div class="card-label" style="margin-top:4px">Entry Type</div>
@@ -486,7 +486,7 @@ function loadEntryTypes(){
   api({action:"getEntryTypes",token:token},function(d){
     if(!d.success)return;
     d.entryTypes.forEach(function(t){ allEntryTypes[t.key]=t; });
-    aSelCat("income", document.querySelector(".entry-cat-btn.active"));
+    aSelCat("client", document.querySelector(".entry-cat-btn.active"));
   });
   api({action:"getCOA",token:token},function(d){
     if(!d.success)return;
