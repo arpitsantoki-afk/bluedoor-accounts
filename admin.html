@@ -21,8 +21,49 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
 .fy-option{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
 .fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
-.version-bar{background:#1E3F7A;padding:4px 16px;text-align:right}
+.version-bar{background:#1E3F7A;padding:4px 16px;display:flex;align-items:center;justify-content:space-between}
 .version-bar span{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.3px}
+.debug-toggle{font-size:10px;color:rgba(255,255,255,0.4);cursor:pointer;padding:2px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;transition:all .2s;user-select:none}
+.debug-toggle:hover{color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.4)}
+.debug-toggle.active{color:#FCD34D;border-color:#FCD34D}
+/* ── Debug Console ───────────────────────────────────── */
+.debug-panel{
+  position:fixed;bottom:64px;left:0;right:0;
+  background:#0F172A;border-top:2px solid #334155;
+  z-index:200;display:none;flex-direction:column;
+  max-height:40vh;
+}
+.debug-panel.open{display:flex}
+.debug-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 12px;background:#1E293B;border-bottom:1px solid #334155;
+  flex-shrink:0;
+}
+.debug-toolbar-title{font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px}
+.debug-toolbar-right{display:flex;gap:8px;align-items:center}
+.debug-count{font-size:11px;color:#64748B}
+.debug-count .err-count{color:#F87171;font-weight:700}
+.debug-clear{font-size:11px;color:#64748B;cursor:pointer;padding:2px 8px;border:1px solid #334155;border-radius:4px;background:none;font-family:inherit}
+.debug-clear:hover{color:#F87171;border-color:#F87171}
+.debug-log{
+  overflow-y:auto;flex:1;padding:4px 0;
+  font-family:'Courier New',monospace;font-size:11px;
+}
+.debug-entry{
+  padding:5px 12px;border-bottom:1px solid #1E293B;
+  display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:start;
+}
+.debug-entry:hover{background:#1E293B}
+.debug-entry:last-child{border-bottom:none}
+.debug-time{color:#475569;font-size:10px;padding-top:1px;white-space:nowrap}
+.debug-body{}
+.debug-action{color:#7DD3FC;font-weight:700;font-size:11px}
+.debug-status-ok{color:#4ADE80;font-size:10px;margin-left:6px}
+.debug-status-err{color:#F87171;font-size:10px;margin-left:6px;font-weight:700}
+.debug-error-msg{color:#F87171;font-size:11px;margin-top:3px;padding:4px 8px;background:#1C0A0A;border-left:2px solid #F87171;border-radius:0 4px 4px 0}
+.debug-payload{color:#94A3B8;font-size:10px;margin-top:2px;word-break:break-all;cursor:pointer}
+.debug-payload.collapsed{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.debug-empty{text-align:center;padding:20px;color:#475569;font-size:12px}
 /* Layout */
 .page-title{padding:14px 16px 4px;font-size:17px;font-weight:700;color:#1A2D5A}
 .page-sub{padding:0 16px 12px;font-size:12px;color:#7A8BAA}
@@ -152,7 +193,24 @@ td{padding:9px 10px;vertical-align:top}
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span>v1.2</span></div>
+<div class="version-bar">
+  <span>v1.2.1</span>
+  <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
+</div>
+
+<!-- DEBUG CONSOLE -->
+<div class="debug-panel" id="debugPanel">
+  <div class="debug-toolbar">
+    <div class="debug-toolbar-title">🛠 API Debug Console</div>
+    <div class="debug-toolbar-right">
+      <span class="debug-count">Calls: <span id="dbTotal">0</span> &nbsp;|&nbsp; Errors: <span class="err-count" id="dbErrors">0</span></span>
+      <button class="debug-clear" onclick="clearDebug()">Clear</button>
+    </div>
+  </div>
+  <div class="debug-log" id="debugLog">
+    <div class="debug-empty">No API calls yet. Make an action to see logs here.</div>
+  </div>
+</div>
 
 <!-- HOME -->
 <div id="view-home">
@@ -667,7 +725,101 @@ function showView(name,el){
 }
 
 // ── UTILS ──────────────────────────────────────────────────
-function api(body,cb){ fetch(API,{method:"POST",body:JSON.stringify(body)}).then(r=>r.json()).then(cb).catch(()=>cb({success:false,error:"Network error."})); }
+var _dbTotal=0, _dbErrors=0, _debugOpen=false;
+
+function api(body, cb) {
+  var action  = body.action || "unknown";
+  var t0      = Date.now();
+  var callNum = ++_dbTotal;
+
+  // Sanitise payload for display — hide token
+  var display = Object.assign({}, body);
+  if (display.token) display.token = display.token.substring(0,8)+"…";
+
+  fetch(API, { method:"POST", body:JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var ms = Date.now()-t0;
+      logDebug(callNum, action, d.success, d.error||null, display, d, ms);
+      cb(d);
+    })
+    .catch(function(e){
+      var ms = Date.now()-t0;
+      var err = { success:false, error:"Network error: "+e.message };
+      logDebug(callNum, action, false, err.error, display, null, ms);
+      cb(err);
+    });
+}
+
+function logDebug(num, action, ok, errMsg, req, res, ms) {
+  if (!ok) _dbErrors++;
+  document.getElementById("dbTotal").textContent  = _dbTotal;
+  document.getElementById("dbErrors").textContent = _dbErrors;
+
+  var log   = document.getElementById("debugLog");
+  var empty = log.querySelector(".debug-empty");
+  if (empty) empty.remove();
+
+  var now  = new Date();
+  var time = String(now.getHours()).padStart(2,"0")+":"+
+             String(now.getMinutes()).padStart(2,"0")+":"+
+             String(now.getSeconds()).padStart(2,"0");
+
+  var reqStr = JSON.stringify(req);
+  var resStr = res ? JSON.stringify(res).substring(0,300) : "null";
+
+  var entry = document.createElement("div");
+  entry.className = "debug-entry";
+  entry.innerHTML =
+    "<div class='debug-time'>"+time+"<br><span style='color:#334155'>"+ms+"ms</span></div>"+
+    "<div class='debug-body'>"+
+      "<div>"+
+        "<span class='debug-action'>"+action+"</span>"+
+        (ok
+          ? "<span class='debug-status-ok'>✓ OK</span>"
+          : "<span class='debug-status-err'>✗ ERROR</span>")+
+        "<span style='color:#475569;font-size:10px;margin-left:8px'>#"+num+"</span>"+
+      "</div>"+
+      (errMsg ? "<div class='debug-error-msg'>"+errMsg+"</div>" : "")+
+      "<div class='debug-payload collapsed' onclick='this.classList.toggle(\"collapsed\")' title='Click to expand'>"+
+        "REQ: "+reqStr+
+      "</div>"+
+      (res ? "<div class='debug-payload collapsed' onclick='this.classList.toggle(\"collapsed\")' title='Click to expand'>"+
+        "RES: "+resStr+(resStr.length>=300?"…":"")+
+      "</div>" : "")+
+    "</div>";
+
+  // Newest at top
+  log.insertBefore(entry, log.firstChild);
+
+  // If error and debug panel is closed — flash the toggle
+  if (!ok && !_debugOpen) {
+    var toggle = document.getElementById("debugToggle");
+    toggle.style.color    = "#F87171";
+    toggle.style.borderColor = "#F87171";
+    setTimeout(function(){
+      if(!_debugOpen){ toggle.style.color=""; toggle.style.borderColor=""; }
+    }, 3000);
+  }
+}
+
+function toggleDebug() {
+  _debugOpen = !_debugOpen;
+  document.getElementById("debugPanel").classList.toggle("open", _debugOpen);
+  var toggle = document.getElementById("debugToggle");
+  toggle.classList.toggle("active", _debugOpen);
+  toggle.style.color=""; toggle.style.borderColor="";
+  // Adjust body padding so content isn't hidden behind console
+  document.body.style.paddingBottom = _debugOpen ? "calc(40vh + 64px)" : "80px";
+}
+
+function clearDebug() {
+  _dbTotal=0; _dbErrors=0;
+  document.getElementById("dbTotal").textContent  = "0";
+  document.getElementById("dbErrors").textContent = "0";
+  document.getElementById("debugLog").innerHTML   = "<div class='debug-empty'>No API calls yet.</div>";
+}
+
 function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err"); clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000); }
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function shortNum(n){ n=parseFloat(n||0); if(n>=10000000)return(n/10000000).toFixed(1)+"Cr"; if(n>=100000)return(n/100000).toFixed(1)+"L"; if(n>=1000)return(n/1000).toFixed(1)+"K"; return n.toFixed(0); }
