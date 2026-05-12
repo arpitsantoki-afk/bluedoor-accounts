@@ -144,7 +144,21 @@ var fyList=[], allEntryTypes={}, curCat="income", selType=null;
 
 var CAT_BADGE = { income:"badge-income", expense:"badge-expense", vendor:"badge-vendor", advance:"badge-advance" };
 
-if (!token) window.location.href = "index.html";
+if (!token) { window.location.href = "index.html"; }
+
+setTimeout(function(){
+  fetch(API + "?payload=" + encodeURIComponent(JSON.stringify({action:"getFYList",token:token})),
+    {method:"POST",redirect:"follow",body:JSON.stringify({action:"getFYList",token:token})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.success && d.error && d.error.indexOf("Session expired")!==-1){
+      localStorage.removeItem("bd_token");
+      localStorage.removeItem("bd_role");
+      localStorage.removeItem("bd_username");
+      window.location.href="index.html";
+    }
+  }).catch(function(){});
+}, 500);
 document.getElementById("headerRole").textContent = role || "Supervisor";
 setToday(); loadFY(); loadDropdowns(); loadEntryTypes();
 
@@ -254,7 +268,17 @@ function showView(name,el){
 function api(body,cb){
   var url = API + "?payload=" + encodeURIComponent(JSON.stringify(body));
   fetch(url,{method:"POST",redirect:"follow",body:JSON.stringify(body)})
-    .then(r=>r.json()).then(cb)
+    .then(r=>r.json())
+    .then(function(d){
+      if(!d.success && d.error && d.error.indexOf("Session expired")!==-1){
+        localStorage.removeItem("bd_token");
+        localStorage.removeItem("bd_role");
+        localStorage.removeItem("bd_username");
+        window.location.href="index.html";
+        return;
+      }
+      cb(d);
+    })
     .catch(()=>cb({success:false,error:"Network error."}));
 }
 function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err"); clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000); }
