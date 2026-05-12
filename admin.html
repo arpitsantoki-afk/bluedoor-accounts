@@ -196,6 +196,34 @@ td{padding:9px 10px;vertical-align:top}
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
+.btn-dl{padding:8px 14px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
+.btn-dl:hover{background:#224080}
+.btn-print{background:#15803D}
+.btn-print:hover{background:#166534}
+.btn-del{background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:14px;padding:2px 4px;border-radius:4px;transition:color .15s;line-height:1}
+.btn-del:hover{color:#F87171;background:#FEE2E2}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.confirm-box{background:#fff;border-radius:14px;padding:24px;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.confirm-title{font-size:15px;font-weight:700;color:#1A2D5A;margin-bottom:8px}
+.confirm-msg{font-size:13px;color:#7A8BAA;margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+.confirm-cancel{flex:1;padding:10px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:9px;color:#7A8BAA;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.confirm-cancel:hover{background:#E2E8F0}
+.confirm-delete{flex:1;padding:10px;background:#EF4444;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.confirm-delete:hover{background:#DC2626}
+@media print{
+  .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
+  .strip-row,#ledgerToolbar,.bottom-nav,.debug-panel,.toast,
+  .btn-del,.nav-item,#view-add,#view-reports,#view-more,#view-home,
+  .debug-toggle{display:none!important}
+  body{background:#fff;padding:0;font-family:'Segoe UI',sans-serif}
+  #view-ledger{display:block!important}
+  .card{border:none;box-shadow:none;margin:0;padding:0}
+  #printHeader{display:block!important}
+  table{font-size:11px;width:100%}
+  thead th{background:#2B5197!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .badge{border:1px solid #ccc}
+}
 </style>
 </head>
 <body>
@@ -213,7 +241,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.4</span>
+  <span>v1.5</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -247,6 +275,14 @@ td{padding:9px 10px;vertical-align:top}
 
 <!-- LEDGER -->
 <div id="view-ledger" class="hidden">
+  <!-- Print header — only visible when printing -->
+  <div id="printHeader" style="display:none;padding:0 0 16px">
+    <div style="font-size:18px;font-weight:700;color:#1A2D5A">Blue Door Architects</div>
+    <div style="font-size:14px;color:#374151;margin-top:4px" id="printSubtitle">Ledger Account</div>
+    <div style="font-size:12px;color:#7A8BAA;margin-top:2px" id="printDateRange"></div>
+    <div style="font-size:12px;color:#7A8BAA" id="printFilters"></div>
+    <hr style="border:none;border-top:2px solid #2B5197;margin:10px 0">
+  </div>
   <div class="page-title">Ledger</div>
 
   <!-- Filter Panel -->
@@ -325,6 +361,16 @@ td{padding:9px 10px;vertical-align:top}
     <div class="strip red"><div class="strip-label">Total Cr</div><div class="strip-value" id="sumCr">—</div></div>
     <div class="strip green"><div class="strip-label">Net Balance</div><div class="strip-value" id="sumNet">—</div></div>
     <div class="strip amber"><div class="strip-label">Entries</div><div class="strip-value" id="sumCount">—</div></div>
+  </div>
+
+  <!-- Download / Print toolbar -->
+  <div style="display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap" id="ledgerToolbar">
+    <button class="btn-dl" onclick="downloadCSV()" title="Download as Excel/CSV">
+      📥 Download XLS
+    </button>
+    <button class="btn-dl btn-print" onclick="printLedger()" title="Print / Save as PDF">
+      🖨 Print / PDF
+    </button>
   </div>
 
   <!-- Running ledger table -->
@@ -449,6 +495,18 @@ td{padding:9px 10px;vertical-align:top}
     <button class="btn-primary btn-full" onclick="addUser()">Add User</button>
   </div>
   <div class="card"><div class="card-label">All Users</div><div id="userList"><div class="empty">Loading…</div></div></div>
+</div>
+
+<!-- Delete confirm overlay -->
+<div class="confirm-overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete Entry?</div>
+    <div class="confirm-msg" id="confirmMsg">This will permanently remove both the Debit and Credit entries. This action cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-delete" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
 </div>
 
 <nav class="bottom-nav">
@@ -667,7 +725,7 @@ function renderFilteredLedger(rows) {
   var totalDr=0, totalCr=0, balance=0;
   var html="<table><thead><tr>"+
     "<th>Date</th><th>Voucher</th><th>Account</th><th>Particulars</th>"+
-    "<th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Balance ₹</th>"+
+    "<th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Balance ₹</th><th class='no-print'></th>"+
     "</tr></thead><tbody>";
 
   rows.forEach(function(r){
@@ -684,12 +742,13 @@ function renderFilteredLedger(rows) {
     if(r.vendorName)  ctx.push(r.vendorName);
     if(r.costHeadName)ctx.push(r.costHeadName);
 
+    var delBtn="<button class='btn-del no-print' data-id='" +r.entryId+ "' data-date='" +r.date+ "' data-ac='" +(r.acName||'').replace(/'/g,'') +"' title='Delete entry' onclick='confirmDelete(this.dataset.id,this.dataset.date,this.dataset.ac)'>🗑</button>";
     html+="<tr>"+
       "<td style='white-space:nowrap;font-size:12px;color:#1A2D5A'>"+r.date+"</td>"+
       "<td style='font-size:10px;color:#94A3B8;white-space:nowrap'>"+r.entryId+"</td>"+
       "<td><div style='font-size:12px;font-weight:600;color:#1A2D5A'>"+r.acName+"</div>"+
           "<div style='font-size:10px;color:#94A3B8'>"+r.acCode+" · "+r.acType+"</div></td>"+
-      "<td><div style='font-size:12px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
+      "<td><div style='font-size:12px;color:#374151;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
           (ctx.length?"<div style='font-size:10px;color:#7A8BAA'>"+ctx.join(" · ")+"</div>":"")+
       "</td>"+
       "<td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td>"+
@@ -697,6 +756,7 @@ function renderFilteredLedger(rows) {
       "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
       "<td><div class='"+balClass+"'>₹ "+fmt(balAbs)+"</div>"+
           "<div style='font-size:10px;color:#7A8BAA'>"+balSide+"</div></td>"+
+      "<td class='no-print'>"+delBtn+"</td>"+
       "</tr>";
   });
   html+="</tbody></table>";
@@ -894,6 +954,161 @@ function showView(name,el){
   if(name==="ledger") { if(!allLedger.length) initLedger(); else applyFilters(); }
   if(name==="reports") loadReports();
   if(name==="more") loadUsers();
+}
+
+// ── DELETE ENTRY ───────────────────────────────────────────
+var _pendingDeleteId = null;
+
+function confirmDelete(entryId, date, acName) {
+  _pendingDeleteId = entryId;
+  document.getElementById("confirmMsg").textContent =
+    "Delete entry " + entryId + " (" + date + " · " + acName + ")? " +
+    "Both the Debit and Credit entries will be permanently removed. This cannot be undone.";
+  document.getElementById("confirmOverlay").classList.remove("hidden");
+  document.getElementById("confirmDeleteBtn").onclick = function(){ doDelete(_pendingDeleteId); };
+}
+
+function closeConfirm() {
+  document.getElementById("confirmOverlay").classList.add("hidden");
+  _pendingDeleteId = null;
+}
+
+function doDelete(entryId) {
+  closeConfirm();
+  api({ action:"deleteEntry", token:token, entryId:entryId }, function(d){
+    if(d.success){
+      toast("✓ Entry "+entryId+" deleted ("+d.deleted+" rows removed).", true);
+      // Remove from in-memory ledger and re-render
+      allLedger = allLedger.filter(function(r){ return r.entryId !== entryId; });
+      applyFilters();
+    } else {
+      toast(d.error || "Delete failed.", false);
+    }
+  });
+}
+
+// ── DOWNLOAD CSV ────────────────────────────────────────────
+function downloadCSV() {
+  if(!allLedger.length){ toast("No ledger data to download.", false); return; }
+
+  // Get currently filtered rows
+  var rows = getCurrentFilteredRows();
+  if(!rows.length){ toast("No entries match current filters.", false); return; }
+
+  var headers = ["Date","Voucher No","Account Code","Account Name","Account Type","Dr/Cr","Debit (INR)","Credit (INR)","Balance (INR)","Balance Side","Project","Vendor","Cost Head","Narration"];
+  var balance = 0;
+  var lines = [headers.join(",")];
+
+  rows.forEach(function(r){
+    balance += r.debit - r.credit;
+    var balAbs  = Math.abs(balance);
+    var balSide = balance>0?"Dr":balance<0?"Cr":"NIL";
+    var cols = [
+      r.date,
+      r.entryId,
+      r.acCode,
+      csvEsc(r.acName),
+      r.acType,
+      r.drCr,
+      r.debit>0 ? r.debit.toFixed(2) : "",
+      r.credit>0 ? r.credit.toFixed(2) : "",
+      balAbs.toFixed(2),
+      balSide,
+      csvEsc(r.projectName),
+      csvEsc(r.vendorName),
+      csvEsc(r.costHeadName),
+      csvEsc(r.narration)
+    ];
+    lines.push(cols.join(","));
+  });
+
+  // Totals row
+  var totalDr = rows.reduce(function(s,r){return s+r.debit;},0);
+  var totalCr = rows.reduce(function(s,r){return s+r.credit;},0);
+  lines.push("");
+  lines.push(["TOTAL","","","","","",totalDr.toFixed(2),totalCr.toFixed(2),"","","","","",""].join(","));
+
+  var blob = new Blob([lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement("a");
+  var fyL  = (document.getElementById("fyLabel").textContent||"").replace(/\s/g,"_");
+  var lbl  = (document.getElementById("ledgerTableLabel").textContent||"Ledger").replace(/\s/g,"_");
+  a.href = url;
+  a.download = "BlueDoor_"+lbl+"_"+fyL+".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("✓ CSV downloaded — open in Excel.", true);
+}
+
+function csvEsc(s){ s=s||""; return s.includes(",") || s.includes('"') ? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+// ── PRINT / PDF ─────────────────────────────────────────────
+function printLedger() {
+  if(!allLedger.length){ toast("No ledger data to print.", false); return; }
+  var rows = getCurrentFilteredRows();
+  if(!rows.length){ toast("No entries match current filters.", false); return; }
+
+  // Build print header info
+  var subtitle = document.getElementById("ledgerTableLabel").textContent || "Ledger Account";
+  var fyL      = document.getElementById("fyLabel").textContent || "";
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var dateRange= (dateFrom||"Start") + " to " + (dateTo||"Present") + " · " + fyL;
+
+  // Active filters summary
+  var filters = [];
+  var proj=document.getElementById("fProject"),vend=document.getElementById("fVendor");
+  var acct=document.getElementById("fAccount"),actp=document.getElementById("fAccType");
+  if(actp.value) filters.push("Type: "+actp.value);
+  if(acct.value) filters.push("Account: "+acct.options[acct.selectedIndex].text);
+  if(proj.value) filters.push("Project: "+proj.options[proj.selectedIndex].text);
+  if(vend.value) filters.push("Vendor: "+vend.options[vend.selectedIndex].text);
+
+  document.getElementById("printSubtitle").textContent  = subtitle;
+  document.getElementById("printDateRange").textContent = dateRange;
+  document.getElementById("printFilters").textContent   = filters.length ? "Filters: "+filters.join(" | ") : "";
+  document.getElementById("printHeader").style.display  = "block";
+
+  window.print();
+
+  // Hide print header after printing
+  setTimeout(function(){ document.getElementById("printHeader").style.display="none"; }, 1000);
+}
+
+// ── HELPER: get currently filtered+sorted rows from allLedger ─
+function getCurrentFilteredRows() {
+  var accType  = document.getElementById("fAccType").value;
+  var account  = document.getElementById("fAccount").value;
+  var project  = document.getElementById("fProject").value;
+  var vendor   = document.getElementById("fVendor").value;
+  var costHead = document.getElementById("fCostHead").value;
+  var drCr     = document.getElementById("fDrCr").value;
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var search   = document.getElementById("fSearch").value.toLowerCase().trim();
+  var dfTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+  var dtTs = dateTo   ? new Date(dateTo).getTime()   : Infinity;
+
+  var rows = allLedger.filter(function(r){
+    if(accType  && r.acType     !== accType)  return false;
+    if(account  && r.acCode     !== account)  return false;
+    if(project  && r.projectId  !== project)  return false;
+    if(vendor   && r.vendorId   !== vendor)   return false;
+    if(costHead && r.costHeadId !== costHead) return false;
+    if(drCr     && r.drCr       !== drCr)     return false;
+    if(dfTs && r.dateRaw < dfTs) return false;
+    if(dtTs < Infinity && r.dateRaw > dtTs) return false;
+    if(search && !(
+      (r.narration||"").toLowerCase().includes(search)||
+      (r.acName||"").toLowerCase().includes(search)||
+      (r.projectName||"").toLowerCase().includes(search)||
+      (r.vendorName||"").toLowerCase().includes(search)||
+      (r.entryId||"").toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+  rows.sort(function(a,b){ return a.dateRaw-b.dateRaw || a.entryId.localeCompare(b.entryId); });
+  return rows;
 }
 
 // ── UTILS ──────────────────────────────────────────────────
