@@ -468,7 +468,22 @@ var curFY   = localStorage.getItem("bd_fy") || "";
 var fyList=[], allLedger=[], allEntryTypes={}, coaList=[], projMap={}, vendorMap={};
 var aSelType=null, aCurCat="income";
 
-if (!token || localStorage.getItem("bd_role") !== "Admin") window.location.href = "index.html";
+if (!token || localStorage.getItem("bd_role") !== "Admin") { window.location.href = "index.html"; }
+
+// Silent session check on load — redirect to login if token expired
+setTimeout(function(){
+  fetch(API + "?payload=" + encodeURIComponent(JSON.stringify({action:"getFYList",token:token})),
+    {method:"POST",redirect:"follow",body:JSON.stringify({action:"getFYList",token:token})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.success && d.error && d.error.indexOf("Session expired")!==-1){
+      localStorage.removeItem("bd_token");
+      localStorage.removeItem("bd_role");
+      localStorage.removeItem("bd_username");
+      window.location.href="index.html";
+    }
+  }).catch(function(){});
+}, 500);
 
 document.addEventListener("DOMContentLoaded", function(){
   loadFY(); loadDashboard(); loadEntryTypes(); loadAddDropdowns();
@@ -900,6 +915,13 @@ function api(body, cb) {
     .then(function(d){
       var ms = Date.now()-t0;
       logDebug(callNum, action, d.success, d.error||null, display, d, ms);
+      if (!d.success && d.error && d.error.indexOf("Session expired") !== -1) {
+        localStorage.removeItem("bd_token");
+        localStorage.removeItem("bd_role");
+        localStorage.removeItem("bd_username");
+        window.location.href = "index.html";
+        return;
+      }
       cb(d);
     })
     .catch(function(e){
