@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2B5197">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BD Accounts">
 <title>Blue Door – Admin</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1220,6 +1226,18 @@ function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=ms
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function shortNum(n){ n=parseFloat(n||0); if(n>=10000000)return(n/10000000).toFixed(1)+"Cr"; if(n>=100000)return(n/100000).toFixed(1)+"L"; if(n>=1000)return(n/1000).toFixed(1)+"K"; return n.toFixed(0); }
 function logout(){ localStorage.removeItem("bd_token"); localStorage.removeItem("bd_role"); localStorage.removeItem("bd_username"); window.location.href="index.html"; }
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  var allowedHosts = ["arpitsantoki-afk.github.io"];
+  if (allowedHosts.indexOf(window.location.hostname) !== -1) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker.register("sw.js")
+        .then(function(reg) { console.log("SW registered:", reg.scope); })
+        .catch(function(err){ console.log("SW error:", err); });
+    });
+  }
+}
 </script>
 </body>
 </html>
