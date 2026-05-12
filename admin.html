@@ -614,11 +614,15 @@ function renderMonthChart(data){
 function initLedger() {
   var el=document.getElementById("ledgerTable");
   el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>Loading…</div>";
+  // Load ledger and opening balances in parallel
   api({action:"getLedger",token:token,fyid:curFY}, function(d){
     if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
     allLedger = d.ledger;
     populateFilterDropdowns(d.ledger);
     applyFilters();
+  });
+  api({action:"getOpeningBalances",token:token,fyid:curFY}, function(d){
+    if(d.success) allOpeningBalances = d.balances || [];
   });
 }
 
@@ -719,6 +723,40 @@ function applyFilters() {
   document.getElementById("filterCount").textContent = filtered.length+" of "+allLedger.length+" entries";
 }
 
+// ── Detect if any filter is active (ledger mode vs journal mode)
+function isFiltered() {
+  return !!(
+    document.getElementById("fAccType").value  ||
+    document.getElementById("fAccount").value  ||
+    document.getElementById("fProject").value  ||
+    document.getElementById("fVendor").value   ||
+    document.getElementById("fCostHead").value ||
+    document.getElementById("fDrCr").value     ||
+    document.getElementById("fDateFrom").value ||
+    document.getElementById("fDateTo").value   ||
+    document.getElementById("fSearch").value.trim()
+  );
+}
+
+// ── Get opening balance for current filters from OpeningBalances data
+// (stored in allOpeningBalances after ledger load)
+var allOpeningBalances = [];
+
+function getOpeningBalance(rows) {
+  // Sum up opening balances for accounts present in the filtered rows
+  // Match by accountKey — accounts that appear in this filtered set
+  var acKeys = {};
+  rows.forEach(function(r){ if(r.acKey) acKeys[r.acKey]=true; });
+
+  var ob = 0;
+  allOpeningBalances.forEach(function(b){
+    if (acKeys[b.accountKey]) {
+      ob += b.drCr==="Dr" ? parseFloat(b.amount)||0 : -(parseFloat(b.amount)||0);
+    }
+  });
+  return ob;
+}
+
 function renderFilteredLedger(rows) {
   var el = document.getElementById("ledgerTable");
   if(!rows.length){
@@ -727,54 +765,102 @@ function renderFilteredLedger(rows) {
     return;
   }
 
-  // Compute running balance + totals
-  var totalDr=0, totalCr=0, balance=0;
-  var html="<table><thead><tr>"+
-    "<th>Date</th><th>Voucher</th><th>Account</th><th>Particulars</th>"+
-    "<th>Dr/Cr</th><th>Debit ₹</th><th>Credit ₹</th><th>Balance ₹</th><th class='no-print'></th>"+
+  var filtered = isFiltered();
+  var ob       = filtered ? getOpeningBalance(rows) : 0; // opening balance (signed: +Dr, -Cr)
+  var totalDr  = 0, totalCr = 0;
+
+  // Table header — no balance column
+  var html = "<table><thead><tr>"+
+    "<th>Date</th><th>Voucher No</th><th>Account</th><th>Particulars</th>"+
+    "<th>Debit ₹</th><th>Credit ₹</th><th class='no-print'></th>"+
     "</tr></thead><tbody>";
 
+  // Opening balance row (filtered mode, non-zero only)
+  if (filtered && ob !== 0) {
+    var obAbs  = Math.abs(ob);
+    var obDr   = ob > 0 ? "₹ "+fmt(obAbs) : "—";
+    var obCr   = ob < 0 ? "₹ "+fmt(obAbs) : "—";
+    html += "<tr style='background:#FEF9C3;font-weight:600'>"+
+      "<td style='font-size:12px;color:#854D0E'></td>"+
+      "<td style='font-size:11px;color:#854D0E'></td>"+
+      "<td style='font-size:12px;color:#854D0E' colspan='2'>Opening Balance</td>"+
+      "<td style='color:#15803D;font-weight:700'>"+obDr+"</td>"+
+      "<td style='color:#B91C1C;font-weight:700'>"+obCr+"</td>"+
+      "<td class='no-print'></td>"+
+      "</tr>";
+  }
+
+  // Transaction rows
   rows.forEach(function(r){
-    totalDr  += r.debit;
-    totalCr  += r.credit;
-    balance  += r.debit - r.credit;
-    var balAbs  = Math.abs(balance);
-    var balSide = balance>0?"Dr":balance<0?"Cr":"NIL";
-    var balClass= balance>0?"bal-dr":balance<0?"bal-cr":"bal-nil";
+    totalDr += r.debit;
+    totalCr += r.credit;
 
-    // Build particulars: narration + context tags
     var ctx=[];
-    if(r.projectName) ctx.push(r.projectName);
-    if(r.vendorName)  ctx.push(r.vendorName);
-    if(r.costHeadName)ctx.push(r.costHeadName);
+    if(r.projectName)  ctx.push(r.projectName);
+    if(r.vendorName)   ctx.push(r.vendorName);
+    if(r.costHeadName) ctx.push(r.costHeadName);
 
-    var delBtn="<button class='btn-del no-print' data-id='" +r.entryId+ "' data-date='" +r.date+ "' data-ac='" +(r.acName||'').replace(/'/g,'') +"' title='Delete entry' onclick='confirmDelete(this.dataset.id,this.dataset.date,this.dataset.ac)'>🗑</button>";
-    html+="<tr>"+
+    var delBtn="<button class='btn-del no-print' data-id='"+r.entryId+"' data-date='"+r.date+"' data-ac='"+(r.acName||"").replace(/'/g,"")+"' title='Delete entry' onclick='confirmDelete(this.dataset.id,this.dataset.date,this.dataset.ac)'>🗑</button>";
+
+    html += "<tr>"+
       "<td style='white-space:nowrap;font-size:12px;color:#1A2D5A'>"+r.date+"</td>"+
       "<td style='font-size:10px;color:#94A3B8;white-space:nowrap'>"+r.entryId+"</td>"+
       "<td><div style='font-size:12px;font-weight:600;color:#1A2D5A'>"+r.acName+"</div>"+
           "<div style='font-size:10px;color:#94A3B8'>"+r.acCode+" · "+r.acType+"</div></td>"+
-      "<td><div style='font-size:12px;color:#374151;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
+      "<td><div style='font-size:12px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
           (ctx.length?"<div style='font-size:10px;color:#7A8BAA'>"+ctx.join(" · ")+"</div>":"")+
       "</td>"+
-      "<td><span class='badge "+(r.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+r.drCr+"</span></td>"+
       "<td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td>"+
       "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
-      "<td><div class='"+balClass+"'>₹ "+fmt(balAbs)+"</div>"+
-          "<div style='font-size:10px;color:#7A8BAA'>"+balSide+"</div></td>"+
       "<td class='no-print'>"+delBtn+"</td>"+
       "</tr>";
   });
-  html+="</tbody></table>";
-  el.innerHTML=html;
 
-  // Update summary strips
-  var net=totalDr-totalCr, netAbs=Math.abs(net);
-  document.getElementById("sumDr").textContent    = "₹ "+shortNum(totalDr);
-  document.getElementById("sumCr").textContent    = "₹ "+shortNum(totalCr);
-  document.getElementById("sumNet").textContent   = "₹ "+shortNum(netAbs)+(net>0?" Dr":net<0?" Cr":"");
+  // Closing balance row (filtered mode only, non-zero only)
+  // Closing = opening + totalDr - totalCr
+  // Place closing on opposite side so Dr total = Cr total
+  var closing = ob + totalDr - totalCr;
+  if (filtered && Math.abs(closing) > 0.001) {
+    var clAbs   = Math.abs(closing);
+    // closing > 0 means Dr side is heavier → put closing on Cr side
+    // closing < 0 means Cr side is heavier → put closing on Dr side
+    var clDr    = closing < 0 ? "₹ "+fmt(clAbs) : "—";
+    var clCr    = closing > 0 ? "₹ "+fmt(clAbs) : "—";
+    var clLabel = closing > 0 ? "Closing Balance (Dr)" : "Closing Balance (Cr)";
+    // Add to totals for the final balance row
+    if (closing < 0) totalDr += clAbs;
+    else             totalCr += clAbs;
+    html += "<tr style='background:#EEF3FF;font-weight:600;border-top:2px solid #C7D7FF'>"+
+      "<td style='font-size:12px;color:#1D4ED8'></td>"+
+      "<td style='font-size:11px;color:#1D4ED8'></td>"+
+      "<td style='font-size:12px;color:#1D4ED8' colspan='2'>"+clLabel+"</td>"+
+      "<td style='color:#15803D;font-weight:700'>"+clDr+"</td>"+
+      "<td style='color:#B91C1C;font-weight:700'>"+clCr+"</td>"+
+      "<td class='no-print'></td>"+
+      "</tr>";
+  }
+
+  // Totals row — always shown, Dr always = Cr
+  html += "<tr style='background:#1A2D5A;color:#fff;font-weight:700;font-size:13px'>"+
+    "<td colspan='4' style='color:#fff;padding:10px'>TOTAL</td>"+
+    "<td style='color:#86EFAC'>₹ "+fmt(totalDr)+"</td>"+
+    "<td style='color:#FCA5A5'>₹ "+fmt(totalCr)+"</td>"+
+    "<td class='no-print'></td>"+
+    "</tr>";
+
+  html += "</tbody></table>";
+  el.innerHTML = html;
+
+  // Update summary strips (use original totals before closing balance adjustment)
+  var origDr = rows.reduce(function(s,r){return s+r.debit;},0);
+  var origCr = rows.reduce(function(s,r){return s+r.credit;},0);
+  var net    = ob + origDr - origCr;
+  var netAbs = Math.abs(net);
+  document.getElementById("sumDr").textContent    = "₹ "+shortNum(origDr);
+  document.getElementById("sumCr").textContent    = "₹ "+shortNum(origCr);
+  document.getElementById("sumNet").textContent   = "₹ "+shortNum(netAbs)+(net>0?" Dr":net<0?" Cr":" NIL");
   document.getElementById("sumCount").textContent = rows.length;
-  document.getElementById("ledgerSummary").style.display="flex";
+  document.getElementById("ledgerSummary").style.display = "flex";
 }
 
 function updateActiveTags(accType, account, project, vendor, costHead, drCr, dateFrom, dateTo, search) {
@@ -996,43 +1082,38 @@ function doDelete(entryId) {
 // ── DOWNLOAD CSV ────────────────────────────────────────────
 function downloadCSV() {
   if(!allLedger.length){ toast("No ledger data to download.", false); return; }
-
-  // Get currently filtered rows
   var rows = getCurrentFilteredRows();
   if(!rows.length){ toast("No entries match current filters.", false); return; }
 
-  var headers = ["Date","Voucher No","Account Code","Account Name","Account Type","Dr/Cr","Debit (INR)","Credit (INR)","Balance (INR)","Balance Side","Project","Vendor","Cost Head","Narration"];
-  var balance = 0;
-  var lines = [headers.join(",")];
+  var filtered = isFiltered();
+  var ob       = filtered ? getOpeningBalance(rows) : 0;
+  var headers  = ["Date","Voucher No","Account","Particulars","Debit (INR)","Credit (INR)","Project","Vendor","Cost Head"];
+  var lines    = [headers.join(",")];
 
+  if (filtered && ob !== 0) {
+    var obAbs = Math.abs(ob);
+    lines.push(["","","","Opening Balance",ob>0?obAbs.toFixed(2):"",ob<0?obAbs.toFixed(2):"","","",""].join(","));
+  }
+
+  var totalDr=0, totalCr=0;
   rows.forEach(function(r){
-    balance += r.debit - r.credit;
-    var balAbs  = Math.abs(balance);
-    var balSide = balance>0?"Dr":balance<0?"Cr":"NIL";
-    var cols = [
-      r.date,
-      r.entryId,
-      r.acCode,
-      csvEsc(r.acName),
-      r.acType,
-      r.drCr,
-      r.debit>0 ? r.debit.toFixed(2) : "",
-      r.credit>0 ? r.credit.toFixed(2) : "",
-      balAbs.toFixed(2),
-      balSide,
-      csvEsc(r.projectName),
-      csvEsc(r.vendorName),
-      csvEsc(r.costHeadName),
-      csvEsc(r.narration)
-    ];
-    lines.push(cols.join(","));
+    totalDr += r.debit; totalCr += r.credit;
+    lines.push([r.date,r.entryId,csvEsc(r.acName),csvEsc(r.narration),
+      r.debit>0?r.debit.toFixed(2):"",r.credit>0?r.credit.toFixed(2):"",
+      csvEsc(r.projectName),csvEsc(r.vendorName),csvEsc(r.costHeadName)].join(","));
   });
 
-  // Totals row
-  var totalDr = rows.reduce(function(s,r){return s+r.debit;},0);
-  var totalCr = rows.reduce(function(s,r){return s+r.credit;},0);
+  var closing = ob + totalDr - totalCr;
+  var grandDr = totalDr, grandCr = totalCr;
+  if (filtered && Math.abs(closing) > 0.001) {
+    var clAbs = Math.abs(closing);
+    lines.push(["","","",closing>0?"Closing Balance (Dr)":"Closing Balance (Cr)",
+      closing<0?clAbs.toFixed(2):"",closing>0?clAbs.toFixed(2):"","","",""].join(","));
+    if(closing<0) grandDr+=clAbs; else grandCr+=clAbs;
+  }
+
   lines.push("");
-  lines.push(["TOTAL","","","","","",totalDr.toFixed(2),totalCr.toFixed(2),"","","","","",""].join(","));
+  lines.push(["TOTAL","","","",grandDr.toFixed(2),grandCr.toFixed(2),"","",""].join(","));
 
   var blob = new Blob([lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
   var url  = URL.createObjectURL(blob);
