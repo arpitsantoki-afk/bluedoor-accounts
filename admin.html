@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -25,6 +25,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .header-right{display:flex;align-items:center;gap:8px}
 .fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
+.btn-sync{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 9px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;line-height:1}
+.btn-sync:hover{background:rgba(255,255,255,0.2)}
+.btn-sync.spinning{animation:spin .7s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 11px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
 .btn-logout:hover{background:rgba(239,68,68,0.35);border-color:rgba(239,68,68,0.5)}
 .fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
@@ -205,6 +209,33 @@ td{padding:9px 10px;vertical-align:top}
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
+/* Activity log */
+.act-row{padding:9px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;gap:10px}
+.act-row:last-child{border-bottom:none}
+.act-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.act-icon.entry{background:#DBEAFE;color:#1D4ED8}
+.act-icon.project{background:#DCFCE7;color:#15803D}
+.act-icon.vendor{background:#FEF9C3;color:#854D0E}
+.act-icon.delete{background:#FEE2E2;color:#B91C1C}
+.act-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.act-sub{font-size:11px;color:#7A8BAA;margin-top:1px}
+.act-time{font-size:10px;color:#94A3B8;white-space:nowrap;text-align:right;flex-shrink:0}
+/* Master list rows */
+.master-row{padding:12px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.master-row:last-child{border-bottom:none}
+.master-main{font-size:13px;font-weight:600;color:#1A2D5A}
+.master-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.master-actions{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.btn-edit{padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-edit:hover{background:#DBEAFE}
+.btn-del-soft{padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-del-soft:hover{background:#FCA5A5}
+.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px}
+.status-active{background:#DCFCE7;color:#15803D}
+.status-hold{background:#FEF9C3;color:#854D0E}
+.status-completed{background:#DBEAFE;color:#1D4ED8}
+.status-deleted{background:#F1F5F9;color:#94A3B8}
+.status-inactive{background:#F1F5F9;color:#94A3B8}
 .btn-dl{padding:8px 14px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
 .btn-dl:hover{background:#224080}
 .btn-print{background:#15803D}
@@ -245,12 +276,13 @@ td{padding:9px 10px;vertical-align:top}
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
     <div class="online-dot"></div>
+    <button class="btn-sync" id="syncBtn" onclick="syncAll()" title="Force sync all data">↻</button>
     <button class="btn-logout" onclick="logout()">⏻ Sign Out</button>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.5.1</span>
+  <span>v1.7</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -280,6 +312,17 @@ td{padding:9px 10px;vertical-align:top}
   </div>
   <div class="card"><div class="card-label">Project P&L</div><div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
   <div class="card"><div class="card-label">Monthly Trend</div><div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div></div>
+
+  <!-- Recent Activity collapsible -->
+  <div class="card" style="cursor:pointer" onclick="toggleActivity()">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-label" style="margin-bottom:0">🕐 Recent Activity</div>
+      <span id="activityChevron" style="color:#7A8BAA;font-size:16px;transition:transform .2s">▾</span>
+    </div>
+    <div id="activityBody" class="hidden" style="margin-top:12px">
+      <div id="activityList"><div class="empty" style="padding:12px 0">Loading…</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- LEDGER -->
@@ -427,31 +470,62 @@ td{padding:9px 10px;vertical-align:top}
 
   <!-- Project -->
   <div id="at-project" class="hidden">
+    <!-- Project Form -->
     <div class="card">
-      <div class="card-label">New Project</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-label" style="margin-bottom:0" id="pFormLabel">Add Project</div>
+        <button class="btn-sm" id="pCancelBtn" style="display:none;padding:5px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:7px;font-size:12px;color:#7A8BAA;cursor:pointer;font-family:inherit" onclick="cancelEditProject()">Cancel</button>
+      </div>
+      <input type="hidden" id="pEditId">
       <div class="row-2">
         <div class="field"><label>Name *</label><input type="text" id="pName" placeholder="Residence, Office…"></div>
         <div class="field"><label>Client</label><input type="text" id="pClient" placeholder="Client name"></div>
         <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="City"></div>
         <div class="field"><label>Start Date</label><input type="date" id="pStart"></div>
         <div class="field"><label>Budget (₹)</label><input type="number" id="pBudget" placeholder="0"></div>
-        <div class="field"><label>Status</label><select id="pStatus"><option value="Active">Active</option><option value="On Hold">On Hold</option><option value="Completed">Completed</option></select></div>
+        <div class="field"><label>Status</label>
+          <select id="pStatus">
+            <option value="Active">Active</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
       </div>
-      <button class="btn-primary btn-full" onclick="addProject()">Add Project</button>
+      <button class="btn-primary btn-full" id="pSaveBtn" onclick="saveProject()">Add Project</button>
+    </div>
+    <!-- Project List -->
+    <div class="card">
+      <div class="card-label">All Projects</div>
+      <div id="projectList"><div class="empty">Loading…</div></div>
     </div>
   </div>
 
   <!-- Vendor -->
   <div id="at-vendor" class="hidden">
+    <!-- Vendor Form -->
     <div class="card">
-      <div class="card-label">New Vendor / Contractor</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-label" style="margin-bottom:0" id="vFormLabel">Add Vendor</div>
+        <button class="btn-sm" id="vCancelBtn" style="display:none;padding:5px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:7px;font-size:12px;color:#7A8BAA;cursor:pointer;font-family:inherit" onclick="cancelEditVendor()">Cancel</button>
+      </div>
+      <input type="hidden" id="vEditId">
       <div class="row-2">
         <div class="field"><label>Name *</label><input type="text" id="vName" placeholder="Name"></div>
-        <div class="field"><label>Type</label><select id="vType"><option>Contractor</option><option>Supplier</option><option>Consultant</option><option>Labour</option><option>Other</option></select></div>
+        <div class="field"><label>Type</label>
+          <select id="vType">
+            <option>Contractor</option><option>Supplier</option>
+            <option>Consultant</option><option>Labour</option><option>Other</option>
+          </select>
+        </div>
         <div class="field"><label>GSTIN</label><input type="text" id="vGST" placeholder="Optional"></div>
         <div class="field"><label>Contact</label><input type="text" id="vContact" placeholder="Phone"></div>
       </div>
-      <button class="btn-primary btn-full" onclick="addVendor()">Add Vendor</button>
+      <button class="btn-primary btn-full" id="vSaveBtn" onclick="saveVendor()">Add Vendor</button>
+    </div>
+    <!-- Vendor List -->
+    <div class="card">
+      <div class="card-label">All Vendors</div>
+      <div id="vendorList"><div class="empty">Loading…</div></div>
     </div>
   </div>
 
@@ -608,6 +682,7 @@ function loadDashboard(){
     var pEl=document.getElementById("kpiPro"); pEl.textContent="₹ "+shortNum(s.profit); pEl.className="kpi-value "+(s.profit>=0?"green":"red");
     var dEl=document.getElementById("kpiDraw"); dEl.textContent=s.drawings>0?"₹ "+shortNum(s.drawings):"—"; dEl.className="kpi-value "+(s.drawings>0?"amber":"");
     renderProjChart(d.byProject); renderMonthChart(d.byMonth);
+    if(_activityOpen) loadActivity();
   });
 }
 function renderProjChart(data){
@@ -935,6 +1010,8 @@ function switchAddTab(tab,el){
   document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
   ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
   if(tab==="opening") loadOpeningBalances();
+  if(tab==="project") loadAllProjects();
+  if(tab==="vendor")  loadAllVendors();
 }
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
@@ -1001,16 +1078,7 @@ function adminSaveEntry(){
 }
 
 // ── ADD PROJECT / VENDOR ───────────────────────────────────
-function addProject(){
-  var n=document.getElementById("pName").value.trim(); if(!n){toast("Project name required.",false);return;}
-  api({action:"addProject",token:token,name:n,client:document.getElementById("pClient").value,location:document.getElementById("pLoc").value,startDate:document.getElementById("pStart").value,budget:document.getElementById("pBudget").value,status:document.getElementById("pStatus").value,fyid:curFY},
-  function(d){ if(d.success){toast("✓ Project added: "+d.id,true);loadAddDropdowns();}else toast(d.error||"Failed.",false); });
-}
-function addVendor(){
-  var n=document.getElementById("vName").value.trim(); if(!n){toast("Vendor name required.",false);return;}
-  api({action:"addVendor",token:token,name:n,type:document.getElementById("vType").value,gstin:document.getElementById("vGST").value,contact:document.getElementById("vContact").value},
-  function(d){ if(d.success){toast("✓ Vendor added: "+d.id,true);loadAddDropdowns();}else toast(d.error||"Failed.",false); });
-}
+// addProject and addVendor now handled by saveProject() and saveVendor()
 
 // ── OPENING BALANCES ───────────────────────────────────────
 function loadOpeningBalances(){
@@ -1236,6 +1304,297 @@ function getCurrentFilteredRows() {
   rows.sort(function(a,b){ return a.dateRaw-b.dateRaw || a.entryId.localeCompare(b.entryId); });
   return rows;
 }
+
+// ── PROJECT CRUD ───────────────────────────────────────────
+function saveProject() {
+  var name  = document.getElementById("pName").value.trim();
+  var editId= document.getElementById("pEditId").value;
+  if (!name) { toast("Project name is required.", false); return; }
+
+  var payload = {
+    token:     token,
+    name:      name,
+    client:    document.getElementById("pClient").value,
+    location:  document.getElementById("pLoc").value,
+    startDate: document.getElementById("pStart").value,
+    budget:    document.getElementById("pBudget").value,
+    status:    document.getElementById("pStatus").value,
+    fyid:      curFY
+  };
+
+  if (editId) {
+    payload.action = "editProject";
+    payload.id     = editId;
+    api(payload, function(d){
+      if(d.success){ toast("✓ Project updated.", true); cancelEditProject(); loadAllProjects(); localStorage.removeItem("bd_c_proj"); }
+      else toast(d.error||"Update failed.", false);
+    });
+  } else {
+    payload.action = "addProject";
+    api(payload, function(d){
+      if(d.success){ toast("✓ Project added: "+d.id, true); clearProjectForm(); loadAllProjects(); localStorage.removeItem("bd_c_proj"); }
+      else toast(d.error||"Failed.", false);
+    });
+  }
+}
+
+function editProjectRow(id, name, client, location, startDate, budget, status) {
+  document.getElementById("pEditId").value    = id;
+  document.getElementById("pName").value      = name;
+  document.getElementById("pClient").value    = client;
+  document.getElementById("pLoc").value       = location;
+  document.getElementById("pStart").value     = startDate||"";
+  document.getElementById("pBudget").value    = budget||"";
+  document.getElementById("pStatus").value    = status||"Active";
+  document.getElementById("pFormLabel").textContent = "Edit Project";
+  document.getElementById("pSaveBtn").textContent   = "Update Project";
+  document.getElementById("pCancelBtn").style.display = "";
+  // Scroll to form
+  document.getElementById("at-project").scrollIntoView({behavior:"smooth"});
+}
+
+function cancelEditProject() {
+  clearProjectForm();
+  document.getElementById("pFormLabel").textContent    = "Add Project";
+  document.getElementById("pSaveBtn").textContent      = "Add Project";
+  document.getElementById("pCancelBtn").style.display  = "none";
+}
+
+function clearProjectForm() {
+  ["pEditId","pName","pClient","pLoc","pStart","pBudget"].forEach(function(id){
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("pStatus").value = "Active";
+}
+
+function confirmDeleteProject(id, name, entryCount) {
+  var msg = entryCount > 0
+    ? "'"+name+"' has "+entryCount+" entries linked to it. It will be marked Deleted and hidden from dropdowns, but existing entries are preserved. Continue?"
+    : "Mark '"+name+"' as Deleted? It will be hidden from dropdowns.";
+  if (!confirm(msg)) return;
+  api({ action:"deleteProject", token:token, id:id }, function(d){
+    if(d.success){
+      var warn = d.entriesExist ? " ("+d.entryCount+" entries preserved)" : "";
+      toast("✓ Project marked as Deleted"+warn, true);
+      loadAllProjects(); localStorage.removeItem("bd_c_proj");
+    } else toast(d.error||"Delete failed.", false);
+  });
+}
+
+function loadAllProjects() {
+  var el = document.getElementById("projectList");
+  if (!el) return;
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({ action:"getAllProjects", token:token }, function(d){
+    if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if (!d.projects.length){ el.innerHTML="<div class='empty'>No projects yet.</div>"; return; }
+    var isAdmin = localStorage.getItem("bd_role")==="Admin";
+    var html = "";
+    d.projects.forEach(function(p){
+      var stCls = p.status==="Active"?"status-active":p.status==="On Hold"?"status-hold":p.status==="Completed"?"status-completed":"status-deleted";
+      var edBtn = "<button class='btn-edit' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' data-cl='"+esc(p.client)+"' data-lo='"+esc(p.location)+"' data-st='"+esc(p.startDate||"")+"' data-bu='"+p.budget+"' data-ss='"+p.status+"' onclick='editProjectRow(this.dataset.id,this.dataset.nm,this.dataset.cl,this.dataset.lo,this.dataset.st,this.dataset.bu,this.dataset.ss)'>Edit</button>";
+      var delBtn = isAdmin && p.status !== "Deleted"
+        ? "<button class='btn-del-soft' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' onclick='confirmDeleteProject(this.dataset.id,this.dataset.nm,0)'>Delete</button>"
+        : "";
+      html += "<div class='master-row'>"+
+        "<div><div class='master-main'>"+p.name+"</div>"+
+        "<div class='master-sub'>"+p.client+(p.location?" · "+p.location:"")+"</div>"+
+        "<span class='status-badge "+stCls+"'>"+p.status+"</span>"+
+        (p.budget>0?"<div class='master-sub'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
+        "</div>"+
+        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+  });
+}
+
+// ── VENDOR CRUD ─────────────────────────────────────────────
+function saveVendor() {
+  var name  = document.getElementById("vName").value.trim();
+  var editId= document.getElementById("vEditId").value;
+  if (!name) { toast("Vendor name is required.", false); return; }
+
+  var payload = {
+    token:   token,
+    name:    name,
+    type:    document.getElementById("vType").value,
+    gstin:   document.getElementById("vGST").value,
+    contact: document.getElementById("vContact").value
+  };
+
+  if (editId) {
+    payload.action = "editVendor";
+    payload.id     = editId;
+    api(payload, function(d){
+      if(d.success){ toast("✓ Vendor updated.", true); cancelEditVendor(); loadAllVendors(); localStorage.removeItem("bd_c_ve"); }
+      else toast(d.error||"Update failed.", false);
+    });
+  } else {
+    payload.action = "addVendor";
+    api(payload, function(d){
+      if(d.success){ toast("✓ Vendor added: "+d.id, true); clearVendorForm(); loadAllVendors(); localStorage.removeItem("bd_c_ve"); }
+      else toast(d.error||"Failed.", false);
+    });
+  }
+}
+
+function editVendorRow(id, name, type, gstin, contact) {
+  document.getElementById("vEditId").value   = id;
+  document.getElementById("vName").value     = name;
+  document.getElementById("vType").value     = type;
+  document.getElementById("vGST").value      = gstin||"";
+  document.getElementById("vContact").value  = contact||"";
+  document.getElementById("vFormLabel").textContent = "Edit Vendor";
+  document.getElementById("vSaveBtn").textContent   = "Update Vendor";
+  document.getElementById("vCancelBtn").style.display = "";
+  document.getElementById("at-vendor").scrollIntoView({behavior:"smooth"});
+}
+
+function cancelEditVendor() {
+  clearVendorForm();
+  document.getElementById("vFormLabel").textContent   = "Add Vendor";
+  document.getElementById("vSaveBtn").textContent     = "Add Vendor";
+  document.getElementById("vCancelBtn").style.display = "none";
+}
+
+function clearVendorForm() {
+  ["vEditId","vName","vGST","vContact"].forEach(function(id){
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("vType").value = "Contractor";
+}
+
+function confirmDeleteVendor(id, name) {
+  api({ action:"getAllVendors", token:token }, function(d){
+    // Count entries for this vendor
+    api({ action:"getVendorOutstanding", token:token, fyid:"", vendorId:id }, function(vd){
+      var count = 0;
+      if(vd.success && vd.vendors.length) count = vd.vendors[0].bills + vd.vendors[0].paid;
+      var msg = count > 0
+        ? "'"+name+"' has transactions against it. It will be marked Inactive and hidden from dropdowns, but data is preserved. Continue?"
+        : "Mark '"+name+"' as Inactive? It will be hidden from entry dropdowns.";
+      if (!confirm(msg)) return;
+      api({ action:"deleteVendor", token:token, id:id }, function(del){
+        if(del.success){
+          toast("✓ Vendor marked as Inactive"+(del.entriesExist?" (entries preserved)":"")+".", true);
+          loadAllVendors(); localStorage.removeItem("bd_c_ve");
+        } else toast(del.error||"Delete failed.", false);
+      });
+    });
+  });
+}
+
+function loadAllVendors() {
+  var el = document.getElementById("vendorList");
+  if (!el) return;
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({ action:"getAllVendors", token:token }, function(d){
+    if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if (!d.vendors.length){ el.innerHTML="<div class='empty'>No vendors yet.</div>"; return; }
+    var isAdmin = localStorage.getItem("bd_role")==="Admin";
+    var html = "";
+    d.vendors.forEach(function(v){
+      var stCls = v.active ? "status-active" : "status-inactive";
+      var edBtn = "<button class='btn-edit' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' data-ty='"+esc(v.type)+"' data-gs='"+esc(v.gstin||"")+"' data-co='"+esc(v.contact||"")+"' onclick='editVendorRow(this.dataset.id,this.dataset.nm,this.dataset.ty,this.dataset.gs,this.dataset.co)'>Edit</button>";
+      var delBtn = isAdmin && v.active
+        ? "<button class='btn-del-soft' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' onclick='confirmDeleteVendor(this.dataset.id,this.dataset.nm)'>Delete</button>"
+        : "";
+      html += "<div class='master-row'>"+
+        "<div><div class='master-main'>"+v.name+"</div>"+
+        "<div class='master-sub'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
+        (v.gstin?"<div class='master-sub'>GST: "+v.gstin+"</div>":"")+
+        "<span class='status-badge "+stCls+"'>"+(v.active?"Active":"Inactive")+"</span>"+
+        "</div>"+
+        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+  });
+}
+
+function esc(s){ return (s||"").replace(/\\/g,"\\\\").replace(/"/g,"&quot;").replace(/'/g,"\'"); }
+
+// ── SYNC ────────────────────────────────────────────────────
+function syncAll() {
+  var btn = document.getElementById("syncBtn");
+  btn.classList.add("spinning");
+  btn.disabled = true;
+
+  // Clear all localStorage caches
+  ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
+    localStorage.removeItem(k);
+  });
+
+  // Reset ledger so it reloads fresh
+  allLedger = [];
+  allOpeningBalances = [];
+
+  // Reload everything
+  var done = 0;
+  var total = 3;
+  function check(){ done++; if(done>=total){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Data synced.", true); } }
+
+  loadMasterData();
+  loadDashboard();
+  // Reload ledger if it's open
+  if (!document.getElementById("view-ledger").classList.contains("hidden")) {
+    total = 4;
+    initLedger(); check();
+  }
+  // Reload activity log if open
+  if (!document.getElementById("activityBody").classList.contains("hidden")) {
+    total++;
+    loadActivity(); check();
+  }
+  setTimeout(function(){ check(); check(); check(); }, 1500);
+}
+
+// ── RECENT ACTIVITY ─────────────────────────────────────────
+var _activityOpen = false;
+
+function toggleActivity() {
+  _activityOpen = !_activityOpen;
+  var body    = document.getElementById("activityBody");
+  var chevron = document.getElementById("activityChevron");
+  body.classList.toggle("hidden", !_activityOpen);
+  chevron.style.transform = _activityOpen ? "rotate(180deg)" : "rotate(0deg)";
+  if (_activityOpen) loadActivity();
+}
+
+function loadActivity() {
+  var el = document.getElementById("activityList");
+  el.innerHTML = "<div class='empty' style='padding:12px 0'>Loading…</div>";
+  api({ action:"getRecentActivity", token:token }, function(d){
+    if (!d.success || !d.activities.length) {
+      el.innerHTML = "<div class='empty' style='padding:12px 0'>No activity yet.</div>";
+      return;
+    }
+    var html = "";
+    d.activities.forEach(function(a){
+      var isDelete = a.action.toLowerCase().indexOf("delete") !== -1;
+      var icoClass = isDelete ? "delete"
+        : a.entityType==="Entry"   ? "entry"
+        : a.entityType==="Project" ? "project" : "vendor";
+      var icon = isDelete ? "🗑"
+        : a.entityType==="Entry"   ? "📝"
+        : a.entityType==="Project" ? "🏗"  : "🤝";
+      html += "<div class='act-row'>"+
+        "<div class='act-icon "+icoClass+"'>"+icon+"</div>"+
+        "<div style='flex:1;min-width:0'>"+
+          "<div class='act-main'>"+a.action+" — "+a.entityName+"</div>"+
+          "<div class='act-sub'>"+(a.details||"")+"</div>"+
+          "<div class='act-sub' style='color:#94A3B8'>by "+a.username+"</div>"+
+        "</div>"+
+        "<div class='act-time'>"+a.timestamp+"</div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+  });
+}
+
+// Also reload activity when dashboard loads if already open
+var _origLoadDashboard = loadDashboard;
 
 // ── UTILS ──────────────────────────────────────────────────
 var _dbTotal=0, _dbErrors=0, _debugOpen=false;
