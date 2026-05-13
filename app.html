@@ -83,6 +83,21 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
+.btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;line-height:1}
+.btn-sync-app:hover{background:rgba(255,255,255,0.2)}
+.btn-sync-app.spinning{animation:spin .7s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.master-row{padding:11px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.master-row:last-child{border-bottom:none}
+.master-main{font-size:13px;font-weight:600;color:#1A2D5A}
+.master-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.btn-edit-sm{padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px}
+.status-active{background:#DCFCE7;color:#15803D}
+.status-hold{background:#FEF9C3;color:#854D0E}
+.status-completed{background:#DBEAFE;color:#1D4ED8}
+.status-deleted{background:#F1F5F9;color:#94A3B8}
+.status-inactive{background:#F1F5F9;color:#94A3B8}
 </style>
 </head>
 <body>
@@ -94,11 +109,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
-    <div class="online-dot"></div>
+    <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
+    <button class="btn-sync-app" id="syncBtn" onclick="syncApp()" title="Sync data">↻</button>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span>v1.4</span></div>
+<div class="version-bar"><span>v1.7</span></div>
 
 <div id="view-entry">
   <div class="page-title">New Entry</div>
@@ -135,10 +151,63 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
 </div>
 
+<!-- VIEW: Master (Projects + Vendors) -->
+<div id="view-master" class="hidden">
+  <div class="page-title">Master Data</div>
+
+  <!-- Projects -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-label" style="margin-bottom:0">Projects</div>
+      <button onclick="toggleSForm('proj')" style="padding:5px 12px;background:#2B5197;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Add</button>
+    </div>
+    <!-- Project form (collapsed by default) -->
+    <div id="supProjForm" class="hidden" style="background:#F7F9FC;border-radius:10px;padding:12px;margin-bottom:12px">
+      <input type="hidden" id="spEditId">
+      <div class="field"><label>Project Name *</label><input type="text" id="spName" placeholder="Residence, Office…"></div>
+      <div class="field"><label>Client</label><input type="text" id="spClient" placeholder="Client name"></div>
+      <div class="field"><label>Location</label><input type="text" id="spLoc" placeholder="City"></div>
+      <div class="field"><label>Start Date</label><input type="date" id="spStart"></div>
+      <div class="field"><label>Budget (₹)</label><input type="number" id="spBudget" placeholder="0"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveSProject()" style="flex:1;padding:10px;background:#2B5197;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" id="spSaveBtn">Save Project</button>
+        <button onclick="cancelSProject()" style="padding:10px 14px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:9px;color:#7A8BAA;font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+      </div>
+    </div>
+    <div id="supProjList"><div class="empty"><div class="empty-icon">🏗️</div>Loading…</div></div>
+  </div>
+
+  <!-- Vendors -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-label" style="margin-bottom:0">Vendors</div>
+      <button onclick="toggleSForm('vend')" style="padding:5px 12px;background:#2B5197;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Add</button>
+    </div>
+    <!-- Vendor form (collapsed by default) -->
+    <div id="supVendForm" class="hidden" style="background:#F7F9FC;border-radius:10px;padding:12px;margin-bottom:12px">
+      <input type="hidden" id="svEditId">
+      <div class="field"><label>Vendor Name *</label><input type="text" id="svName" placeholder="Name"></div>
+      <div class="field"><label>Type</label>
+        <select id="svType" style="width:100%;padding:10px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;appearance:none">
+          <option>Contractor</option><option>Supplier</option><option>Consultant</option><option>Labour</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>GSTIN</label><input type="text" id="svGST" placeholder="Optional"></div>
+      <div class="field"><label>Contact</label><input type="text" id="svContact" placeholder="Phone"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveSVendor()" style="flex:1;padding:10px;background:#2B5197;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" id="svSaveBtn">Save Vendor</button>
+        <button onclick="cancelSVendor()" style="padding:10px 14px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:9px;color:#7A8BAA;font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+      </div>
+    </div>
+    <div id="supVendList"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <div class="nav-item active" onclick="showView('entry',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
   <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
   <div class="nav-item" onclick="showView('recent',this)"><span class="nav-icon">📋</span><span class="nav-label">Entries</span></div>
+  <div class="nav-item" onclick="showView('master',this)"><span class="nav-icon">📁</span><span class="nav-label">Master</span></div>
   <div class="nav-item" onclick="logout()"><span class="nav-icon">⏻</span><span class="nav-label">Sign Out</span></div>
 </nav>
 <div class="toast" id="toast"></div>
@@ -297,10 +366,10 @@ function loadRecent(){
 
 function showView(name,el){
   document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active")); el.classList.add("active");
-  document.getElementById("view-entry").classList.add("hidden");
-  document.getElementById("view-recent").classList.add("hidden");
+  ["view-entry","view-recent","view-master"].forEach(function(id){ document.getElementById(id).classList.add("hidden"); });
   if(name==="entry"||name==="add") document.getElementById("view-entry").classList.remove("hidden");
   else if(name==="recent"){ document.getElementById("view-recent").classList.remove("hidden"); loadRecent(); }
+  else if(name==="master"){ document.getElementById("view-master").classList.remove("hidden"); loadSupervisorMaster(); }
 }
 
 function api(body,cb){
@@ -322,6 +391,121 @@ function api(body,cb){
 function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err"); clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000); }
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function humanize(s){ return (s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
+// ── SUPERVISOR MASTER ──────────────────────────────────────
+function loadSupervisorMaster(){
+  loadSProjList(); loadSVendList();
+}
+
+function toggleSForm(type){
+  var id = type==="proj" ? "supProjForm" : "supVendForm";
+  var el = document.getElementById(id);
+  el.classList.toggle("hidden");
+}
+
+// Projects
+function saveSProject(){
+  var name  = document.getElementById("spName").value.trim();
+  var editId= document.getElementById("spEditId").value;
+  if(!name){ toast("Project name required.",false); return; }
+  var payload = { token:token, name:name, client:document.getElementById("spClient").value,
+    location:document.getElementById("spLoc").value, startDate:document.getElementById("spStart").value,
+    budget:document.getElementById("spBudget").value, fyid:curFY, status:"Active" };
+  payload.action = editId ? "editProject" : "addProject";
+  if(editId) payload.id = editId;
+  api(payload, function(d){
+    if(d.success){
+      toast("✓ Project "+(editId?"updated":"added")+".", true);
+      cancelSProject(); loadSProjList(); localStorage.removeItem("bd_c_proj");
+    } else toast(d.error||"Failed.",false);
+  });
+}
+function editSProject(id,name,client,loc,start,budget){
+  document.getElementById("spEditId").value  = id;
+  document.getElementById("spName").value    = name;
+  document.getElementById("spClient").value  = client;
+  document.getElementById("spLoc").value     = loc;
+  document.getElementById("spStart").value   = start||"";
+  document.getElementById("spBudget").value  = budget||"";
+  document.getElementById("spSaveBtn").textContent = "Update Project";
+  document.getElementById("supProjForm").classList.remove("hidden");
+}
+function cancelSProject(){
+  ["spEditId","spName","spClient","spLoc","spStart","spBudget"].forEach(function(id){ document.getElementById(id).value=""; });
+  document.getElementById("spSaveBtn").textContent = "Save Project";
+  document.getElementById("supProjForm").classList.add("hidden");
+}
+function loadSProjList(){
+  var el=document.getElementById("supProjList"); el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getAllProjects",token:token},function(d){
+    if(!d.success||!d.projects.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>🏗️</div>No projects yet.</div>"; return; }
+    var html="";
+    d.projects.filter(function(p){return p.status!=="Deleted";}).forEach(function(p){
+      var stCls=p.status==="Active"?"status-active":p.status==="On Hold"?"status-hold":"status-completed";
+      var edBtn="<button class='btn-edit-sm' data-id='"+p.id+"' data-nm='"+sEsc(p.name)+"' data-cl='"+sEsc(p.client)+"' data-lo='"+sEsc(p.location)+"' data-st='"+sEsc(p.startDate||"")+"' data-bu='"+p.budget+"' onclick='editSProject(this.dataset.id,this.dataset.nm,this.dataset.cl,this.dataset.lo,this.dataset.st,this.dataset.bu)'>Edit</button>";
+      html+="<div class='master-row'><div><div class='master-main'>"+p.name+"</div>"+
+        "<div class='master-sub'>"+p.client+(p.location?" · "+p.location:"")+"</div>"+
+        "<span class='status-badge "+stCls+"'>"+p.status+"</span></div>"+
+        "<div>"+edBtn+"</div></div>";
+    });
+    el.innerHTML=html||"<div class='empty'>No active projects.</div>";
+  });
+}
+
+// Vendors
+function saveSVendor(){
+  var name  = document.getElementById("svName").value.trim();
+  var editId= document.getElementById("svEditId").value;
+  if(!name){ toast("Vendor name required.",false); return; }
+  var payload = { token:token, name:name, type:document.getElementById("svType").value,
+    gstin:document.getElementById("svGST").value, contact:document.getElementById("svContact").value };
+  payload.action = editId ? "editVendor" : "addVendor";
+  if(editId) payload.id = editId;
+  api(payload, function(d){
+    if(d.success){
+      toast("✓ Vendor "+(editId?"updated":"added")+".", true);
+      cancelSVendor(); loadSVendList(); localStorage.removeItem("bd_c_ve");
+    } else toast(d.error||"Failed.",false);
+  });
+}
+function editSVendor(id,name,type,gstin,contact){
+  document.getElementById("svEditId").value  = id;
+  document.getElementById("svName").value    = name;
+  document.getElementById("svType").value    = type;
+  document.getElementById("svGST").value     = gstin||"";
+  document.getElementById("svContact").value = contact||"";
+  document.getElementById("svSaveBtn").textContent = "Update Vendor";
+  document.getElementById("supVendForm").classList.remove("hidden");
+}
+function cancelSVendor(){
+  ["svEditId","svName","svGST","svContact"].forEach(function(id){ document.getElementById(id).value=""; });
+  document.getElementById("svType").value="Contractor";
+  document.getElementById("svSaveBtn").textContent="Save Vendor";
+  document.getElementById("supVendForm").classList.add("hidden");
+}
+function loadSVendList(){
+  var el=document.getElementById("supVendList"); el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getAllVendors",token:token},function(d){
+    if(!d.success||!d.vendors.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendors yet.</div>"; return; }
+    var html="";
+    d.vendors.filter(function(v){return v.active;}).forEach(function(v){
+      var edBtn="<button class='btn-edit-sm' data-id='"+v.id+"' data-nm='"+sEsc(v.name)+"' data-ty='"+sEsc(v.type)+"' data-gs='"+sEsc(v.gstin||"")+"' data-co='"+sEsc(v.contact||"")+"' onclick='editSVendor(this.dataset.id,this.dataset.nm,this.dataset.ty,this.dataset.gs,this.dataset.co)'>Edit</button>";
+      html+="<div class='master-row'><div><div class='master-main'>"+v.name+"</div>"+
+        "<div class='master-sub'>"+v.type+(v.contact?" · "+v.contact:"")+"</div></div>"+
+        "<div>"+edBtn+"</div></div>";
+    });
+    el.innerHTML=html||"<div class='empty'>No active vendors.</div>";
+  });
+}
+
+function sEsc(s){ return (s||"").replace(/\\/g,"\\\\").replace(/"/g,"&quot;").replace(/'/g,"\'"); }
+
+function syncApp() {
+  var btn=document.getElementById("syncBtn"); btn.classList.add("spinning"); btn.disabled=true;
+  ["bd_c_fylist","bd_c_et","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
+  loadFY(); loadMasterData();
+  setTimeout(function(){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Data synced.",true); }, 2000);
+}
+
 function logout(){ localStorage.removeItem("bd_token"); localStorage.removeItem("bd_role"); localStorage.removeItem("bd_username"); window.location.href="index.html"; }
 </script>
 <script>
