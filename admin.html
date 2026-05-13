@@ -273,15 +273,15 @@ td{padding:9px 10px;vertical-align:top}
   fetch("/bluedoor-accounts/version.json?t="+Date.now(), {cache:"no-store"})
     .then(function(r){ return r.json(); })
     .then(function(d){
+      // Always update displayed version badge from version.json
+      var badge = document.getElementById("versionBadge");
+      if(badge) badge.textContent = d.version;
       var cached = localStorage.getItem(CACHE_KEY);
       if(cached && cached !== d.version) {
-        // New version available — clear caches and hard reload
         localStorage.setItem(CACHE_KEY, d.version);
-        // Clear app caches
         ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
           localStorage.removeItem(k);
         });
-        // Force reload bypassing browser cache
         window.location.reload(true);
       } else {
         localStorage.setItem(CACHE_KEY, d.version);
@@ -306,7 +306,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.8.1</span>
+  <span id="versionBadge">v1.8</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 

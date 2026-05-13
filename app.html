@@ -83,10 +83,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
-.btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 9px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
+.btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 9px;color:#fff;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
 .btn-sync-app:hover{background:rgba(255,255,255,0.2)}
-.btn-sync-app.spinning{animation:bd-spin .7s linear infinite}
-@keyframes bd-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.btn-sync-app.spinning{animation:bdspin .7s linear infinite}
+@keyframes bdspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;line-height:1}
 .btn-sync-app:hover{background:rgba(255,255,255,0.2)}
 .btn-sync-app.spinning{animation:spin .7s linear infinite}
@@ -111,15 +111,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   fetch("/bluedoor-accounts/version.json?t="+Date.now(), {cache:"no-store"})
     .then(function(r){ return r.json(); })
     .then(function(d){
+      // Always update displayed version badge from version.json
+      var badge = document.getElementById("versionBadge");
+      if(badge) badge.textContent = d.version;
       var cached = localStorage.getItem(CACHE_KEY);
       if(cached && cached !== d.version) {
-        // New version available — clear caches and hard reload
         localStorage.setItem(CACHE_KEY, d.version);
-        // Clear app caches
         ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
           localStorage.removeItem(k);
         });
-        // Force reload bypassing browser cache
         window.location.reload(true);
       } else {
         localStorage.setItem(CACHE_KEY, d.version);
@@ -141,7 +141,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span>v1.8</span></div>
+<div class="version-bar"><span id="versionBadge">v1.8</span></div>
 
 <div id="view-entry">
   <div class="page-title">New Entry</div>
@@ -366,10 +366,10 @@ function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=ms
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function humanize(s){ return (s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
 function syncApp(){
-  var btn=document.getElementById("syncBtn"); btn.classList.add("spinning"); btn.disabled=true;
+  var b=document.getElementById("syncBtn"); b.classList.add("spinning"); b.disabled=true;
   ["bd_c_fylist","bd_c_et","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
   loadFY(); loadMasterData();
-  setTimeout(function(){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Synced.",true); },2000);
+  setTimeout(function(){ b.classList.remove("spinning"); b.disabled=false; toast("✓ Synced.",true); },2000);
 }
 function logout(){ localStorage.removeItem("bd_token"); localStorage.removeItem("bd_role"); localStorage.removeItem("bd_username"); window.location.href="index.html"; }
 </script>
