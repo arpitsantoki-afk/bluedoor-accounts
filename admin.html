@@ -312,7 +312,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.8.3</span>
+  <span id="versionBadge">v1.8.4</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -617,7 +617,20 @@ td{padding:9px 10px;vertical-align:top}
 <div id="view-reports" class="hidden">
   <div class="page-title">Reports</div>
   <div class="card"><div class="card-label">Project P&L Summary</div><div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
-  <div class="card"><div class="card-label">Vendor Outstanding Summary</div><div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="card-label" style="margin-bottom:0">Vendor Outstanding Summary</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#7A8BAA;cursor:pointer;user-select:none">
+          <input type="checkbox" id="filterPositive" onchange="renderVendorReport()" style="accent-color:#2B5197">
+          Positive only
+        </label>
+        <button onclick="downloadVendorReportXLS()" style="padding:5px 10px;background:#2B5197;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📥 XLS</button>
+        <button onclick="printVendorReport()" style="padding:5px 10px;background:#15803D;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">🖨 PDF</button>
+      </div>
+    </div>
+    <div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
+  </div>
 
   <!-- FY Closing Balances -->
   <div class="card">
@@ -1232,6 +1245,8 @@ function saveOpeningBalance(){
 }
 
 // ── REPORTS ────────────────────────────────────────────────
+var _vendorReportData = [];
+
 function loadReports(){
   api({action:"getProjectPL",token:token,fyid:curFY},function(d){
     var el=document.getElementById("reportPLTable");
@@ -1241,12 +1256,131 @@ function loadReports(){
     html+="</tbody></table></div>"; el.innerHTML=html;
   });
   api({action:"getVendorOutstanding",token:token,fyid:curFY},function(d){
-    var el=document.getElementById("reportVendorTable");
-    if(!d.success||!d.vendors.length){el.innerHTML="<div class='empty'>No vendor data.</div>";return;}
-    var html="<div class='tbl-wrap'><table><thead><tr><th>Vendor</th><th>Bills ₹</th><th>Paid ₹</th><th>Due ₹</th></tr></thead><tbody>";
-    d.vendors.forEach(function(v){ html+="<tr><td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td><td style='color:#B91C1C'>"+fmt(v.bills)+"</td><td style='color:#15803D'>"+fmt(v.paid)+"</td><td style='font-weight:700;color:"+(v.outstanding>0?"#B91C1C":"#15803D")+"'>"+fmt(v.outstanding)+"</td></tr>"; });
-    html+="</tbody></table></div>"; el.innerHTML=html;
+    if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    _vendorReportData = d.vendors;
+    renderVendorReport();
   });
+}
+
+function renderVendorReport(){
+  var el = document.getElementById("reportVendorTable");
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly
+    ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; })
+    : _vendorReportData;
+
+  if(!vendors.length){
+    el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>"+(positiveOnly?"No vendors with positive outstanding.":"No vendor data.")+"</div>";
+    return;
+  }
+
+  var totalBills=0, totalPaid=0, totalOut=0;
+  var html="<div class='tbl-wrap'><table><thead><tr>"+
+    "<th>Vendor</th><th>Op.Bal ₹</th><th>Bills ₹</th><th>Paid ₹</th><th>Outstanding ₹</th>"+
+    "</tr></thead><tbody>";
+
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    totalBills+=parseFloat(v.bills)||0;
+    totalPaid+=parseFloat(v.paid)||0;
+    totalOut+=out;
+    html+="<tr>"+
+      "<td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td>"+
+      "<td style='font-size:12px;color:#7A8BAA'>"+( ob!==0 ? (ob>0?"Cr ":"Dr ")+"₹"+fmt(Math.abs(ob)) : "—" )+"</td>"+
+      "<td style='color:#B91C1C'>₹ "+fmt(v.bills)+"</td>"+
+      "<td style='color:#15803D'>₹ "+fmt(v.paid)+"</td>"+
+      "<td style='font-weight:700;color:"+(out>0?"#B91C1C":out<0?"#15803D":"#7A8BAA")+"'>"+
+        (out>0?"":"") +"₹ "+fmt(Math.abs(out))+(out<0?" (Adv)":out===0?" (NIL)":"")+"</td>"+
+      "</tr>";
+  });
+
+  // Totals row
+  html+="<tr style='background:#F7F9FC;font-weight:700;border-top:2px solid #DDE3EE'>"+
+    "<td style='color:#1A2D5A'>TOTAL ("+vendors.length+" vendors)</td>"+
+    "<td></td>"+
+    "<td style='color:#B91C1C'>₹ "+fmt(totalBills)+"</td>"+
+    "<td style='color:#15803D'>₹ "+fmt(totalPaid)+"</td>"+
+    "<td style='font-weight:700;color:"+(totalOut>0?"#B91C1C":totalOut<0?"#15803D":"#7A8BAA")+"'>₹ "+fmt(Math.abs(totalOut))+"</td>"+
+    "</tr>";
+
+  html+="</tbody></table></div>";
+  el.innerHTML=html;
+}
+
+function downloadVendorReportXLS(){
+  if(!_vendorReportData.length){ toast("No vendor data to download.",false); return; }
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; }) : _vendorReportData;
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+  var rows = [["Vendor Name","Type","Opening Balance","Bills Raised (₹)","Amount Paid (₹)","Outstanding (₹)","Status"]];
+  var tBills=0,tPaid=0,tOut=0;
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    tBills+=parseFloat(v.bills)||0; tPaid+=parseFloat(v.paid)||0; tOut+=out;
+    rows.push([
+      v.vendorName, v.vendorType,
+      ob!==0?(ob>0?"Cr ":"Dr ")+"₹"+parseFloat(Math.abs(ob)).toFixed(2):"NIL",
+      parseFloat(v.bills).toFixed(2),
+      parseFloat(v.paid).toFixed(2),
+      parseFloat(Math.abs(out)).toFixed(2),
+      out>0?"Payable":out<0?"Advance Excess":"NIL"
+    ]);
+  });
+  rows.push([]);
+  rows.push(["TOTAL","","",tBills.toFixed(2),tPaid.toFixed(2),Math.abs(tOut).toFixed(2),tOut>0?"Payable":tOut<0?"Advance Excess":"NIL"]);
+
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:28},{wch:14},{wch:18},{wch:16},{wch:16},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,"Vendor Outstanding");
+  XLSX.writeFile(wb,"BlueDoor_VendorOutstanding_"+fyL.replace(/\s/g,"_")+".xlsx");
+  toast("✓ Downloaded.",true);
+}
+
+function printVendorReport(){
+  if(!_vendorReportData.length){ toast("No vendor data to print.",false); return; }
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; }) : _vendorReportData;
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+  var tBills=0,tPaid=0,tOut=0;
+  var rows="";
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    tBills+=parseFloat(v.bills)||0; tPaid+=parseFloat(v.paid)||0; tOut+=out;
+    rows+="<tr>"+
+      "<td>"+v.vendorName+"<br><small style='color:#888'>"+v.vendorType+"</small></td>"+
+      "<td style='text-align:right'>"+( ob!==0?(ob>0?"Cr ":"Dr ")+"₹ "+fmt(Math.abs(ob)):"—" )+"</td>"+
+      "<td style='text-align:right;color:#B91C1C'>₹ "+fmt(v.bills)+"</td>"+
+      "<td style='text-align:right;color:#15803D'>₹ "+fmt(v.paid)+"</td>"+
+      "<td style='text-align:right;font-weight:700;color:"+(out>0?"#B91C1C":out<0?"#15803D":"#888")+"'>₹ "+fmt(Math.abs(out))+(out<0?" (Adv)":out===0?" (NIL)":"")+"</td>"+
+      "</tr>";
+  });
+
+  var win=window.open("","_blank");
+  win.document.write(
+    "<html><head><title>Vendor Outstanding — "+fyL+"</title>"+
+    "<style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}"+
+    "h2{color:#1A2D5A;margin-bottom:4px}h4{color:#7A8BAA;font-weight:normal;margin-bottom:16px}"+
+    "table{width:100%;border-collapse:collapse}th{background:#2B5197;color:#fff;padding:8px;text-align:left}"+
+    "td{padding:7px 8px;border-bottom:1px solid #eee}tr:last-child td{border-bottom:none}"+
+    ".tot{background:#F7F9FC;font-weight:700;border-top:2px solid #ddd}</style></head><body>"+
+    "<h2>Blue Door Architects</h2>"+
+    "<h4>Vendor Outstanding Summary &mdash; "+fyL+(positiveOnly?" (Positive Only)":"")+"</h4>"+
+    "<table><thead><tr><th>Vendor</th><th>Opening Bal</th><th>Bills ₹</th><th>Paid ₹</th><th>Outstanding ₹</th></tr></thead>"+
+    "<tbody>"+rows+
+    "<tr class='tot'><td>TOTAL ("+vendors.length+")</td><td></td><td style='text-align:right;color:#B91C1C'>₹ "+fmt(tBills)+"</td><td style='text-align:right;color:#15803D'>₹ "+fmt(tPaid)+"</td>"+
+    "<td style='text-align:right;font-weight:700;color:"+(tOut>0?"#B91C1C":tOut<0?"#15803D":"#888")+"'>₹ "+fmt(Math.abs(tOut))+"</td></tr>"+
+    "</tbody></table>"+
+    "<p style='color:#888;font-size:10px;margin-top:16px'>Generated: "+new Date().toLocaleString("en-IN")+"</p>"+
+    "</body></html>"
+  );
+  win.document.close();
+  win.print();
 }
 
 // ── USERS ──────────────────────────────────────────────────
