@@ -27,6 +27,20 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
 .btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 11px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
 .btn-logout:hover{background:rgba(239,68,68,0.35);border-color:rgba(239,68,68,0.5)}
+.btn-sync{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
+.btn-sync:hover{background:rgba(255,255,255,0.2)}
+.btn-sync.spinning{animation:bd-spin .7s linear infinite}
+@keyframes bd-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.act-row{padding:9px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;gap:10px}
+.act-row:last-child{border-bottom:none}
+.act-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.act-icon.entry{background:#DBEAFE;color:#1D4ED8}
+.act-icon.project{background:#DCFCE7;color:#15803D}
+.act-icon.vendor{background:#FEF9C3;color:#854D0E}
+.act-icon.delete{background:#FEE2E2;color:#B91C1C}
+.act-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.act-sub{font-size:11px;color:#7A8BAA;margin-top:1px}
+.act-ts{font-size:10px;color:#94A3B8;white-space:nowrap;text-align:right;flex-shrink:0}
 .fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
 .fy-option{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
 .fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
@@ -285,13 +299,14 @@ td{padding:9px 10px;vertical-align:top}
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
+    <button class="btn-sync" id="syncBtn" onclick="syncAll()" title="Sync data">↻</button>
     <div class="online-dot"></div>
     <button class="btn-logout" onclick="logout()">⏻ Sign Out</button>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span>v1.5.1</span>
+  <span>v1.8</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -321,6 +336,17 @@ td{padding:9px 10px;vertical-align:top}
   </div>
   <div class="card"><div class="card-label">Project P&L</div><div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
   <div class="card"><div class="card-label">Monthly Trend</div><div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div></div>
+
+  <!-- Recent Activity -->
+  <div class="card" style="cursor:pointer" onclick="toggleActivity()">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-label" style="margin-bottom:0">🕐 Recent Activity</div>
+      <span id="actChevron" style="color:#7A8BAA;font-size:16px;transition:transform .25s">▾</span>
+    </div>
+    <div id="actBody" class="hidden" style="margin-top:12px">
+      <div id="actList"><div class="empty" style="padding:12px 0">Loading…</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- LEDGER -->
@@ -680,6 +706,7 @@ function loadDashboard(){
     var pEl=document.getElementById("kpiPro"); pEl.textContent="₹ "+shortNum(s.profit); pEl.className="kpi-value "+(s.profit>=0?"green":"red");
     var dEl=document.getElementById("kpiDraw"); dEl.textContent=s.drawings>0?"₹ "+shortNum(s.drawings):"—"; dEl.className="kpi-value "+(s.drawings>0?"amber":"");
     renderProjChart(d.byProject); renderMonthChart(d.byMonth);
+    if(typeof _actOpen!=="undefined" && _actOpen) loadActivity();
   });
 }
 function renderProjChart(data){
@@ -1507,6 +1534,49 @@ function loadAllVendors() {
         "</div>";
     });
     el.innerHTML = html;
+  });
+}
+
+// ── SYNC ────────────────────────────────────────────────────
+function syncAll(){
+  var btn=document.getElementById("syncBtn");
+  btn.classList.add("spinning"); btn.disabled=true;
+  ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
+  allLedger=[]; allOpeningBalances=[];
+  loadMasterData(); loadDashboard();
+  if(!document.getElementById("view-ledger").classList.contains("hidden")) initLedger();
+  setTimeout(function(){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Data synced.",true); },2000);
+}
+
+// ── RECENT ACTIVITY ─────────────────────────────────────────
+var _actOpen=false;
+function toggleActivity(){
+  _actOpen=!_actOpen;
+  document.getElementById("actBody").classList.toggle("hidden",!_actOpen);
+  document.getElementById("actChevron").style.transform=_actOpen?"rotate(180deg)":"rotate(0deg)";
+  if(_actOpen) loadActivity();
+}
+function loadActivity(){
+  var el=document.getElementById("actList");
+  el.innerHTML="<div class='empty' style='padding:12px 0'>Loading…</div>";
+  api({action:"getRecentActivity",token:token},function(d){
+    if(!d.success||!d.activities.length){ el.innerHTML="<div class='empty' style='padding:12px 0'>No activity yet.</div>"; return; }
+    var html="";
+    d.activities.forEach(function(a){
+      var isDel=a.action.toLowerCase().indexOf("delete")!==-1;
+      var icoClass=isDel?"delete":a.entityType==="Entry"?"entry":a.entityType==="Project"?"project":"vendor";
+      var icon=isDel?"🗑":a.entityType==="Entry"?"📝":a.entityType==="Project"?"🏗":"🤝";
+      html+="<div class='act-row'>"+
+        "<div class='act-icon "+icoClass+"'>"+icon+"</div>"+
+        "<div style='flex:1;min-width:0'>"+
+          "<div class='act-main'>"+a.action+"</div>"+
+          "<div class='act-sub'>"+a.entityName+(a.details?" · "+a.details:"")+"</div>"+
+          "<div class='act-sub' style='color:#94A3B8'>by "+a.username+"</div>"+
+        "</div>"+
+        "<div class='act-ts'>"+a.timestamp+"</div>"+
+        "</div>";
+    });
+    el.innerHTML=html;
   });
 }
 
