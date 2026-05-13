@@ -306,7 +306,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.8</span>
+  <span id="versionBadge">v1.8.2</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -575,6 +575,34 @@ td{padding:9px 10px;vertical-align:top}
     <div class="card">
       <div class="card-label">Existing Opening Balances — <span id="obFYLabel"></span></div>
       <div id="obList"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- Vendor Opening Balances -->
+    <div class="card">
+      <div class="card-label" style="margin-bottom:8px">Vendor Opening Balances</div>
+      <div style="font-size:12px;color:#7A8BAA;margin-bottom:14px;line-height:1.6">
+        Enter how much was owed to each vendor at the start of this FY. Cr = we owe them (payable). Dr = they owe us (excess advance).
+      </div>
+      <div class="field">
+        <label>Vendor</label>
+        <select id="vobVendor"><option value="">— Select Vendor —</option></select>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Dr / Cr</label>
+          <select id="vobDrCr">
+            <option value="Cr">Cr — We owe vendor (Payable)</option>
+            <option value="Dr">Dr — Vendor owes us (Advance excess)</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="vobAmount" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <button class="btn-primary btn-full" onclick="saveVendorOB()">Save Vendor Opening Balance</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Vendor Opening Balances — <span id="vobFYLabel"></span></div>
+      <div id="vobList"><div class="empty">Loading…</div></div>
     </div>
   </div>
 </div>
@@ -1031,7 +1059,7 @@ function resetFilters() {
 function switchAddTab(tab,el){
   document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
   ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
-  if(tab==="opening") loadOpeningBalances();
+  if(tab==="opening") { loadOpeningBalances(); loadVendorOBTab(); }
   if(tab==="project") loadAllProjects();
   if(tab==="vendor")  loadAllVendors();
 }
@@ -1577,6 +1605,63 @@ function loadActivity(){
         "</div>";
     });
     el.innerHTML=html;
+  });
+}
+
+// ── VENDOR OPENING BALANCE ─────────────────────────────────
+function loadVendorOBTab() {
+  // Populate vendor dropdown
+  var sel = document.getElementById("vobVendor");
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+  document.getElementById("vobFYLabel").textContent = fyL;
+  sel.innerHTML = "<option value=''>— Select Vendor —</option>";
+  api({action:"getVendors",token:token}, function(d){
+    if(!d.success) return;
+    d.vendors.forEach(function(v){
+      sel.innerHTML += "<option value='"+v.id+"'>"+v.name+"</option>";
+    });
+  });
+  // Load existing vendor OBs
+  loadVendorOBList();
+}
+
+function loadVendorOBList() {
+  var el = document.getElementById("vobList");
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+    if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances for this FY.</div>"; return; }
+    // Build vendor name map from dropdown
+    var vMap={};
+    document.querySelectorAll("#vobVendor option").forEach(function(o){ if(o.value) vMap[o.value]=o.textContent; });
+    var html="<table><thead><tr><th>Vendor</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th><th>Date</th></tr></thead><tbody>";
+    d.balances.forEach(function(b){
+      html+="<tr>"+
+        "<td style='font-size:12px;font-weight:600;color:#1A2D5A'>"+(vMap[b.vendorId]||b.vendorId)+"</td>"+
+        "<td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td>"+
+        "<td class='"+(b.drCr==="Dr"?"dr":"cr")+"'>₹ "+fmt(b.amount)+"</td>"+
+        "<td style='font-size:11px;color:#7A8BAA'>"+b.enteredBy+"</td>"+
+        "<td style='font-size:11px;color:#7A8BAA;white-space:nowrap'>"+b.enteredAt+"</td>"+
+        "</tr>";
+    });
+    html+="</tbody></table>";
+    el.innerHTML=html;
+  });
+}
+
+function saveVendorOB() {
+  var vid  = document.getElementById("vobVendor").value;
+  var drCr = document.getElementById("vobDrCr").value;
+  var amt  = parseFloat(document.getElementById("vobAmount").value);
+  if(!vid)       { toast("Please select a vendor.", false); return; }
+  if(!amt||amt<=0){ toast("Please enter a valid amount.", false); return; }
+  api({action:"saveVendorOB",token:token,fyid:curFY,vendorId:vid,drCr:drCr,amount:amt}, function(d){
+    if(d.success){
+      toast("✓ Vendor opening balance saved.", true);
+      document.getElementById("vobAmount").value="";
+      document.getElementById("vobVendor").value="";
+      loadVendorOBList();
+    } else toast(d.error||"Failed.", false);
   });
 }
 
