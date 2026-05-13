@@ -166,33 +166,62 @@ setTimeout(function(){
   }).catch(function(){});
 }, 500);
 document.getElementById("headerRole").textContent = role || "Supervisor";
-setToday(); loadFY(); loadDropdowns(); loadEntryTypes();
+setToday(); initApp();
 
 function setToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("eDate").value=y+"-"+m+"-"+dd; }
 
+// ── localStorage cache helpers ────────────────────────────
+var CACHE_TTL = 6 * 60 * 60 * 1000;
+function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
+function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
+
+// ── Init all in parallel ───────────────────────────────────
+function initApp(){ loadFY(); loadMasterData(); }
+
 // ── FY ─────────────────────────────────────────────────────
-function loadFY(){ api({action:"getFYList",token:token},function(d){ if(!d.success)return; fyList=d.list; var a=d.list.find(f=>f.active)||d.list[0]; if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);} updateFYLabel(); renderFYPanel(); }); }
+function loadFY(){
+  var c=lsGet("bd_c_fylist");
+  if(c){ fyList=c; var a=c.find(function(f){return f.active;})||c[0]; if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);} updateFYLabel(); renderFYPanel(); }
+  api({action:"getFYList",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_fylist",d.list);
+    fyList=d.list; var a=d.list.find(function(f){return f.active;})||d.list[0];
+    if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);}
+    updateFYLabel(); renderFYPanel();
+  });
+}
 function updateFYLabel(){ var f=fyList.find(x=>x.id===curFY); document.getElementById("fyLabel").textContent=f?f.label:curFY; }
 function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
 function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join(""); }
 function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; }
 
-// ── LOAD ENTRY TYPES FROM API ──────────────────────────────
-function loadEntryTypes(){
-  api({action:"getEntryTypes",token:token},function(d){
-    if(!d.success){ document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>"; return; }
-    // Build map by key
-    d.entryTypes.forEach(function(t){ allEntryTypes[t.key]=t; });
-    // Show current category
-    selectCat(curCat, document.querySelector(".seg-btn.active"));
-  });
-}
+// ── Master data: all dropdowns + entry types in parallel ──
+function loadMasterData(){
+  var etC=lsGet("bd_c_et"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
 
-// ── DROPDOWNS ──────────────────────────────────────────────
-function loadDropdowns(){
-  api({action:"getProjects",token:token},function(d){ if(!d.success)return; var s=document.getElementById("eProject"); s.innerHTML="<option value=''>— Select Project —</option>"; d.projects.forEach(p=>s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>"); });
-  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; var s=document.getElementById("eCostHead"); s.innerHTML="<option value=''>— Select Cost Head —</option>"; d.costHeads.forEach(c=>s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>"); });
-  api({action:"getVendors",token:token},function(d){ if(!d.success)return; var s=document.getElementById("eVendor"); s.innerHTML="<option value=''>— Select Vendor (optional) —</option>"; d.vendors.forEach(v=>s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>"); });
+  function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";}); }
+
+  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); selectCat(curCat,document.querySelector(".seg-btn.active")); }
+  if(prC) fillSel("eProject",  prC, function(p){return{v:p.id,t:p.name+" · "+p.client};},   "— Select Project —");
+  if(chC) fillSel("eCostHead", chC, function(c){return{v:c.id,t:c.name};},                       "— Select Cost Head —");
+  if(veC) fillSel("eVendor",   veC, function(v){return{v:v.id,t:v.name+" · "+v.type};},      "— Select Vendor (optional) —");
+
+  api({action:"getEntryTypes",token:token},function(d){
+    if(!d.success){if(!etC)document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>";return;}
+    lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;});
+    selectCat(curCat,document.querySelector(".seg-btn.active"));
+  });
+  api({action:"getProjects",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_proj",d.projects);
+    fillSel("eProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —");
+  });
+  api({action:"getCostHeads",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_ch",d.costHeads);
+    fillSel("eCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
+  });
+  api({action:"getVendors",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_ve",d.vendors);
+    fillSel("eVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
+  });
 }
 
 // ── CATEGORY & TYPE ────────────────────────────────────────
