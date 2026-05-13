@@ -83,6 +83,16 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
+.entry-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.entry-confirm-box{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.15)}
+.entry-confirm-title{font-size:16px;font-weight:700;color:#1A2D5A;margin-bottom:14px;text-align:center}
+.conf-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #EEF2F7;font-size:13px}
+.conf-row:last-child{border-bottom:none}
+.conf-label{color:#7A8BAA;font-weight:600}
+.conf-val{color:#1A2D5A;font-weight:600;text-align:right;max-width:200px}
+.conf-btns{display:flex;gap:10px;margin-top:20px}
+.conf-cancel{flex:1;padding:13px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:12px;color:#7A8BAA;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.conf-ok{flex:2;padding:13px;background:#2B5197;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 9px;color:#fff;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
 .btn-sync-app:hover{background:rgba(255,255,255,0.2)}
 .btn-sync-app.spinning{animation:bdspin .7s linear infinite}
@@ -175,6 +185,18 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   <div class="card">
     <div class="card-label">Recent Entries (Last 50)</div>
     <div id="recentList"><div class="empty"><div class="empty-icon">📋</div>Loading…</div></div>
+  </div>
+</div>
+
+<!-- Entry Confirmation -->
+<div class="entry-confirm-overlay hidden" id="eConfirmOverlay">
+  <div class="entry-confirm-box">
+    <div class="entry-confirm-title">Confirm Entry</div>
+    <div id="eConfirmBody"></div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="document.getElementById('eConfirmOverlay').classList.add('hidden')">Cancel</button>
+      <button class="conf-ok" id="eConfirmOKBtn">Save Entry</button>
+    </div>
   </div>
 </div>
 
@@ -307,17 +329,43 @@ function saveEntry(){
   if(!proj){ toast("Please select a project.",false); return; }
   if(!amt||amt<=0){ toast("Please enter a valid amount.",false); return; }
   if(selType.needsCH && !document.getElementById("eCostHead").value){ toast("Please select a cost head for this entry type.",false); return; }
-  var btn=document.getElementById("saveBtn"); btn.disabled=true; btn.textContent="Saving…";
-  api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
-    costHeadId:document.getElementById("eCostHead").value,
-    vendorId:document.getElementById("eVendor").value,
-    date:document.getElementById("eDate").value,
-    amount:amt, narration:document.getElementById("eNarration").value},
-  function(d){
-    btn.disabled=false; btn.textContent="Save Entry";
-    if(d.success){ toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true); document.getElementById("eAmount").value=""; document.getElementById("eNarration").value=""; selType=null; document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected")); }
-    else toast(d.error||"Save failed.",false);
-  });
+
+  var projSel=document.getElementById("eProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
+  var vendSel=document.getElementById("eVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"";
+  var chSel=document.getElementById("eCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"";
+  var dateVal=document.getElementById("eDate").value;
+  var narr=document.getElementById("eNarration").value;
+
+  var body="<div class='conf-row'><span class='conf-label'>Type</span><span class='conf-val'>"+selType.label+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Dr</span><span class='conf-val' style='color:#1D4ED8'>"+(selType.drName||selType.dr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Cr</span><span class='conf-val' style='color:#B91C1C'>"+(selType.crName||selType.cr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Amount</span><span class='conf-val' style='color:#2B5197;font-size:16px;font-weight:800'>₹ "+fmt(amt)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Date</span><span class='conf-val'>"+dateVal+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Project</span><span class='conf-val'>"+projName+"</span></div>"+
+    (vendSel.value?"<div class='conf-row'><span class='conf-label'>Vendor</span><span class='conf-val'>"+vendName+"</span></div>":"")+
+    (chSel.value?"<div class='conf-row'><span class='conf-label'>Cost Head</span><span class='conf-val'>"+chName+"</span></div>":"")+
+    (narr?"<div class='conf-row'><span class='conf-label'>Narration</span><span class='conf-val'>"+narr+"</span></div>":"");
+
+  document.getElementById("eConfirmBody").innerHTML=body;
+  document.getElementById("eConfirmOverlay").classList.remove("hidden");
+
+  document.getElementById("eConfirmOKBtn").onclick=function(){
+    document.getElementById("eConfirmOverlay").classList.add("hidden");
+    var btn=document.getElementById("saveBtn"); btn.disabled=true; btn.textContent="Saving…";
+    api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
+      costHeadId:chSel.value, vendorId:vendSel.value,
+      date:dateVal, amount:amt, narration:document.getElementById("eNarration").value},
+    function(d){
+      btn.disabled=false; btn.textContent="Save Entry";
+      if(d.success){
+        toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);
+        document.getElementById("eAmount").value="";
+        document.getElementById("eNarration").value="";
+        selType=null;
+        document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
+      } else toast(d.error||"Save failed.",false);
+    });
+  };
 }
 
 // ── RECENT ─────────────────────────────────────────────────
