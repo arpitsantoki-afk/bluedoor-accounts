@@ -921,9 +921,10 @@ function getOpeningBalance(rows) {
   if (vendorId && allVendorOBs.length) {
     allVendorOBs.forEach(function(b){
       if (b.vendorId === vendorId) {
-        // Cr = we owe vendor (payable) = positive balance in vendor ledger
-        // Dr = vendor owes us (advance excess) = negative
-        ob += b.drCr==="Cr" ? parseFloat(b.amount)||0 : -(parseFloat(b.amount)||0);
+        // Vendor payable is Cr-normal:
+        // Cr = we owe vendor → show on Credit side → ob negative
+        // Dr = vendor owes us (advance excess) → show on Debit side → ob positive
+        ob += b.drCr==="Cr" ? -(parseFloat(b.amount)||0) : (parseFloat(b.amount)||0);
       }
     });
   }
