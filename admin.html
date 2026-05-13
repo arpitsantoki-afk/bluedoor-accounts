@@ -251,6 +251,11 @@ td{padding:9px 10px;vertical-align:top}
 .confirm-cancel:hover{background:#E2E8F0}
 .confirm-delete{flex:1;padding:10px;background:#EF4444;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .confirm-delete:hover{background:#DC2626}
+.conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px}
+.conf-row:last-child{border-bottom:none}
+.conf-label{color:#7A8BAA;font-weight:600;flex-shrink:0;width:90px}
+.conf-val{color:#1A2D5A;font-weight:600;text-align:right}
+.confirm-delete:hover{background:#DC2626}
 @media print{
   .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
   .strip-row,#ledgerToolbar,.bottom-nav,.debug-panel,.toast,
@@ -652,6 +657,18 @@ td{padding:9px 10px;vertical-align:top}
     <div class="confirm-btns">
       <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
       <button class="confirm-delete" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Confirmation Dialog -->
+<div class="confirm-overlay hidden" id="entryConfirmOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Confirm Entry</div>
+    <div id="entryConfirmBody" style="margin-bottom:18px"></div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('entryConfirmOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="entryConfirmOKBtn" style="background:#2B5197">Save Entry</button>
     </div>
   </div>
 </div>
@@ -1145,15 +1162,50 @@ function aPickType(el,key){
 }
 function adminSaveEntry(){
   if(!aSelType){toast("Please select an entry type.",false);return;}
-  var proj=document.getElementById("aProject").value, amt=parseFloat(document.getElementById("aAmount").value);
+  var proj=document.getElementById("aProject").value;
+  var amt=parseFloat(document.getElementById("aAmount").value);
   if(!proj){toast("Please select a project.",false);return;}
   if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
   if(aSelType.needsCH&&!document.getElementById("aCostHead").value){toast("Please select a cost head.",false);return;}
-  var btn=document.getElementById("aSaveBtn"); btn.disabled=true; btn.textContent="Saving…";
-  api({action:"saveEntry",token:token,fyid:curFY,entryType:aSelType.key,projectId:proj,
-    costHeadId:document.getElementById("aCostHead").value,vendorId:document.getElementById("aVendor").value,
-    date:document.getElementById("aDate").value,amount:amt,narration:document.getElementById("aNarration").value},
-  function(d){ btn.disabled=false; btn.textContent="Save Entry"; if(d.success){toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true); document.getElementById("aAmount").value=""; document.getElementById("aNarration").value=""; aSelType=null; document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected"));}else toast(d.error||"Save failed.",false); });
+
+  // Get display names
+  var projSel=document.getElementById("aProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
+  var vendSel=document.getElementById("aVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"—";
+  var chSel=document.getElementById("aCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"—";
+  var dateVal=document.getElementById("aDate").value;
+  var narr=document.getElementById("aNarration").value||"—";
+
+  // Build confirm body
+  var body="<div class='conf-row'><span class='conf-label'>Entry Type</span><span class='conf-val'>"+aSelType.label+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Dr Account</span><span class='conf-val badge badge-dr'>"+(aSelType.drName||aSelType.dr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Cr Account</span><span class='conf-val badge badge-cr'>"+(aSelType.crName||aSelType.cr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Amount</span><span class='conf-val' style='color:#2B5197;font-size:15px'>₹ "+fmt(amt)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Date</span><span class='conf-val'>"+dateVal+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Project</span><span class='conf-val'>"+projName+"</span></div>"+
+    (vendSel.value?"<div class='conf-row'><span class='conf-label'>Vendor</span><span class='conf-val'>"+vendName+"</span></div>":"")+
+    (chSel.value?"<div class='conf-row'><span class='conf-label'>Cost Head</span><span class='conf-val'>"+chName+"</span></div>":"")+
+    "<div class='conf-row'><span class='conf-label'>Narration</span><span class='conf-val' style='max-width:220px;text-align:right'>"+narr+"</span></div>";
+
+  document.getElementById("entryConfirmBody").innerHTML=body;
+  document.getElementById("entryConfirmOverlay").classList.remove("hidden");
+
+  document.getElementById("entryConfirmOKBtn").onclick = function(){
+    document.getElementById("entryConfirmOverlay").classList.add("hidden");
+    var btn=document.getElementById("aSaveBtn"); btn.disabled=true; btn.textContent="Saving…";
+    api({action:"saveEntry",token:token,fyid:curFY,entryType:aSelType.key,projectId:proj,
+      costHeadId:chSel.value,vendorId:vendSel.value,
+      date:dateVal,amount:amt,narration:document.getElementById("aNarration").value},
+    function(d){
+      btn.disabled=false; btn.textContent="Save Entry";
+      if(d.success){
+        toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);
+        document.getElementById("aAmount").value="";
+        document.getElementById("aNarration").value="";
+        aSelType=null;
+        document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected"));
+      } else toast(d.error||"Save failed.",false);
+    });
+  };
 }
 
 // ── ADD PROJECT / VENDOR ───────────────────────────────────
