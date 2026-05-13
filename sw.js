@@ -4,7 +4,7 @@
 //  Caches app shell for offline access
 // ============================================================
 
-var CACHE_NAME = "bluedoor-accounts-v1.5";
+var CACHE_NAME = "bluedoor-accounts-v1.5.1";
 
 // Files to cache on install — the app shell
 var APP_SHELL = [
@@ -40,35 +40,31 @@ self.addEventListener("activate", function(event) {
   self.clients.claim();
 });
 
-// ── FETCH — cache-first for app shell, network-first for API ──
+// ── FETCH ──────────────────────────────────────────────────
 self.addEventListener("fetch", function(event) {
   var url = event.request.url;
 
-  // Always go to network for API calls (Apps Script)
+  // Always network for API calls
   if (url.includes("script.google.com")) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Cache-first for app shell files
+  // Always network-first for HTML/JS/JSON — never serve stale versions
+  if (url.endsWith(".html") || url.endsWith(".js") || url.endsWith(".json") ||
+      event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request, {cache: "no-store"}).catch(function() {
+        return caches.match("/bluedoor-accounts/index.html");
+      })
+    );
+    return;
+  }
+
+  // Cache-first only for icons and manifest
   event.respondWith(
     caches.match(event.request).then(function(cached) {
-      if (cached) return cached;
-      return fetch(event.request).then(function(response) {
-        // Cache valid responses for app shell files
-        if (response && response.status === 200 && response.type === "basic") {
-          var responseClone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      }).catch(function() {
-        // Offline fallback — return index.html for navigation requests
-        if (event.request.mode === "navigate") {
-          return caches.match("/bluedoor-accounts/index.html");
-        }
-      });
+      return cached || fetch(event.request);
     })
   );
 });
