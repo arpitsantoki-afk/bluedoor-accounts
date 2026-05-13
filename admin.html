@@ -289,6 +289,7 @@ td{padding:9px 10px;vertical-align:top}
     }).catch(function(){});
 })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -306,7 +307,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.8.2</span>
+  <span id="versionBadge">v1.8.3</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -612,6 +613,19 @@ td{padding:9px 10px;vertical-align:top}
   <div class="page-title">Reports</div>
   <div class="card"><div class="card-label">Project P&L Summary</div><div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
   <div class="card"><div class="card-label">Vendor Outstanding Summary</div><div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div></div>
+
+  <!-- FY Closing Balances -->
+  <div class="card">
+    <div class="card-label" style="margin-bottom:6px">📥 FY Closing Balances</div>
+    <div style="font-size:12px;color:#7A8BAA;margin-bottom:14px;line-height:1.6">
+      Download closing balances for all accounts and vendors as at the end of the selected FY.
+      Share with your CA to verify, then use the Opening Balance tab to enter them for the next FY.
+    </div>
+    <button class="btn-primary btn-full" onclick="downloadClosingBalances()" id="closingBtn">
+      📥 Download Closing Balances (.xlsx)
+    </button>
+    <div id="closingStatus" style="font-size:12px;color:#7A8BAA;margin-top:8px;text-align:center"></div>
+  </div>
 </div>
 
 <!-- MORE / USERS -->
@@ -1677,6 +1691,146 @@ function saveVendorOB() {
       loadVendorOBList();
     } else toast(d.error||"Failed.", false);
   });
+}
+
+// ── DOWNLOAD CLOSING BALANCES (.xlsx) ──────────────────────
+function downloadClosingBalances() {
+  var btn = document.getElementById("closingBtn");
+  var status = document.getElementById("closingStatus");
+  btn.disabled = true;
+  btn.textContent = "Generating…";
+  status.textContent = "";
+
+  // Need ledger data — load if not already loaded
+  function generate(ledger, vendorOBs) {
+    var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+    // ── SHEET 1: Account Closing Balances ─────────────────────
+    // Only Balance Sheet accounts (Asset + Liability) carry forward
+    // P&L accounts (Income + Expense) reset to zero each FY
+
+    // Build running balance per account from ledger
+    var acMap = {}; // acKey -> { name, code, type, normal, dr, cr }
+    ledger.forEach(function(r){
+      if (!r.acKey) return;
+      // Only balance sheet accounts
+      if (r.acType !== "Asset" && r.acType !== "Liability" && r.acType !== "Contra-Equity") return;
+      if (!acMap[r.acKey]) acMap[r.acKey] = { name:r.acName, code:r.acCode, type:r.acType, normal:r.acNormal, dr:0, cr:0 };
+      acMap[r.acKey].dr += r.debit;
+      acMap[r.acKey].cr += r.credit;
+    });
+
+    // Add account opening balances to get true closing balance
+    allOpeningBalances.forEach(function(b){
+      if (!acMap[b.accountKey]) return;
+      if (b.drCr === "Dr") acMap[b.accountKey].dr += parseFloat(b.amount)||0;
+      else                  acMap[b.accountKey].cr += parseFloat(b.amount)||0;
+    });
+
+    // Build account rows
+    var acRows = [["Account Code","Account Name","Account Type","Total Debits (₹)","Total Credits (₹)","Closing Balance (₹)","Balance Side","Notes for CA"]];
+    Object.keys(acMap).sort().forEach(function(key){
+      var a = acMap[key];
+      var net = a.dr - a.cr;
+      // For Asset (Dr-normal): positive net = Dr balance
+      // For Liability (Cr-normal): negative net = Cr balance
+      var balAmt, balSide;
+      if (a.normal === "Dr") {
+        balAmt = net; balSide = net >= 0 ? "Dr" : "Cr";
+      } else {
+        balAmt = -net; balSide = net <= 0 ? "Cr" : "Dr";
+      }
+      acRows.push([
+        a.code, a.name, a.type,
+        Math.round(a.dr*100)/100,
+        Math.round(a.cr*100)/100,
+        Math.round(Math.abs(balAmt)*100)/100,
+        balSide,
+        ""
+      ]);
+    });
+    // Separator + instructions
+    acRows.push([]);
+    acRows.push(["NOTE: Enter these as Opening Balances for the next FY using the same Dr/Cr side shown above.",
+                 "","","","","","",""]);
+    acRows.push(["P&L accounts (Income/Expense) are excluded — they reset to zero each FY.",
+                 "","","","","","",""]);
+
+    // ── SHEET 2: Vendor Closing Balances ──────────────────────
+    // Fetch fresh from server so OBs are factored in
+    api({action:"getVendorOutstanding",token:token,fyid:curFY}, function(d){
+      var vendorRows = [["Vendor Name","Vendor Type","Opening Balance (₹)","Bills Raised (₹)","Amount Paid (₹)","Closing Balance (₹)","Balance Side","Notes for CA"]];
+
+      if (d.success && d.vendors.length) {
+        d.vendors.forEach(function(v){
+          var obAmt = Math.abs(parseFloat(v.openingBal)||0);
+          var obSide = (parseFloat(v.openingBal)||0) >= 0 ? "Cr" : "Dr";
+          var closing = parseFloat(v.outstanding)||0;
+          var closingSide = closing > 0 ? "Cr (Payable)" : closing < 0 ? "Dr (Advance)" : "NIL";
+          vendorRows.push([
+            v.vendorName, v.vendorType,
+            obAmt + " " + obSide,
+            Math.round(parseFloat(v.bills)*100)/100,
+            Math.round(parseFloat(v.paid)*100)/100,
+            Math.round(Math.abs(closing)*100)/100,
+            closingSide,
+            ""
+          ]);
+        });
+      } else {
+        vendorRows.push(["No vendor data for this FY.","","","","","","",""]);
+      }
+      vendorRows.push([]);
+      vendorRows.push(["NOTE: Positive closing balance = we owe vendor (enter as Cr in next FY opening).",
+                       "","","","","","",""]);
+      vendorRows.push(["Negative closing balance = vendor owes us (enter as Dr in next FY opening).",
+                       "","","","","","",""]);
+
+      // ── Build .xlsx ────────────────────────────────────────
+      var wb = XLSX.utils.book_new();
+
+      // Sheet 1 — Accounts
+      var ws1 = XLSX.utils.aoa_to_sheet(acRows);
+      ws1["!cols"] = [{wch:14},{wch:28},{wch:16},{wch:18},{wch:18},{wch:20},{wch:14},{wch:40}];
+      XLSX.utils.book_append_sheet(wb, ws1, "Account Balances");
+
+      // Sheet 2 — Vendors
+      var ws2 = XLSX.utils.aoa_to_sheet(vendorRows);
+      ws2["!cols"] = [{wch:28},{wch:16},{wch:20},{wch:18},{wch:18},{wch:20},{wch:20},{wch:40}];
+      XLSX.utils.book_append_sheet(wb, ws2, "Vendor Balances");
+
+      // Download
+      var fname = "BlueDoor_ClosingBalances_" + fyL.replace(/\s/g,"_") + ".xlsx";
+      XLSX.writeFile(wb, fname);
+
+      btn.disabled = false;
+      btn.textContent = "📥 Download Closing Balances (.xlsx)";
+      status.textContent = "✓ Downloaded: " + fname;
+      toast("✓ Closing balances downloaded.", true);
+    });
+  }
+
+  // Ensure ledger is loaded
+  if (allLedger.length) {
+    generate(allLedger, allVendorOBs);
+  } else {
+    status.textContent = "Loading ledger data…";
+    api({action:"getLedger",token:token,fyid:curFY}, function(d){
+      if (!d.success) {
+        status.textContent = "Failed to load ledger: " + d.error;
+        btn.disabled = false; btn.textContent = "📥 Download Closing Balances (.xlsx)";
+        return;
+      }
+      allLedger = d.ledger;
+      api({action:"getOpeningBalances",token:token,fyid:curFY}, function(ob){
+        if(ob.success) allOpeningBalances = ob.balances || [];
+        api({action:"getVendorOB",token:token,fyid:curFY}, function(vob){
+          if(vob.success) allVendorOBs = vob.balances || [];
+          generate(allLedger, allVendorOBs);
+        });
+      });
+    });
+  }
 }
 
 // ── UTILS ──────────────────────────────────────────────────
