@@ -549,32 +549,49 @@ setTimeout(function(){
   }).catch(function(){});
 }, 500);
 
-document.addEventListener("DOMContentLoaded", function(){
-  loadFY(); loadDashboard(); loadEntryTypes(); loadAddDropdowns();
-});
+document.addEventListener("DOMContentLoaded", function(){ initAdmin(); });
+
+// ── localStorage cache helpers ────────────────────────────
+var CACHE_TTL = 6 * 60 * 60 * 1000;
+function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
+function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
+
+function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); }
 
 // ── FY ─────────────────────────────────────────────────────
-function loadFY(){ api({action:"getFYList",token:token},function(d){ if(!d.success)return; fyList=d.list; var a=d.list.find(f=>f.active)||d.list[0]; if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);} updateFYLabel(); renderFYPanel(); }); }
-function updateFYLabel(){ var f=fyList.find(x=>x.id===curFY); document.getElementById("fyLabel").textContent=f?f.label:curFY; }
-function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
-function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join(""); }
-function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; loadDashboard(); }
-
-// ── ENTRY TYPES (dynamic) ──────────────────────────────────
-function loadEntryTypes(){
-  api({action:"getEntryTypes",token:token},function(d){
-    if(!d.success)return;
-    d.entryTypes.forEach(function(t){ allEntryTypes[t.key]=t; });
-    aSelCat("client", document.querySelector(".entry-cat-btn.active"));
-  });
-  api({action:"getCOA",token:token},function(d){
-    if(!d.success)return;
-    coaList=d.accounts;
-    var sel=document.getElementById("obAccount");
-    sel.innerHTML="<option value=''>— Select Account —</option>";
-    d.accounts.forEach(function(a){ sel.innerHTML+="<option value='"+a.key+"'>"+a.code+" — "+a.name+" ("+a.type+")</option>"; });
+function loadFY(){
+  var c=lsGet("bd_c_fylist");
+  if(c){ fyList=c; var a=c.find(function(f){return f.active;})||c[0]; if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);} updateFYLabel(); renderFYPanel(); }
+  api({action:"getFYList",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_fylist",d.list);
+    fyList=d.list; var a=d.list.find(function(f){return f.active;})||d.list[0];
+    if(!curFY&&a){curFY=a.id;localStorage.setItem("bd_fy",curFY);}
+    updateFYLabel(); renderFYPanel();
   });
 }
+function updateFYLabel(){ var f=fyList.find(function(x){return x.id===curFY;}); document.getElementById("fyLabel").textContent=f?f.label:curFY; }
+function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
+function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(function(f){ return "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+ f.label+"</div>"; }).join(""); }
+function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; loadDashboard(); }
+
+// ── Master data (cached) ───────────────────────────────────
+function loadMasterData(){
+  function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});}
+
+  var etC=lsGet("bd_c_et"), coaC=lsGet("bd_c_coa"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
+  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); }
+  if(coaC){ coaList=coaC; fillSel("obAccount",coaC,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); }
+  if(prC){ fillSel("aProject",prC,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); }
+  if(chC){ fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }
+  if(veC){ fillSel("aVendor",veC,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); }
+
+  api({action:"getEntryTypes",token:token},function(d){ if(!d.success)return; lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); });
+  api({action:"getCOA",token:token},function(d){ if(!d.success)return; lsSet("bd_c_coa",d.accounts); coaList=d.accounts; fillSel("obAccount",d.accounts,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); });
+  api({action:"getProjects",token:token},function(d){ if(!d.success)return; lsSet("bd_c_proj",d.projects); fillSel("aProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); });
+  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ch",d.costHeads); fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); });
+  api({action:"getVendors",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ve",d.vendors); fillSel("aVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); });
+}
+
 
 // ── DASHBOARD ──────────────────────────────────────────────
 function loadDashboard(){
@@ -919,10 +936,29 @@ function switchAddTab(tab,el){
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
 function loadAddDropdowns(){
+  // Dropdowns now handled by loadMasterData() on init
+  // This stub kept for compatibility when called after adding project/vendor
   setAToday();
-  api({action:"getProjects",token:token},function(d){ if(!d.success)return; var s=document.getElementById("aProject"); s.innerHTML="<option value=''>— Select Project —</option>"; d.projects.forEach(p=>s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>"); });
-  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; var s=document.getElementById("aCostHead"); s.innerHTML="<option value=''>— Select Cost Head —</option>"; d.costHeads.forEach(c=>s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>"); });
-  api({action:"getVendors",token:token},function(d){ if(!d.success)return; var s=document.getElementById("aVendor"); s.innerHTML="<option value=''>— Select Vendor (optional) —</option>"; d.vendors.forEach(v=>s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>"); });
+  api({action:"getProjects",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_proj",d.projects);
+    var s=document.getElementById("aProject"); s.innerHTML="<option value=''>— Select Project —</option>";
+    d.projects.forEach(function(p){s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>";});
+    // Also refresh filter dropdown if open
+    var fp=document.getElementById("fProject");
+    if(fp){ fp.innerHTML="<option value=''>All Projects</option>"; d.projects.forEach(function(p){fp.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";});}
+  });
+  api({action:"getCostHeads",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_ch",d.costHeads);
+    var s=document.getElementById("aCostHead"); s.innerHTML="<option value=''>— Select Cost Head —</option>";
+    d.costHeads.forEach(function(c){s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>";});
+  });
+  api({action:"getVendors",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_ve",d.vendors);
+    var s=document.getElementById("aVendor"); s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";
+    d.vendors.forEach(function(v){s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>";});
+    var fv=document.getElementById("fVendor");
+    if(fv){ fv.innerHTML="<option value=''>All Vendors</option>"; d.vendors.forEach(function(v){fv.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";});}
+  });
 }
 function setAToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("aDate").value=y+"-"+m+"-"+dd; }
 
