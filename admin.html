@@ -769,6 +769,9 @@ function initLedger() {
   api({action:"getOpeningBalances",token:token,fyid:curFY}, function(d){
     if(d.success) allOpeningBalances = d.balances || [];
   });
+  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+    if(d.success) allVendorOBs = d.balances || [];
+  });
 }
 
 function populateFilterDropdowns(rows) {
@@ -886,19 +889,30 @@ function isFiltered() {
 // ── Get opening balance for current filters from OpeningBalances data
 // (stored in allOpeningBalances after ledger load)
 var allOpeningBalances = [];
+var allVendorOBs = []; // per-vendor opening balances
 
 function getOpeningBalance(rows) {
-  // Sum up opening balances for accounts present in the filtered rows
-  // Match by accountKey — accounts that appear in this filtered set
+  // 1. Account-level opening balance (from OpeningBalances sheet)
   var acKeys = {};
   rows.forEach(function(r){ if(r.acKey) acKeys[r.acKey]=true; });
-
   var ob = 0;
   allOpeningBalances.forEach(function(b){
     if (acKeys[b.accountKey]) {
       ob += b.drCr==="Dr" ? parseFloat(b.amount)||0 : -(parseFloat(b.amount)||0);
     }
   });
+
+  // 2. Add vendor opening balance if a vendor filter is active
+  var vendorId = document.getElementById("fVendor") ? document.getElementById("fVendor").value : "";
+  if (vendorId && allVendorOBs.length) {
+    allVendorOBs.forEach(function(b){
+      if (b.vendorId === vendorId) {
+        // Cr = we owe vendor (payable) = positive balance in vendor ledger
+        // Dr = vendor owes us (advance excess) = negative
+        ob += b.drCr==="Cr" ? parseFloat(b.amount)||0 : -(parseFloat(b.amount)||0);
+      }
+    });
+  }
   return ob;
 }
 
@@ -1568,7 +1582,7 @@ function syncAll(){
   var btn=document.getElementById("syncBtn");
   btn.classList.add("spinning"); btn.disabled=true;
   ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
-  allLedger=[]; allOpeningBalances=[];
+  allLedger=[]; allOpeningBalances=[]; allVendorOBs=[];
   loadMasterData(); loadDashboard();
   if(!document.getElementById("view-ledger").classList.contains("hidden")) initLedger();
   setTimeout(function(){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Data synced.",true); },2000);
