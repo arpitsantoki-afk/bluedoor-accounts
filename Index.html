@@ -55,6 +55,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 // ── Auto-update: check for new version on every load ────────
 (function(){
   if(window.location.hostname !== "arpitsantoki-afk.github.io") return;
+  var lastReload = parseInt(sessionStorage.getItem("bd_last_reload")||"0");
+  if(Date.now() - lastReload < 5000) return;
   var CACHE_KEY = "bd_app_version";
   fetch("/bluedoor-accounts/version.json?t="+Date.now(), {cache:"no-store"})
     .then(function(r){ return r.json(); })
@@ -68,6 +70,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
         ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
           localStorage.removeItem(k);
         });
+        sessionStorage.setItem("bd_last_reload", Date.now().toString());
         window.location.reload(true);
       } else {
         localStorage.setItem(CACHE_KEY, d.version);
