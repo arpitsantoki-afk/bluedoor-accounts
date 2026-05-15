@@ -669,10 +669,12 @@ function uploadPhoto(file, entryId){
 
 function showView(name,el){
   document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active")); el.classList.add("active");
-  document.getElementById("view-entry").classList.add("hidden");
-  document.getElementById("view-recent").classList.add("hidden");
+  ["view-entry","view-recent","view-vendors"].forEach(function(id){
+    var v=document.getElementById(id); if(v) v.classList.add("hidden");
+  });
   if(name==="entry"||name==="add") document.getElementById("view-entry").classList.remove("hidden");
   else if(name==="recent"){ document.getElementById("view-recent").classList.remove("hidden"); loadRecent(); }
+  else if(name==="vendors"){ document.getElementById("view-vendors").classList.remove("hidden"); loadSupVendors(); }
 }
 
 function api(body,cb){
