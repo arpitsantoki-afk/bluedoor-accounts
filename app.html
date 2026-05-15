@@ -141,6 +141,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .status-pending{background:#FEF9C3;color:#854D0E}
 .status-approved{background:#DCFCE7;color:#15803D}
 .status-rejected{background:#FEE2E2;color:#B91C1C}
+
+/* ── Searchable Select Component ─────────────────────── */
+.ss-wrap{position:relative}
+.ss-input{width:100%;padding:10px 32px 10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;outline:none;cursor:pointer;font-family:inherit;box-sizing:border-box;-webkit-appearance:none}
+.ss-input:focus{border-color:#2B5197;background-color:#fff}
+.ss-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #2B5197;border-top:none;border-radius:0 0 9px 9px;max-height:220px;overflow-y:auto;z-index:300;display:none;box-shadow:0 8px 24px rgba(43,81,151,0.12)}
+.ss-dropdown.open{display:block}
+.ss-option{padding:10px 14px;font-size:13px;color:#1A2D5A;cursor:pointer;border-bottom:1px solid #F7F9FC}
+.ss-option:last-child{border-bottom:none}
+.ss-option:hover,.ss-option.focused{background:#EEF3FF;color:#2B5197}
+.ss-option.placeholder{color:#94A3B8;font-style:italic}
+.ss-no-results{padding:12px 14px;font-size:12px;color:#94A3B8;text-align:center}
+
 </style>
 <script>
 // ── Auto-update: check for new version on every load ────────
@@ -216,7 +229,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   <div class="card">
     <div class="card-label">Entry Details</div>
     <div class="field"><label>Date</label><input type="date" id="eDate"></div>
-    <div class="field"><label>Project</label><select id="eProject"><option value="">— Select Project —</option></select></div>
+    <div class="field" id="eProjectField"><label>Project <span id="eProjRequired" style="color:#B91C1C">*</span></label><select id="eProject"><option value="">— Select Project —</option></select></div>
     <div class="field" id="costHeadField" style="display:none"><label>Cost Head</label><select id="eCostHead"><option value="">— Select Cost Head —</option></select></div>
     <div class="field"><label>Vendor / Party</label><select id="eVendor"><option value="">— Select Vendor (optional) —</option></select></div>
     <div class="field"><label>Amount (₹)</label><input type="number" id="eAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
@@ -356,11 +369,22 @@ function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel();
 function loadMasterData(){
   var etC=lsGet("bd_c_et"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
 
-  function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";}); }
+  function fillSel(id,items,mapFn,ph){
+    var s=document.getElementById(id); if(!s)return;
+    // Keep original select updated for compatibility
+    s.innerHTML="<option value=''>"+ph+"</option>";
+    items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});
+    // Create/update searchable select
+    var opts=items.map(function(x){var m=mapFn(x);return{value:m.v,label:m.t};});
+    ssCreate(id, opts, ph, function(val){
+      s.value=val;
+      if(id==="eProject") checkProjectRequired();
+    });
+  }
 
   if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); renderAllowedTypes(); }
   if(prC) fillSel("eProject",  prC, function(p){return{v:p.id,t:p.name+" · "+p.client};},   "— Select Project —");
-  if(chC) fillSel("eCostHead", chC, function(c){return{v:c.id,t:c.name};},                       "— Select Cost Head —");
+  if(chC){ window._allCostHeads={}; chC.forEach(function(c){window._allCostHeads[c.id]=c;}); fillSel("eCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }
   if(veC) fillSel("eVendor",   veC, function(v){return{v:v.id,t:v.name+" · "+v.type};},      "— Select Vendor (optional) —");
 
   api({action:"getEntryTypes",token:token},function(d){
@@ -375,6 +399,7 @@ function loadMasterData(){
   });
   api({action:"getCostHeads",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ch",d.costHeads);
+    window._allCostHeads={}; d.costHeads.forEach(function(c){window._allCostHeads[c.id]=c;});
     fillSel("eCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
   });
   api({action:"getVendors",token:token},function(d){
@@ -416,21 +441,42 @@ function selectType(el,key){
   selType = allEntryTypes[key];
   document.getElementById("costHeadField").style.display = (selType&&selType.needsCH)?"":"none";
   document.getElementById("billPhotoField").style.display = (key==="vendor_bill")?"":"none";
+  checkProjectRequired();
+}
+
+var OPTIONAL_PROJECT_AC_KEYS = ["EXP_INDIRECT","EXP_OTHER"];
+
+function checkProjectRequired(){
+  var ch = ssGet("eCostHead");
+  var isOptional = false;
+  if(selType && selType.needsCH && ch){
+    // Check if selected cost head maps to optional account key
+    // We check by looking at the cost head list cached in allCostHeads
+    if(window._allCostHeads && window._allCostHeads[ch]){
+      var acKey = window._allCostHeads[ch].acKey || "";
+      isOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(acKey) !== -1;
+    }
+  } else if(selType && selType.needsCH && !ch){
+    // Cost head not selected yet — keep required for now
+    isOptional = false;
+  }
+  var req = document.getElementById("eProjRequired");
+  if(req) req.style.display = isOptional ? "none" : "";
 }
 
 
 // ── SAVE ───────────────────────────────────────────────────
 function saveEntry(){
   if(!selType){ toast("Please select an entry type first.",false); return; }
-  var proj=document.getElementById("eProject").value;
+  var proj=ssGet("eProject");
   var amt=parseFloat(document.getElementById("eAmount").value);
   if(!proj){ toast("Please select a project.",false); return; }
   if(!amt||amt<=0){ toast("Please enter a valid amount.",false); return; }
   if(selType.needsCH && !document.getElementById("eCostHead").value){ toast("Please select a cost head for this entry type.",false); return; }
 
-  var projSel=document.getElementById("eProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
-  var vendSel=document.getElementById("eVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"";
-  var chSel=document.getElementById("eCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"";
+  var projSel=document.getElementById("eProject"); var proj_ss=window._ssInstances["eProject"]; var projName=proj_ss&&proj_ss.getValue()?(proj_ss._inp?proj_ss._inp.value:""):"";
+  var vendSel=document.getElementById("eVendor"); var vend_ss=window._ssInstances["eVendor"]; var vendName=vend_ss&&vend_ss.getValue()?(vend_ss._inp?vend_ss._inp.value:""):"";
+  var chSel=document.getElementById("eCostHead"); var ch_ss=window._ssInstances["eCostHead"]; var chName=ch_ss&&ch_ss.getValue()?(ch_ss._inp?ch_ss._inp.value:""):"";
   var dateVal=document.getElementById("eDate").value;
   var narr=document.getElementById("eNarration").value;
 
@@ -454,8 +500,8 @@ function saveEntry(){
     // If editing an existing pending entry, use editPendingEntry action
     if(_editingPendingId){
       api({action:"editPendingEntry",token:token,entryId:_editingPendingId,
-        entryType:selType.key,projectId:proj,costHeadId:chSel.value,
-        vendorId:vendSel.value,date:dateVal,amount:amt,
+        entryType:selType.key,projectId:proj,costHeadId:ssGet("eCostHead"),
+        vendorId:ssGet("eVendor"),date:dateVal,amount:amt,
         narration:document.getElementById("eNarration").value},
       function(d){
         btn.disabled=false; btn.textContent="Save Entry";
@@ -472,7 +518,7 @@ function saveEntry(){
     }
 
     api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
-      costHeadId:chSel.value, vendorId:vendSel.value,
+      costHeadId:ssGet("eCostHead"), vendorId:ssGet("eVendor"),
       date:dateVal, amount:amt, narration:document.getElementById("eNarration").value},
     function(d){
       btn.disabled=false; btn.textContent="Save Entry";
@@ -489,6 +535,7 @@ function saveEntry(){
         document.getElementById("eNarration").value="";
         clearBillPhoto();
         selType=null;
+        ssSet("eProject",""); ssSet("eCostHead",""); ssSet("eVendor","");
         document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
         document.getElementById("costHeadField").style.display="none";
         document.getElementById("billPhotoField").style.display="none";
@@ -557,9 +604,7 @@ function editPendingEntry(btn){
   if(date) document.getElementById("eDate").value=date;
   if(amt)  document.getElementById("eAmount").value=amt;
   if(narr) document.getElementById("eNarration").value=narr;
-  if(projId){ var ps=document.getElementById("eProject"); if(ps) ps.value=projId; }
-  if(chId){   var cs=document.getElementById("eCostHead"); if(cs) cs.value=chId; }
-  if(vendId){ var vs=document.getElementById("eVendor"); if(vs) vs.value=vendId; }
+  setTimeout(function(){ ssSet("eProject",projId); ssSet("eCostHead",chId); ssSet("eVendor",vendId); },200);
 
   // Select the entry type
   setTimeout(function(){
@@ -805,6 +850,165 @@ setTimeout(pingBackend, 1500);
 setInterval(pingBackend, 120000);
 
 function logout(){ localStorage.removeItem("bd_token"); localStorage.removeItem("bd_role"); localStorage.removeItem("bd_username"); window.location.href="index.html"; }
+
+
+// ── SearchSelect Component ───────────────────────────────
+// Usage: new SearchSelect(id, options, placeholder, onChange)
+// options: [{value, label}]
+// Replaces a hidden <select> with a searchable combo box
+function SearchSelect(id, opts, placeholder, onChange) {
+  this.id          = id;
+  this.opts        = opts || [];
+  this.placeholder = placeholder || "— Select —";
+  this.onChange    = onChange || function(){};
+  this.value       = "";
+  this.focusIdx    = -1;
+  this._build();
+}
+
+SearchSelect.prototype._build = function() {
+  var self = this;
+  var orig = document.getElementById(self.id);
+  if (!orig) return;
+
+  // Keep original select hidden (for form value compatibility)
+  orig.style.display = "none";
+
+  // Wrapper
+  var wrap = document.createElement("div");
+  wrap.className = "ss-wrap";
+  wrap.id = "ss-wrap-"+self.id;
+
+  // Input
+  var inp = document.createElement("input");
+  inp.type = "text";
+  inp.className = "ss-input";
+  inp.id = "ss-inp-"+self.id;
+  inp.placeholder = self.placeholder;
+  inp.autocomplete = "off";
+
+  // Dropdown
+  var dd = document.createElement("div");
+  dd.className = "ss-dropdown";
+  dd.id = "ss-dd-"+self.id;
+
+  wrap.appendChild(inp);
+  wrap.appendChild(dd);
+  orig.parentNode.insertBefore(wrap, orig.nextSibling);
+
+  self._inp = inp;
+  self._dd  = dd;
+  self._orig = orig;
+
+  // Render all options
+  self._render("");
+
+  // Events
+  inp.addEventListener("focus", function(){
+    self._render(inp.value);
+    dd.classList.add("open");
+  });
+  inp.addEventListener("input", function(){
+    self.value = "";
+    orig.value = "";
+    self._render(inp.value);
+    dd.classList.add("open");
+    self.focusIdx = -1;
+  });
+  inp.addEventListener("keydown", function(e){
+    var items = dd.querySelectorAll(".ss-option:not(.placeholder)");
+    if(e.key === "ArrowDown"){ e.preventDefault(); self.focusIdx = Math.min(self.focusIdx+1, items.length-1); self._highlight(items); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); self.focusIdx = Math.max(self.focusIdx-1, 0); self._highlight(items); }
+    else if(e.key === "Enter" && self.focusIdx >= 0){ e.preventDefault(); items[self.focusIdx].click(); }
+    else if(e.key === "Escape"){ dd.classList.remove("open"); inp.blur(); }
+  });
+  document.addEventListener("click", function(e){
+    if(!wrap.contains(e.target)){ dd.classList.remove("open"); }
+  });
+};
+
+SearchSelect.prototype._highlight = function(items) {
+  items.forEach(function(el,i){ el.classList.toggle("focused", i === this.focusIdx); }.bind(this));
+  if(this.focusIdx >= 0 && items[this.focusIdx]) items[this.focusIdx].scrollIntoView({block:"nearest"});
+};
+
+SearchSelect.prototype._render = function(q) {
+  var self = this;
+  var dd = self._dd;
+  var filtered = q
+    ? self.opts.filter(function(o){ return o.label.toLowerCase().indexOf(q.toLowerCase()) !== -1; })
+    : self.opts;
+
+  dd.innerHTML = "";
+
+  // Placeholder option
+  var ph = document.createElement("div");
+  ph.className = "ss-option placeholder";
+  ph.textContent = self.placeholder;
+  ph.addEventListener("click", function(){
+    self._select("", self.placeholder, true);
+  });
+  dd.appendChild(ph);
+
+  if(!filtered.length && q) {
+    var nr = document.createElement("div");
+    nr.className = "ss-no-results";
+    nr.textContent = "No results for \""+q+"\"";
+    dd.appendChild(nr);
+    return;
+  }
+
+  filtered.forEach(function(o){
+    var el = document.createElement("div");
+    el.className = "ss-option";
+    el.textContent = o.label;
+    el.addEventListener("click", function(){ self._select(o.value, o.label, false); });
+    dd.appendChild(el);
+  });
+};
+
+SearchSelect.prototype._select = function(val, label, isPlaceholder) {
+  this.value = val;
+  this._orig.value = val;
+  this._inp.value = isPlaceholder ? "" : label;
+  this._dd.classList.remove("open");
+  this.focusIdx = -1;
+  this.onChange(val, label);
+};
+
+SearchSelect.prototype.setOptions = function(opts, keepValue) {
+  this.opts = opts || [];
+  var currentVal = this.value;
+  this._render(this._inp.value || "");
+  if(keepValue && currentVal) {
+    var found = opts.find(function(o){return o.value===currentVal;});
+    if(found) this._select(found.value, found.label, false);
+  }
+};
+
+SearchSelect.prototype.getValue = function() { return this.value; };
+
+SearchSelect.prototype.setValue = function(val) {
+  if(!val){ this._select("", this.placeholder, true); return; }
+  var found = this.opts.find(function(o){return o.value===val;});
+  if(found) this._select(found.value, found.label, false);
+};
+
+// Global registry
+window._ssInstances = window._ssInstances || {};
+function ssCreate(id, opts, placeholder, onChange){
+  if(window._ssInstances[id]) {
+    window._ssInstances[id].setOptions(opts);
+    return window._ssInstances[id];
+  }
+  var inst = new SearchSelect(id, opts, placeholder, onChange);
+  window._ssInstances[id] = inst;
+  return inst;
+}
+function ssSet(id, val){ if(window._ssInstances[id]) window._ssInstances[id].setValue(val); }
+function ssGet(id){ return window._ssInstances[id] ? window._ssInstances[id].getValue() : (document.getElementById(id)||{value:""}).value; }
+function ssSetOpts(id, opts){ if(window._ssInstances[id]) window._ssInstances[id].setOptions(opts); }
+
 </script>
 <script>
 if ("serviceWorker" in navigator) {
