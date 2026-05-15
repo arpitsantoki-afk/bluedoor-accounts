@@ -891,20 +891,16 @@ function loadPettyCashLedger(){
   var dateFrom = document.getElementById("pcDateFrom").value;
   var dateTo   = document.getElementById("pcDateTo").value;
 
-  api({action:"getLedger", token:token, fyid:curFY}, function(d){
+  api({action:"getPettyCashLedger", token:token, fyid:curFY}, function(d){
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     _pcLoaded = true;
 
-    // Filter to Petty Cash account only
-    var rows = d.ledger.filter(function(r){
-      if(r.acKey !== "PETTY_CASH" && r.acCode !== "1003") return false;
+    // Apply date filter client-side
+    var rows = d.entries.filter(function(r){
       if(dateFrom && r.dateRaw < new Date(dateFrom).getTime()) return false;
       if(dateTo   && r.dateRaw > new Date(dateTo).getTime()+86399999) return false;
       return true;
     });
-
-    // Sort oldest first for running balance
-    rows.sort(function(a,b){ return a.dateRaw-b.dateRaw; });
 
     if(!rows.length){
       el.innerHTML="<div class='empty'><div class='empty-icon'>💰</div>No petty cash entries"+(dateFrom||dateTo?" for selected dates.":".")+"</div>";
