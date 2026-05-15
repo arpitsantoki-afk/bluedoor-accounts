@@ -831,13 +831,13 @@ function loadMasterData(){
   if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); }
   if(coaC){ coaList=coaC; fillSel("obAccount",coaC||[],function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); }
   if(prC){ fillSel("aProject",prC,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); }
-  if(chC){ fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }
+  if(chC){ window._allCostHeads={}; chC.forEach(function(c){window._allCostHeads[c.id]=c;}); fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }
   if(veC){ fillSel("aVendor",veC,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); }
 
   api({action:"getEntryTypes",token:token},function(d){ if(!d.success)return; lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); });
   api({action:"getCOA",token:token},function(d){ if(!d.success)return; lsSet("bd_c_coa",d.accounts); coaList=d.accounts; fillSel("obAccount",d.accounts,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); });
   api({action:"getProjects",token:token},function(d){ if(!d.success)return; lsSet("bd_c_proj",d.projects); fillSel("aProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); });
-  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ch",d.costHeads); fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); });
+  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ch",d.costHeads); window._allCostHeads={}; d.costHeads.forEach(function(c){window._allCostHeads[c.id]=c;}); fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); });
   api({action:"getVendors",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ve",d.vendors); fillSel("aVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); });
 }
 
@@ -1258,15 +1258,25 @@ function adminSaveEntry(){
   var proj=ssGet("aProject");
   var amt=parseFloat(document.getElementById("aAmount").value);
   var chVal=ssGet("aCostHead");
-  var projOptional=aSelType.needsCH&&chVal&&window._allCostHeads&&window._allCostHeads[chVal]&&OPTIONAL_PROJECT_AC_KEYS.indexOf(window._allCostHeads[chVal].acKey||"")!==-1;
+  // Project optional if cost head maps to EXP_INDIRECT or EXP_OTHER
+  window._allCostHeads = window._allCostHeads||{};
+  var projOptional = false;
+  if(aSelType.needsCH && chVal && window._allCostHeads[chVal]){
+    projOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(window._allCostHeads[chVal].acKey||"")!==-1;
+  }
+  // Also optional if entry type's Dr or Cr is directly EXP_INDIRECT/EXP_OTHER
+  if(!projOptional && aSelType){
+    projOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(aSelType.dr||"")!==-1 ||
+                   OPTIONAL_PROJECT_AC_KEYS.indexOf(aSelType.cr||"")!==-1;
+  }
   if(!proj&&!projOptional){toast("Please select a project.",false);return;}
   if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
   if(aSelType.needsCH&&!document.getElementById("aCostHead").value){toast("Please select a cost head.",false);return;}
 
   // Get display names
-  var projSel=document.getElementById("aProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
-  var vendSel=document.getElementById("aVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"—";
-  var chSel=document.getElementById("aCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"—";
+  var projSel=document.getElementById("aProject"); var projName=window._ssInstances["aProject"]&&window._ssInstances["aProject"]._inp?window._ssInstances["aProject"]._inp.value:"";
+  var vendSel=document.getElementById("aVendor");  var vendName=window._ssInstances["aVendor"]&&window._ssInstances["aVendor"]._inp?window._ssInstances["aVendor"]._inp.value:"—";
+  var chSel=document.getElementById("aCostHead");  var chName=window._ssInstances["aCostHead"]&&window._ssInstances["aCostHead"]._inp?window._ssInstances["aCostHead"]._inp.value:"—";
   var dateVal=document.getElementById("aDate").value;
   var narr=document.getElementById("aNarration").value||"—";
 
@@ -2193,7 +2203,10 @@ function fillSel(id,items,mapFn,ph){
   s.innerHTML="<option value=''>"+ph+"</option>";
   items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});
   var opts=items.map(function(x){var m=mapFn(x);return{value:m.v,label:m.t};});
-  ssCreate(id,opts,ph,function(val){s.value=val;});
+  ssCreate(id,opts,ph,function(val){
+    s.value=val;
+    if(id==="aCostHead"||id==="aProject") checkAdminProjectRequired();
+  });
 }
 // ── UTILS ──────────────────────────────────────────────────
 var _dbTotal=0, _dbErrors=0, _debugOpen=false;
