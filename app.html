@@ -112,6 +112,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .status-completed{background:#DBEAFE;color:#1D4ED8}
 .status-deleted{background:#F1F5F9;color:#94A3B8}
 .status-inactive{background:#F1F5F9;color:#94A3B8}
+.status-pending{background:#FEF9C3;color:#854D0E}
+.status-approved{background:#DCFCE7;color:#15803D}
+.status-rejected{background:#FEE2E2;color:#B91C1C}
 </style>
 <script>
 // ── Auto-update: check for new version on every load ────────
@@ -143,7 +146,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 <div class="header">
   <div class="header-left">
     <span class="header-icon">🏠</span>
-    <div><div class="header-title">Blue Door <span class="header-role" id="headerRole">Supervisor</span></div></div>
+    <div><div class="header-title">Blue Door</div><div style="font-size:11px;color:rgba(255,255,255,0.7)" id="headerUser">—</div></div>
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
@@ -151,19 +154,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span id="versionBadge">v1.8</span></div>
+<div class="version-bar"><span id="versionBadge">v1.9</span></div>
 
 <div id="view-entry">
   <div class="page-title">New Entry</div>
-  <div class="seg-wrap">
-    <div class="seg" id="catSeg">
-      <div class="seg-btn active" onclick="selectCat('client',this)">Client</div>
-      <div class="seg-btn" onclick="selectCat('vendor',this)">Vendor</div>
-      <div class="seg-btn" onclick="selectCat('expense',this)">Expense</div>
-      <div class="seg-btn" onclick="selectCat('transfer',this)">Transfer</div>
-      <div class="seg-btn" onclick="selectCat('drawings',this)">Drawings</div>
-    </div>
-  </div>
+  <!-- Category seg hidden — supervisor sees only 2 allowed entry types -->
   <div class="card">
     <div class="card-label">Select Entry Type</div>
     <div class="type-grid" id="typeGrid"><div class="loading-types">Loading entry types…</div></div>
@@ -176,6 +171,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
     <div class="field"><label>Vendor / Party</label><select id="eVendor"><option value="">— Select Vendor (optional) —</option></select></div>
     <div class="field"><label>Amount (₹)</label><input type="number" id="eAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>Narration / Remarks</label><input type="text" id="eNarration" placeholder="Brief note about this entry"></div>
+    <div class="field" id="billPhotoField" style="display:none">
+      <label>Bill / Challan Photo <span style="color:#7A8BAA;font-weight:400">(optional)</span></label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="flex:1;padding:10px;background:#F7F9FC;border:1.5px dashed #DDE3EE;border-radius:9px;text-align:center;cursor:pointer;font-size:13px;color:#7A8BAA">
+          📷 Take Photo / Choose File
+          <input type="file" id="billPhoto" accept="image/*" capture="environment" style="display:none" onchange="previewBillPhoto(this)">
+        </label>
+        <button type="button" id="billPhotoClearBtn" style="display:none;padding:8px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#B91C1C;cursor:pointer;font-size:12px" onclick="clearBillPhoto()">✕</button>
+      </div>
+      <div id="billPhotoPreview" style="margin-top:8px;display:none">
+        <img id="billPhotoImg" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid #DDE3EE">
+      </div>
+    </div>
     <button class="btn-save" id="saveBtn" onclick="saveEntry()">Save Entry</button>
   </div>
 </div>
@@ -233,7 +241,8 @@ setTimeout(function(){
     }
   }).catch(function(){});
 }, 500);
-document.getElementById("headerRole").textContent = role || "Supervisor";
+var username = localStorage.getItem("bd_username")||"";
+document.getElementById("headerUser").textContent = username;
 setToday(); initApp();
 
 function setToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("eDate").value=y+"-"+m+"-"+dd; }
@@ -268,7 +277,7 @@ function loadMasterData(){
 
   function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";}); }
 
-  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); selectCat(curCat,document.querySelector(".seg-btn.active")); }
+  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); renderAllowedTypes(); }
   if(prC) fillSel("eProject",  prC, function(p){return{v:p.id,t:p.name+" · "+p.client};},   "— Select Project —");
   if(chC) fillSel("eCostHead", chC, function(c){return{v:c.id,t:c.name};},                       "— Select Cost Head —");
   if(veC) fillSel("eVendor",   veC, function(v){return{v:v.id,t:v.name+" · "+v.type};},      "— Select Vendor (optional) —");
@@ -292,34 +301,41 @@ function loadMasterData(){
   });
 }
 
-// ── CATEGORY & TYPE ────────────────────────────────────────
-function selectCat(cat, el){
+// ── CATEGORY & TYPE (supervisor restricted to 2 types) ──────
+var ALLOWED_TYPES = ["vendor_bill","expense_petty_cash"];
+
+function selectCat(cat,el){
   curCat=cat; selType=null;
   document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));
   if(el) el.classList.add("active");
-  var items = Object.values(allEntryTypes).filter(function(t){ return t.category===cat; });
-  if(!items.length){ document.getElementById("typeGrid").innerHTML="<div class='loading-types'>Loading…</div>"; return; }
-  var html = items.map(function(t){
-    var drL = t.drName || t.dr;
-    var crL = t.crName || t.cr;
-    return "<div class='type-opt' onclick='selectType(this,\""+t.key+"\")'>"+
+  renderAllowedTypes();
+}
+
+function renderAllowedTypes(){
+  var types = ALLOWED_TYPES.map(function(k){ return allEntryTypes[k]; }).filter(Boolean);
+  var html = types.length ? types.map(function(t){
+    var drL=t.drName||t.dr, crL=t.crName||t.cr;
+    return "<div class='type-opt' onclick='selectType(this,\""+t.key+"\")'>" +
       "<div class='type-opt-label'>"+t.label+"</div>"+
       "<div class='type-opt-hint'>"+t.hint+"</div>"+
       "<div class='type-opt-accounts'>"+
         "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+drL+"</span></div>"+
         "<div class='ac-row'><span class='ac-cr'>CR</span> <span class='ac-name'>"+crL+"</span></div>"+
       "</div></div>";
-  }).join("");
+  }).join("") : "<div class='empty'>Entry types loading…</div>";
   document.getElementById("typeGrid").innerHTML = html;
   document.getElementById("costHeadField").style.display = "none";
+  document.getElementById("billPhotoField").style.display = "none";
 }
 
-function selectType(el, key){
+function selectType(el,key){
   document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
   el.classList.add("selected");
   selType = allEntryTypes[key];
-  document.getElementById("costHeadField").style.display = (selType && selType.needsCH) ? "" : "none";
+  document.getElementById("costHeadField").style.display = (selType&&selType.needsCH)?"":"none";
+  document.getElementById("billPhotoField").style.display = (key==="vendor_bill")?"":"none";
 }
+
 
 // ── SAVE ───────────────────────────────────────────────────
 function saveEntry(){
@@ -358,11 +374,21 @@ function saveEntry(){
     function(d){
       btn.disabled=false; btn.textContent="Save Entry";
       if(d.success){
-        toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);
+        var msg = d.pending
+          ? "✓ Submitted for approval  |  Dr: "+d.dr+"  ·  Cr: "+d.cr
+          : "✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr;
+        toast(msg, true);
+        // Upload photo if present
+        var photoFile = document.getElementById("billPhoto").files[0];
+        if(photoFile && d.entryId) uploadPhoto(photoFile, d.entryId);
+        // Reset form
         document.getElementById("eAmount").value="";
         document.getElementById("eNarration").value="";
+        clearBillPhoto();
         selType=null;
         document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
+        document.getElementById("costHeadField").style.display="none";
+        document.getElementById("billPhotoField").style.display="none";
       } else toast(d.error||"Save failed.",false);
     });
   };
@@ -377,13 +403,60 @@ function loadRecent(){
     d.entries.forEach(function(e){
       var et=allEntryTypes[e.entryType]||{};
       var cat=et.category||"expense";
-      html+="<div class='entry-row'><div><div class='entry-main'>"+(et.label||humanize(e.entryType))+"</div>"+
-        "<div class='entry-sub'>"+e.projectId+(e.costHeadId?" · "+e.costHeadId:"")+"</div>"+
-        "<span class='entry-badge "+CAT_BADGE[cat]+"'>"+e.entryId+"</span></div>"+
-        "<div><div class='entry-amount'>₹ "+fmt(e.amount)+"</div><div class='entry-date'>"+e.date+"</div></div></div>";
+      var status=e.status||"Approved";
+      var stCls=status==="Pending"?"status-pending":status==="Rejected"?"status-rejected":"status-approved";
+      var delBtn=(e.source==="pending"&&status==="Pending")
+        ?"<button style='padding:4px 8px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:10px;cursor:pointer;font-family:inherit;margin-top:4px' data-id='"+e.entryId+"' onclick='deletePendingEntry(this.dataset.id)'>Delete</button>"
+        :"";
+      var rejReason=(status==="Rejected"&&e.rejectReason)
+        ?"<div style='font-size:10px;color:#B91C1C;margin-top:2px'>✗ "+e.rejectReason+"</div>":"";
+      var photoLink=e.driveFileUrl
+        ?"<a href='"+e.driveFileUrl+"' target='_blank' style='font-size:10px;color:#2B5197;margin-top:2px;display:block'>📎 View Bill</a>":"";
+      html+="<div class='entry-row'><div style='flex:1'><div class='entry-main'>"+(et.label||humanize(e.entryType))+"</div>"+
+        "<div class='entry-sub'>"+e.projectId+(e.costHeadId?" · "+e.costHeadId:"")+(e.vendorId?" · "+e.vendorId:"")+"</div>"+
+        "<span class='status-badge "+stCls+"'>"+status+"</span>"+
+        rejReason+photoLink+delBtn+"</div>"+
+        "<div style='text-align:right'><div class='entry-amount'>₹ "+fmt(e.amount)+"</div><div class='entry-date'>"+e.date+"</div></div></div>";
     });
     el.innerHTML=html;
   });
+}
+
+function deletePendingEntry(entryId){
+  if(!confirm("Delete this pending entry? This cannot be undone.")) return;
+  api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
+    if(d.success){ toast("✓ Entry deleted.",true); loadRecent(); }
+    else toast(d.error||"Delete failed.",false);
+  });
+}
+
+// Bill photo helpers
+function previewBillPhoto(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById("billPhotoImg").src=e.target.result;
+    document.getElementById("billPhotoPreview").style.display="block";
+    document.getElementById("billPhotoClearBtn").style.display="";
+  };
+  reader.readAsDataURL(file);
+}
+function clearBillPhoto(){
+  document.getElementById("billPhoto").value="";
+  document.getElementById("billPhotoPreview").style.display="none";
+  document.getElementById("billPhotoClearBtn").style.display="none";
+  document.getElementById("billPhotoImg").src="";
+}
+function uploadPhoto(file, entryId){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    var base64=dataUrl.split(",")[1];
+    var ctype=file.type||"image/jpeg";
+    api({action:"uploadBillPhoto",token:token,entryId:entryId,base64:base64,filename:file.name,contentType:ctype},
+    function(d){ if(d.success) toast("📎 Bill photo uploaded.",true); else toast("Photo upload failed: "+d.error,false); });
+  };
+  reader.readAsDataURL(file);
 }
 
 function showView(name,el){
