@@ -365,21 +365,20 @@ function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.ma
 function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; }
 
 // ── Master data: all dropdowns + entry types in parallel ──
+// ── Global fillSel — used by loadMasterData and loadSupVendors ──
+function fillSel(id,items,mapFn,ph){
+  var s=document.getElementById(id); if(!s)return;
+  s.innerHTML="<option value=''>"+ph+"</option>";
+  items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});
+  var opts=items.map(function(x){var m=mapFn(x);return{value:m.v,label:m.t};});
+  ssCreate(id,opts,ph,function(val){
+    s.value=val;
+    if(id==="eCostHead"||id==="eProject") checkProjectRequired();
+  });
+}
+
 function loadMasterData(){
   var etC=lsGet("bd_c_et"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
-
-  function fillSel(id,items,mapFn,ph){
-    var s=document.getElementById(id); if(!s)return;
-    // Keep original select updated for compatibility
-    s.innerHTML="<option value=''>"+ph+"</option>";
-    items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});
-    // Create/update searchable select
-    var opts=items.map(function(x){var m=mapFn(x);return{value:m.v,label:m.t};});
-    ssCreate(id, opts, ph, function(val){
-      s.value=val;
-      if(id==="eProject") checkProjectRequired();
-    });
-  }
 
   if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); renderAllowedTypes(); }
   if(prC) fillSel("eProject",  prC, function(p){return{v:p.id,t:p.name+" · "+p.client};},   "— Select Project —");
@@ -782,9 +781,7 @@ function loadSupVendors(){
   // Also refresh vendor dropdown in entry form
   api({action:"getVendors",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ve",d.vendors);
-    var s=document.getElementById("eVendor"); if(!s)return;
-    s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";
-    d.vendors.forEach(function(v){s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>";});
+    fillSel("eVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
   });
 }
 
