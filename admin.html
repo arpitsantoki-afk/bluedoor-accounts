@@ -807,7 +807,7 @@ var CACHE_TTL = 6 * 60 * 60 * 1000;
 function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
-function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
+function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); _addDropdownsBuilt=false; }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -1511,6 +1511,26 @@ function showView(name,el){
   if(name==="ledger") { if(!allLedger.length) initLedger(); else applyFilters(); }
   if(name==="reports") loadReports();
   if(name==="more") loadUsers();
+  if(name==="add") rebuildAddDropdowns();
+}
+
+// Rebuild combo dropdowns when Add tab becomes visible
+// (they may not have been built if view was hidden during init)
+var _addDropdownsBuilt = false;
+function rebuildAddDropdowns(){
+  if(_addDropdownsBuilt) return;
+  _addDropdownsBuilt = true;
+  // Re-run fillSel for entry form dropdowns using cached data
+  var prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
+  if(prC) fillSel("aProject",prC,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —");
+  if(chC){
+    window._allCostHeads=window._allCostHeads||{};
+    chC.forEach(function(c){window._allCostHeads[c.id]=c;});
+    fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
+  }
+  if(veC) fillSel("aVendor",veC,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
+  var coaC=lsGet("bd_c_coa");
+  if(coaC) fillSel("obAccount",coaC,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —");
 }
 
 // ── DELETE ENTRY ───────────────────────────────────────────
@@ -2499,10 +2519,21 @@ SearchSelect.prototype.setValue = function(val) {
 // Global registry
 window._ssInstances = window._ssInstances || {};
 function ssCreate(id, opts, placeholder, onChange){
+  // Rebuild if instance exists but ss-wrap was removed from DOM
   if(window._ssInstances[id]) {
-    window._ssInstances[id].setOptions(opts);
-    return window._ssInstances[id];
+    var existingWrap = document.getElementById("ss-wrap-"+id);
+    if(!existingWrap) {
+      // DOM was reset — delete stale instance and rebuild
+      delete window._ssInstances[id];
+    } else {
+      window._ssInstances[id].setOptions(opts);
+      // Update onChange in case it changed
+      if(onChange) window._ssInstances[id].onChange = onChange;
+      return window._ssInstances[id];
+    }
   }
+  // Only build if element exists in DOM
+  if(!document.getElementById(id)) return null;
   var inst = new SearchSelect(id, opts, placeholder, onChange);
   window._ssInstances[id] = inst;
   return inst;
