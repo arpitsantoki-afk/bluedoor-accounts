@@ -260,6 +260,8 @@ td{padding:9px 10px;vertical-align:top}
 .btn-approve:hover{background:#BBF7D0}
 .btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-reject:hover{background:#FCA5A5}
+.btn-comment{padding:5px 12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:6px;color:#92400E;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-comment:hover{background:#FDE68A}
 .btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
 .conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px}
 .conf-row:last-child{border-bottom:none}
@@ -275,6 +277,8 @@ td{padding:9px 10px;vertical-align:top}
 .btn-approve:hover{background:#BBF7D0}
 .btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-reject:hover{background:#FCA5A5}
+.btn-comment{padding:5px 12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:6px;color:#92400E;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-comment:hover{background:#FDE68A}
 .btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
 @media print{
   .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
@@ -294,6 +298,8 @@ td{padding:9px 10px;vertical-align:top}
 // ── Auto-update: check for new version on every load ────────
 (function(){
   if(window.location.hostname !== "arpitsantoki-afk.github.io") return;
+  var lastReload = parseInt(sessionStorage.getItem("bd_last_reload")||"0");
+  if(Date.now() - lastReload < 5000) return;
   var CACHE_KEY = "bd_app_version";
   fetch("/bluedoor-accounts/version.json?t="+Date.now(), {cache:"no-store"})
     .then(function(r){ return r.json(); })
@@ -307,6 +313,7 @@ td{padding:9px 10px;vertical-align:top}
         ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
           localStorage.removeItem(k);
         });
+        sessionStorage.setItem("bd_last_reload", Date.now().toString());
         window.location.reload(true);
       } else {
         localStorage.setItem(CACHE_KEY, d.version);
@@ -332,7 +339,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.9</span>
+  <span id="versionBadge">v1.9.1</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -706,15 +713,27 @@ td{padding:9px 10px;vertical-align:top}
   </div>
 </div>
 
-<!-- Reject Reason Dialog -->
+<!-- Comment Dialog -->
+<div class="confirm-overlay hidden" id="commentOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Add Comment</div>
+    <div class="confirm-msg" id="commentMsg"></div>
+    <div class="field" style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:5px">Comment for Supervisor *</label>
+      <input type="text" id="commentText" placeholder="e.g. Bill photo missing, wrong cost head…" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit">
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('commentOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="commentOKBtn" style="background:#F59E0B">Send Comment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Dialog (no comment needed) -->
 <div class="confirm-overlay hidden" id="rejectOverlay">
   <div class="confirm-box" style="max-width:360px">
     <div class="confirm-title">Reject Entry</div>
-    <div class="confirm-msg" id="rejectMsg"></div>
-    <div class="field" style="margin-bottom:16px">
-      <label style="font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:5px">Reason for Rejection *</label>
-      <input type="text" id="rejectReason" placeholder="e.g. Bill missing, wrong amount…" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit">
-    </div>
+    <div class="confirm-msg" id="rejectMsg">This entry will be marked as Rejected. The supervisor can delete it. This cannot be undone.</div>
     <div class="confirm-btns">
       <button class="confirm-cancel" onclick="document.getElementById('rejectOverlay').classList.add('hidden')">Cancel</button>
       <button class="confirm-delete" id="rejectOKBtn">Reject Entry</button>
@@ -2093,6 +2112,7 @@ function loadPendingEntries(){
         (e.narration?"<div class='pend-sub' style='font-style:italic'>"+e.narration+"</div>":"")+
         "<div class='pend-actions'>"+
           "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
+          "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
           "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
           photoBtn+
         "</div>"+
@@ -2113,17 +2133,31 @@ function confirmApprove(entryId, label, amount){
   });
 }
 
-var _rejectEntryId="";
+var _rejectEntryId="", _commentEntryId="";
+
+function openComment(entryId, label){
+  _commentEntryId=entryId;
+  document.getElementById("commentMsg").textContent='Add a comment for the supervisor on: "'+label+'". Entry stays Pending — supervisor can edit and resubmit.';
+  document.getElementById("commentText").value="";
+  document.getElementById("commentOverlay").classList.remove("hidden");
+  document.getElementById("commentOKBtn").onclick=function(){
+    var comment=document.getElementById("commentText").value.trim();
+    if(!comment){ toast("Please enter a comment.",false); return; }
+    document.getElementById("commentOverlay").classList.add("hidden");
+    api({action:"commentEntry",token:token,entryId:_commentEntryId,comment:comment}, function(d){
+      if(d.success){ toast("✓ Comment sent to supervisor.",true); loadPendingEntries(); }
+      else toast(d.error||"Failed.",false);
+    });
+  };
+}
+
 function openReject(entryId, label){
   _rejectEntryId=entryId;
-  document.getElementById("rejectMsg").textContent='Rejecting: "'+label+'". Please provide a reason — the supervisor will see this.';
-  document.getElementById("rejectReason").value="";
+  document.getElementById("rejectMsg").textContent='Reject "'+label+'"? The supervisor can delete rejected entries. This cannot be undone.';
   document.getElementById("rejectOverlay").classList.remove("hidden");
   document.getElementById("rejectOKBtn").onclick=function(){
-    var reason=document.getElementById("rejectReason").value.trim();
-    if(!reason){ toast("Please enter a rejection reason.",false); return; }
     document.getElementById("rejectOverlay").classList.add("hidden");
-    api({action:"rejectEntry",token:token,entryId:_rejectEntryId,reason:reason}, function(d){
+    api({action:"rejectEntry",token:token,entryId:_rejectEntryId}, function(d){
       if(d.success){ toast("Entry rejected.",true); loadPendingEntries(); }
       else toast(d.error||"Reject failed.",false);
     });
