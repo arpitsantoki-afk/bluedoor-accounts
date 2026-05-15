@@ -303,6 +303,7 @@ var token    = localStorage.getItem("bd_token");
 var role     = localStorage.getItem("bd_role");
 var curFY    = localStorage.getItem("bd_fy") || "";
 var fyList=[], allEntryTypes={}, curCat="income", selType=null;
+var _dbTotal=0, _dbErrors=0, _debugOpen=false;
 
 var CAT_BADGE = { income:"badge-income", expense:"badge-expense", vendor:"badge-vendor", advance:"badge-advance" };
 
@@ -363,8 +364,9 @@ function loadMasterData(){
   if(veC) fillSel("eVendor",   veC, function(v){return{v:v.id,t:v.name+" · "+v.type};},      "— Select Vendor (optional) —");
 
   api({action:"getEntryTypes",token:token},function(d){
-    if(!d.success){if(!etC)document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>";return;}
-    lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;});
+    if(!d.success||!d.entryTypes){if(!etC)document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>";return;}
+    lsSet("bd_c_et",d.entryTypes);
+    d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;});
     renderAllowedTypes();
   });
   api({action:"getProjects",token:token},function(d){
@@ -629,8 +631,6 @@ function showView(name,el){
   if(name==="entry"||name==="add") document.getElementById("view-entry").classList.remove("hidden");
   else if(name==="recent"){ document.getElementById("view-recent").classList.remove("hidden"); loadRecent(); }
 }
-
-var _dbTotal=0, _dbErrors=0, _debugOpen=false;
 
 function api(body,cb){
   var action=body.action||"unknown";
