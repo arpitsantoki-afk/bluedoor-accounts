@@ -246,6 +246,35 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
 </div>
 
+<!-- Vendors View -->
+<div id="view-vendors" class="hidden">
+  <div class="page-title">Vendors</div>
+  <!-- Add Vendor Form -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-label" style="margin-bottom:0" id="supVFormLabel">Add Vendor</div>
+      <button id="supVCancelBtn" style="display:none;padding:5px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:7px;font-size:12px;color:#7A8BAA;cursor:pointer;font-family:inherit" onclick="cancelSupVendor()">Cancel</button>
+    </div>
+    <input type="hidden" id="supVEditId">
+    <div class="field"><label>Name *</label><input type="text" id="supVName" placeholder="Vendor name"></div>
+    <div class="row-2">
+      <div class="field"><label>Type</label>
+        <select id="supVType" style="width:100%;padding:10px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;appearance:none">
+          <option>Contractor</option><option>Supplier</option><option>Consultant</option><option>Labour</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Contact</label><input type="text" id="supVContact" placeholder="Phone"></div>
+    </div>
+    <div class="field"><label>GSTIN</label><input type="text" id="supVGST" placeholder="Optional"></div>
+    <button class="btn-primary btn-full" id="supVSaveBtn" onclick="saveSupVendor()">Add Vendor</button>
+  </div>
+  <!-- Vendor List -->
+  <div class="card">
+    <div class="card-label">All Vendors</div>
+    <div id="supVendorList"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
+  </div>
+</div>
+
 <!-- Entry Confirmation -->
 <div class="entry-confirm-overlay hidden" id="eConfirmOverlay">
   <div class="entry-confirm-box">
@@ -262,6 +291,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   <div class="nav-item active" onclick="showView('entry',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
   <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
   <div class="nav-item" onclick="showView('recent',this)"><span class="nav-icon">📋</span><span class="nav-label">Entries</span></div>
+  <div class="nav-item" onclick="showView('vendors',this)"><span class="nav-icon">🤝</span><span class="nav-label">Vendors</span></div>
   <div class="nav-item" onclick="logout()"><span class="nav-icon">⏻</span><span class="nav-label">Sign Out</span></div>
 </nav>
 <div class="toast" id="toast"></div>
@@ -335,7 +365,7 @@ function loadMasterData(){
   api({action:"getEntryTypes",token:token},function(d){
     if(!d.success){if(!etC)document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>";return;}
     lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;});
-    selectCat(curCat,document.querySelector(".seg-btn.active"));
+    renderAllowedTypes();
   });
   api({action:"getProjects",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_proj",d.projects);
@@ -687,6 +717,71 @@ function syncApp(){
   setTimeout(function(){ b.classList.remove("spinning"); b.disabled=false; toast("✓ Synced.",true); },2000);
 }
 // ── BACKEND STATUS PING ─────────────────────────────────────
+// ── SUPERVISOR VENDOR MANAGEMENT ───────────────────────────
+function loadSupVendors(){
+  var el=document.getElementById("supVendorList");
+  el.innerHTML="<div class='empty'>Loading…</div>";
+  api({action:"getAllVendors",token:token},function(d){
+    if(!d.success||!d.vendors.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendors yet.</div>"; return; }
+    var html="";
+    d.vendors.filter(function(v){return v.active;}).forEach(function(v){
+      html+="<div style='padding:11px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px'>"+
+        "<div><div style='font-size:13px;font-weight:600;color:#1A2D5A'>"+v.name+"</div>"+
+        "<div style='font-size:11px;color:#7A8BAA'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
+        (v.gstin?"<div style='font-size:10px;color:#94A3B8'>GST: "+v.gstin+"</div>":"")+
+        "</div>"+
+        "<button style='padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit' data-id='"+v.id+"' data-nm='"+sEsc(v.name)+"' data-ty='"+sEsc(v.type)+"' data-gs='"+sEsc(v.gstin||"")+"' data-co='"+sEsc(v.contact||"")+"' onclick='editSupVendor(this)'>Edit</button>"+
+        "</div>";
+    });
+    el.innerHTML=html||"<div class='empty'>No active vendors.</div>";
+  });
+  // Also refresh vendor dropdown in entry form
+  api({action:"getVendors",token:token},function(d){
+    if(!d.success)return; lsSet("bd_c_ve",d.vendors);
+    var s=document.getElementById("eVendor"); if(!s)return;
+    s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";
+    d.vendors.forEach(function(v){s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>";});
+  });
+}
+
+function saveSupVendor(){
+  var name=document.getElementById("supVName").value.trim();
+  var editId=document.getElementById("supVEditId").value;
+  if(!name){toast("Vendor name required.",false);return;}
+  var payload={token:token,name:name,type:document.getElementById("supVType").value,
+    gstin:document.getElementById("supVGST").value,contact:document.getElementById("supVContact").value};
+  payload.action=editId?"editVendor":"addVendor";
+  if(editId) payload.id=editId;
+  api(payload,function(d){
+    if(d.success){
+      toast("✓ Vendor "+(editId?"updated":"added")+".",true);
+      cancelSupVendor(); loadSupVendors(); localStorage.removeItem("bd_c_ve");
+    } else toast(d.error||"Failed.",false);
+  });
+}
+
+function editSupVendor(btn){
+  document.getElementById("supVEditId").value=btn.dataset.id;
+  document.getElementById("supVName").value=btn.dataset.nm;
+  document.getElementById("supVType").value=btn.dataset.ty;
+  document.getElementById("supVGST").value=btn.dataset.gs||"";
+  document.getElementById("supVContact").value=btn.dataset.co||"";
+  document.getElementById("supVFormLabel").textContent="Edit Vendor";
+  document.getElementById("supVSaveBtn").textContent="Update Vendor";
+  document.getElementById("supVCancelBtn").style.display="";
+  document.getElementById("view-vendors").scrollIntoView({behavior:"smooth"});
+}
+
+function cancelSupVendor(){
+  ["supVEditId","supVName","supVGST","supVContact"].forEach(function(id){document.getElementById(id).value="";});
+  document.getElementById("supVType").value="Contractor";
+  document.getElementById("supVFormLabel").textContent="Add Vendor";
+  document.getElementById("supVSaveBtn").textContent="Add Vendor";
+  document.getElementById("supVCancelBtn").style.display="none";
+}
+
+function sEsc(s){return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+
 function pingBackend(){
   var dot=document.getElementById("onlineDot");
   if(dot) dot.className="online-dot checking";
