@@ -1265,10 +1265,11 @@ function adminSaveEntry(){
   if(aSelType.needsCH && chVal && window._allCostHeads[chVal]){
     projOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(window._allCostHeads[chVal].acKey||"")!==-1;
   }
-  // Also optional if entry type's Dr or Cr is directly EXP_INDIRECT/EXP_OTHER
+  // Also optional for transfer, drawings, or indirect/other expense accounts
   if(!projOptional && aSelType){
     projOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(aSelType.dr||"")!==-1 ||
-                   OPTIONAL_PROJECT_AC_KEYS.indexOf(aSelType.cr||"")!==-1;
+                   OPTIONAL_PROJECT_AC_KEYS.indexOf(aSelType.cr||"")!==-1 ||
+                   aSelType.category==="transfer" || aSelType.category==="drawings";
   }
   if(!proj&&!projOptional){toast("Please select a project.",false);return;}
   if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
@@ -1693,15 +1694,17 @@ function getCurrentFilteredRows() {
 // ── PROJECT REQUIRED CHECK (admin entry form) ───────────────
 var OPTIONAL_PROJECT_AC_KEYS = ["EXP_INDIRECT","EXP_OTHER"];
 function checkAdminProjectRequired(){
-  if(!aSelType||!aSelType.needsCH) return;
+  var req = document.getElementById("aProjRequired"); if(!req) return;
+  if(!aSelType){ req.style.display=""; return; }
+  // Optional for transfer, drawings categories
+  if(aSelType.category==="transfer"||aSelType.category==="drawings"){ req.style.display="none"; return; }
+  if(!aSelType.needsCH){ req.style.display=""; return; }
   var ch = ssGet("aCostHead");
   var isOptional = false;
   if(ch && window._allCostHeads && window._allCostHeads[ch]){
-    var acKey = window._allCostHeads[ch].acKey||"";
-    isOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(acKey)!==-1;
+    isOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(window._allCostHeads[ch].acKey||"")!==-1;
   }
-  var req = document.getElementById("aProjRequired");
-  if(req) req.style.display = isOptional?"none":"";
+  req.style.display = isOptional?"none":"";
 }
 
 // ── LIST SEARCH FILTERS ────────────────────────────────────
