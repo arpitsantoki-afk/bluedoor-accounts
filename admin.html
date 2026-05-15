@@ -251,11 +251,31 @@ td{padding:9px 10px;vertical-align:top}
 .confirm-cancel:hover{background:#E2E8F0}
 .confirm-delete{flex:1;padding:10px;background:#EF4444;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .confirm-delete:hover{background:#DC2626}
+.pend-row{padding:10px 0;border-bottom:1px solid #EEF2F7}
+.pend-row:last-child{border-bottom:none}
+.pend-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.pend-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.pend-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.btn-approve{padding:5px 12px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;color:#15803D;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-approve:hover{background:#BBF7D0}
+.btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:#FCA5A5}
+.btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
 .conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px}
 .conf-row:last-child{border-bottom:none}
 .conf-label{color:#7A8BAA;font-weight:600;flex-shrink:0;width:90px}
 .conf-val{color:#1A2D5A;font-weight:600;text-align:right}
 .confirm-delete:hover{background:#DC2626}
+.pend-row{padding:10px 0;border-bottom:1px solid #EEF2F7}
+.pend-row:last-child{border-bottom:none}
+.pend-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.pend-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.pend-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.btn-approve{padding:5px 12px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;color:#15803D;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-approve:hover{background:#BBF7D0}
+.btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:#FCA5A5}
+.btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
 @media print{
   .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
   .strip-row,#ledgerToolbar,.bottom-nav,.debug-panel,.toast,
@@ -312,7 +332,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.8.4</span>
+  <span id="versionBadge">v1.9</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -342,6 +362,18 @@ td{padding:9px 10px;vertical-align:top}
   </div>
   <div class="card"><div class="card-label">Project P&L</div><div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
   <div class="card"><div class="card-label">Monthly Trend</div><div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div></div>
+  <!-- Pending Approvals -->
+  <div class="card" id="pendingCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="card-label" style="margin-bottom:0">⏳ Pending Approvals</div>
+        <span id="pendingBadge" style="display:none;background:#EF4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">0</span>
+      </div>
+      <button onclick="loadPendingEntries()" style="padding:4px 10px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:6px;font-size:11px;color:#7A8BAA;cursor:pointer;font-family:inherit">Refresh</button>
+    </div>
+    <div id="pendingList"><div class="empty" style="padding:8px 0">Loading…</div></div>
+  </div>
+
   <div class="card" style="cursor:pointer" onclick="toggleActivity()">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div class="card-label" style="margin-bottom:0">🕐 Recent Activity</div>
@@ -674,6 +706,22 @@ td{padding:9px 10px;vertical-align:top}
   </div>
 </div>
 
+<!-- Reject Reason Dialog -->
+<div class="confirm-overlay hidden" id="rejectOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Reject Entry</div>
+    <div class="confirm-msg" id="rejectMsg"></div>
+    <div class="field" style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:5px">Reason for Rejection *</label>
+      <input type="text" id="rejectReason" placeholder="e.g. Bill missing, wrong amount…" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit">
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('rejectOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="rejectOKBtn">Reject Entry</button>
+    </div>
+  </div>
+</div>
+
 <!-- Entry Confirmation Dialog -->
 <div class="confirm-overlay hidden" id="entryConfirmOverlay">
   <div class="confirm-box" style="max-width:360px">
@@ -727,7 +775,7 @@ var CACHE_TTL = 6 * 60 * 60 * 1000;
 function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
-function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); }
+function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -777,6 +825,7 @@ function loadDashboard(){
     var dEl=document.getElementById("kpiDraw"); dEl.textContent=s.drawings>0?"₹ "+shortNum(s.drawings):"—"; dEl.className="kpi-value "+(s.drawings>0?"amber":"");
     renderProjChart(d.byProject); renderMonthChart(d.byMonth);
     if(typeof _actOpen!=="undefined"&&_actOpen) loadActivity();
+    loadPendingEntries();
   });
 }
 function renderProjChart(data){
@@ -2018,6 +2067,67 @@ function downloadClosingBalances() {
       });
     });
   }
+}
+
+// ── PENDING APPROVALS ───────────────────────────────────────
+function loadPendingEntries(){
+  var el = document.getElementById("pendingList");
+  el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
+  api({action:"getPendingEntries",token:token,fyid:curFY,status:"Pending"}, function(d){
+    var badge = document.getElementById("pendingBadge");
+    if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    var count = d.pendingCount||0;
+    badge.textContent = count;
+    badge.style.display = count>0 ? "" : "none";
+    if(!d.entries.length){
+      el.innerHTML="<div class='empty' style='padding:8px 0'>No pending entries. ✓</div>"; return;
+    }
+    var html="";
+    d.entries.forEach(function(e){
+      var photoBtn = e.driveFileUrl
+        ? "<a class='btn-view-bill' href='"+e.driveFileUrl+"' target='_blank'>📎 View Bill</a>" : "";
+      html+="<div class='pend-row'>"+
+        "<div class='pend-main'>"+e.entryLabel+" — ₹ "+fmt(e.amount)+"</div>"+
+        "<div class='pend-sub'>"+e.date+" · "+e.projectName+(e.vendorName?" · "+e.vendorName:"")+(e.costHeadName?" · "+e.costHeadName:"")+"</div>"+
+        "<div class='pend-sub'>by "+e.submittedBy+" · "+e.submittedAt+"</div>"+
+        (e.narration?"<div class='pend-sub' style='font-style:italic'>"+e.narration+"</div>":"")+
+        "<div class='pend-actions'>"+
+          "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
+          "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
+          photoBtn+
+        "</div>"+
+        "</div>";
+    });
+    el.innerHTML=html;
+  });
+}
+
+function confirmApprove(entryId, label, amount){
+  if(!confirm("Approve entry: "+label+" \u2014 \u20b9 "+fmt(amount)+"? This will post the double entry to the ledger.")) return;
+  api({action:"approveEntry",token:token,entryId:entryId}, function(d){
+    if(d.success){
+      toast("✓ Approved: Dr "+d.dr+" / Cr "+d.cr, true);
+      loadPendingEntries();
+      loadDashboard();
+    } else toast(d.error||"Approve failed.", false);
+  });
+}
+
+var _rejectEntryId="";
+function openReject(entryId, label){
+  _rejectEntryId=entryId;
+  document.getElementById("rejectMsg").textContent='Rejecting: "'+label+'". Please provide a reason — the supervisor will see this.';
+  document.getElementById("rejectReason").value="";
+  document.getElementById("rejectOverlay").classList.remove("hidden");
+  document.getElementById("rejectOKBtn").onclick=function(){
+    var reason=document.getElementById("rejectReason").value.trim();
+    if(!reason){ toast("Please enter a rejection reason.",false); return; }
+    document.getElementById("rejectOverlay").classList.add("hidden");
+    api({action:"rejectEntry",token:token,entryId:_rejectEntryId,reason:reason}, function(d){
+      if(d.success){ toast("Entry rejected.",true); loadPendingEntries(); }
+      else toast(d.error||"Reject failed.",false);
+    });
+  };
 }
 
 // ── UTILS ──────────────────────────────────────────────────
