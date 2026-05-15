@@ -12,10 +12,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BD Accounts">
-<title>Blue Door – Entry</title>
+<title>Blue Door – Admin</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F7;min-height:100vh;padding-bottom:80px}
+/* Header */
 .header{background:#2B5197;padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .header-left{display:flex;align-items:center;gap:10px}
 .header-icon{font-size:20px}
@@ -24,23 +25,175 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .header-right{display:flex;align-items:center;gap:8px}
 .fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
+.btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 11px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
+.btn-logout:hover{background:rgba(239,68,68,0.35);border-color:rgba(239,68,68,0.5)}
+.btn-sync{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 10px;color:#fff;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
+.btn-sync:hover{background:rgba(255,255,255,0.2)}
+.btn-sync.spinning{animation:bdspin .7s linear infinite}
+@keyframes bdspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.act-row{padding:9px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;gap:10px}
+.act-row:last-child{border-bottom:none}
+.act-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.act-icon.entry{background:#DBEAFE;color:#1D4ED8}
+.act-icon.project{background:#DCFCE7;color:#15803D}
+.act-icon.vendor{background:#FEF9C3;color:#854D0E}
+.act-icon.delete{background:#FEE2E2;color:#B91C1C}
+.act-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.act-sub{font-size:11px;color:#7A8BAA;margin-top:1px}
+.act-ts{font-size:10px;color:#94A3B8;white-space:nowrap;flex-shrink:0}
 .fy-panel{background:#1E3F7A;border-bottom:1px solid rgba(255,255,255,0.1);padding:10px 16px;display:none}
 .fy-option{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,0.8);cursor:pointer;margin-right:6px}
 .fy-option:hover,.fy-option.active{background:rgba(255,255,255,0.2);color:#fff}
-.version-bar{background:#1E3F7A;padding:4px 16px;text-align:right}
+.version-bar{background:#1E3F7A;padding:4px 16px;display:flex;align-items:center;justify-content:space-between}
 .version-bar span{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.3px}
+.debug-toggle{font-size:10px;color:rgba(255,255,255,0.4);cursor:pointer;padding:2px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;transition:all .2s;user-select:none}
+.debug-toggle:hover{color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.4)}
+.debug-toggle.active{color:#FCD34D;border-color:#FCD34D}
+/* ── Debug Console ───────────────────────────────────── */
+.debug-panel{
+  position:fixed;bottom:64px;left:0;right:0;
+  background:#0F172A;border-top:2px solid #334155;
+  z-index:200;display:none;flex-direction:column;
+  max-height:40vh;
+}
+.debug-panel.open{display:flex}
+.debug-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 12px;background:#1E293B;border-bottom:1px solid #334155;
+  flex-shrink:0;
+}
+.debug-toolbar-title{font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px}
+.debug-toolbar-right{display:flex;gap:8px;align-items:center}
+.debug-count{font-size:11px;color:#64748B}
+.debug-count .err-count{color:#F87171;font-weight:700}
+.debug-clear{font-size:11px;color:#64748B;cursor:pointer;padding:2px 8px;border:1px solid #334155;border-radius:4px;background:none;font-family:inherit}
+.debug-clear:hover{color:#F87171;border-color:#F87171}
+.debug-log{
+  overflow-y:auto;flex:1;padding:4px 0;
+  font-family:'Courier New',monospace;font-size:11px;
+}
+.debug-entry{
+  padding:5px 12px;border-bottom:1px solid #1E293B;
+  display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:start;
+}
+.debug-entry:hover{background:#1E293B}
+.debug-entry:last-child{border-bottom:none}
+.debug-time{color:#475569;font-size:10px;padding-top:1px;white-space:nowrap}
+.debug-body{}
+.debug-action{color:#7DD3FC;font-weight:700;font-size:11px}
+.debug-status-ok{color:#4ADE80;font-size:10px;margin-left:6px}
+.debug-status-err{color:#F87171;font-size:10px;margin-left:6px;font-weight:700}
+.debug-error-msg{color:#F87171;font-size:11px;margin-top:3px;padding:4px 8px;background:#1C0A0A;border-left:2px solid #F87171;border-radius:0 4px 4px 0}
+.debug-payload{color:#94A3B8;font-size:10px;margin-top:2px;word-break:break-all;cursor:pointer}
+.debug-payload.collapsed{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.debug-empty{text-align:center;padding:20px;color:#475569;font-size:12px}
+/* Layout */
 .page-title{padding:14px 16px 4px;font-size:17px;font-weight:700;color:#1A2D5A}
-.seg-wrap{padding:0 16px 12px}
-.seg{display:flex;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px;overflow:hidden}
-.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s}
-.seg-btn.active{background:#2B5197;color:#fff}
+.page-sub{padding:0 16px 12px;font-size:12px;color:#7A8BAA}
+/* KPI */
+.kpi-row{display:flex;gap:10px;padding:0 16px 12px;overflow-x:auto}
+.kpi{flex:1;min-width:100px;background:#fff;border:1px solid #DDE3EE;border-radius:12px;padding:14px 12px;text-align:center;flex-shrink:0}
+.kpi-label{font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.kpi-value{font-size:16px;font-weight:800;color:#1A2D5A}
+.kpi-value.green{color:#15803D}
+.kpi-value.red{color:#B91C1C}
+.kpi-value.blue{color:#2B5197}
+.kpi-value.amber{color:#92400E}
+/* Card */
 .card{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:16px}
 .card-label{font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
+/* Seg */
+.seg-wrap{padding:0 16px 12px}
+.seg{display:flex;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px;overflow:hidden}
+.seg-btn{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
+.seg-btn.active{background:#2B5197;color:#fff}
+/* Sub-tabs */
+.subtab-row{display:flex;gap:0;margin:0 16px 12px;background:#fff;border:1px solid #DDE3EE;border-radius:10px;padding:3px}
+.subtab{flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:8px;transition:all .2s}
+.subtab.active{background:#2B5197;color:#fff}
+/* Strips */
+.strip-row{display:flex;gap:8px;margin-bottom:12px}
+.strip{flex:1;border-radius:10px;padding:12px 10px;text-align:center}
+.strip-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.strip-value{font-size:15px;font-weight:800}
+.strip.red{background:#FEE2E2}.strip.red .strip-label{color:#B91C1C}.strip.red .strip-value{color:#B91C1C}
+.strip.green{background:#DCFCE7}.strip.green .strip-label{color:#15803D}.strip.green .strip-value{color:#15803D}
+.strip.blue{background:#DBEAFE}.strip.blue .strip-label{color:#1D4ED8}.strip.blue .strip-value{color:#1D4ED8}
+.strip.amber{background:#FEF9C3}.strip.amber .strip-label{color:#854D0E}.strip.amber .strip-value{color:#854D0E}
+/* Filter panel */
+.filter-panel{background:#fff;border:1px solid #DDE3EE;border-radius:14px;margin:0 16px 12px;padding:14px 16px}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filter-field label{display:block;font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.filter-field select,.filter-field input{width:100%;padding:8px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:12px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;appearance:none;-webkit-appearance:none}
+.filter-field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.filter-field select:focus,.filter-field input:focus{border-color:#2B5197;background:#fff}
+.filter-field.full{grid-column:1/-1}
+.filter-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
+.btn-apply{padding:8px 16px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-apply:hover{background:#224080}
+.btn-reset{padding:8px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:8px;color:#7A8BAA;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-reset:hover{background:#E2E8F0;color:#1A2D5A}
+.filter-count{font-size:11px;color:#7A8BAA;margin-left:auto}
+.filter-active-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:4px;font-size:10px;font-weight:600;color:#2B5197;margin:2px}
+.filter-active-tag span{cursor:pointer;color:#7A8BAA;font-size:12px;line-height:1}
+.filter-active-tag span:hover{color:#B91C1C}
+.active-filters{display:flex;flex-wrap:wrap;padding:0 16px 8px;min-height:0}
+/* Tables */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
+thead th{padding:9px 10px;background:#F7F9FC;color:#7A8BAA;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #DDE3EE;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid #F0F4FA;transition:background .1s}
+tbody tr:hover{background:#F7F9FC}
+tbody tr:last-child{border-bottom:none}
+td{padding:9px 10px;vertical-align:top}
+.td-main{font-size:13px;font-weight:600;color:#1A2D5A}
+.td-sub{font-size:11px;color:#7A8BAA;margin-top:1px}
+.dr{color:#15803D;font-weight:700}
+.cr{color:#B91C1C;font-weight:700}
+.bal-dr{color:#15803D;font-weight:700;font-size:12px}
+.bal-cr{color:#B91C1C;font-weight:700;font-size:12px}
+.bal-nil{color:#7A8BAA;font-size:12px}
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700}
+.badge-dr{background:#DCFCE7;color:#15803D}
+.badge-cr{background:#FEE2E2;color:#B91C1C}
+.badge-blue{background:#DBEAFE;color:#1D4ED8}
+.badge-amber{background:#FEF9C3;color:#854D0E}
+.badge-active{background:#DCFCE7;color:#15803D}
+.badge-inactive{background:#F1F5F9;color:#94A3B8}
+.badge-pay{background:#FEE2E2;color:#B91C1C}
+.badge-adv{background:#FEF9C3;color:#854D0E}
+.badge-nil{background:#F1F5F9;color:#94A3B8}
+/* Ledger summary header */
+.ledger-header{background:#F0F4FF;border:1px solid #C7D7FF;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.ledger-header-title{font-size:14px;font-weight:700;color:#1A2D5A}
+.ledger-header-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+/* Bar Charts */
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bar-name{font-size:12px;font-weight:600;color:#1A2D5A;margin-bottom:4px;display:flex;justify-content:space-between}
+.bar-name span{color:#7A8BAA;font-weight:400}
+.bar-track{height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden;margin-bottom:2px}
+.bar-fill-inc{height:100%;background:#2B5197;border-radius:4px;transition:width .5s}
+.bar-fill-exp{height:100%;background:#EF4444;border-radius:4px;transition:width .5s}
+.bar-legend{display:flex;gap:14px;font-size:11px;color:#7A8BAA;margin-top:6px}
+.dot-blue{width:8px;height:8px;background:#2B5197;border-radius:50%;display:inline-block}
+.dot-red{width:8px;height:8px;background:#EF4444;border-radius:50%;display:inline-block}
+/* Forms */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;font-family:inherit}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+.field input:focus,.field select:focus{border-color:#2B5197;background:#fff}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-primary{padding:10px 18px;background:#2B5197;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;font-family:inherit}
+.btn-primary:hover{background:#224080}
+.btn-full{width:100%;padding:12px;font-size:14px}
+/* Entry type opts */
 .type-grid{display:flex;flex-direction:column;gap:6px}
 .type-opt{padding:11px 14px;border:1.5px solid #DDE3EE;border-radius:10px;cursor:pointer;transition:all .15s;background:#F7F9FC}
 .type-opt:hover{border-color:#2B5197;background:#F0F4FF}
 .type-opt.selected{border-color:#2B5197;background:#EEF3FF}
-.type-opt-label{font-size:14px;font-weight:600;color:#1A2D5A}
+.type-opt-label{font-size:13px;font-weight:600;color:#1A2D5A}
 .type-opt-hint{font-size:11px;color:#7A8BAA;margin-top:2px}
 .type-opt-accounts{display:none;margin-top:8px;padding:8px 10px;background:#F0F4FF;border-radius:7px}
 .type-opt.selected .type-opt-accounts{display:block}
@@ -48,73 +201,98 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .ac-dr{color:#15803D;font-weight:700;font-size:10px;background:#DCFCE7;padding:1px 6px;border-radius:3px}
 .ac-cr{color:#B91C1C;font-weight:700;font-size:10px;background:#FEE2E2;padding:1px 6px;border-radius:3px}
 .ac-name{color:#1A2D5A;font-weight:500}
-.field{margin-bottom:13px}
-.field:last-child{margin-bottom:0}
-.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
-.field select,.field input{width:100%;padding:11px 13px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;font-family:inherit}
-.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8BAA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px}
-.field select:focus,.field input:focus{border-color:#2B5197;background:#fff}
-.field input[type=number]{font-size:16px;font-weight:700;color:#2B5197}
-.btn-save{width:100%;padding:14px;margin-top:4px;background:#2B5197;border:none;border-radius:11px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s,transform .1s;font-family:inherit}
-.btn-save:hover{background:#224080}
-.btn-save:active{transform:scale(0.98)}
-.btn-save:disabled{background:#B0BED4;cursor:not-allowed}
-.entry-row{padding:12px 0;border-bottom:1px solid #EEF2F7;display:flex;justify-content:space-between;align-items:flex-start}
-.entry-row:last-child{border-bottom:none}
-.entry-main{font-size:13px;font-weight:600;color:#1A2D5A}
-.entry-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
-.entry-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px}
-.badge-income{background:#DCFCE7;color:#15803D}
-.badge-expense{background:#FEE2E2;color:#B91C1C}
-.badge-vendor{background:#E0E7FF;color:#3730A3}
-.badge-advance{background:#FEF9C3;color:#854D0E}
-.entry-amount{font-size:15px;font-weight:700;color:#2B5197;white-space:nowrap;text-align:right}
-.entry-date{font-size:11px;color:#7A8BAA;text-align:right;margin-top:2px}
-.empty{text-align:center;padding:32px 16px;color:#7A8BAA;font-size:14px}
-.empty-icon{font-size:36px;margin-bottom:10px}
-.loading-types{text-align:center;padding:20px;color:#7A8BAA;font-size:13px}
+.entry-cat-seg{display:flex;background:#EEF2F7;border-radius:9px;padding:3px;margin-bottom:12px;gap:2px}
+.entry-cat-btn{flex:1;padding:6px 3px;text-align:center;font-size:11px;font-weight:600;color:#7A8BAA;cursor:pointer;border-radius:7px;transition:all .2s;white-space:nowrap}
+.entry-cat-btn.active{background:#2B5197;color:#fff}
+/* Empty */
+.empty{text-align:center;padding:28px 16px;color:#7A8BAA;font-size:13px}
+.empty-icon{font-size:32px;margin-bottom:8px}
+/* Bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #DDE3EE;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;padding:10px 4px 8px;text-align:center;cursor:pointer;transition:color .2s;color:#7A8BAA}
 .nav-item.active{color:#2B5197}
-.nav-item .nav-icon{font-size:22px;display:block}
+.nav-item .nav-icon{font-size:20px;display:block}
 .nav-item .nav-label{font-size:10px;font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:0.4px}
+/* Toast */
 .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
-.entry-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0}
-.entry-confirm-box{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.15)}
-.entry-confirm-title{font-size:16px;font-weight:700;color:#1A2D5A;margin-bottom:14px;text-align:center}
-.conf-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #EEF2F7;font-size:13px}
-.conf-row:last-child{border-bottom:none}
-.conf-label{color:#7A8BAA;font-weight:600}
-.conf-val{color:#1A2D5A;font-weight:600;text-align:right;max-width:200px}
-.conf-btns{display:flex;gap:10px;margin-top:20px}
-.conf-cancel{flex:1;padding:13px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:12px;color:#7A8BAA;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-.conf-ok{flex:2;padding:13px;background:#2B5197;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 9px;color:#fff;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;transition:all .3s}
-.btn-sync-app:hover{background:rgba(255,255,255,0.2)}
-.btn-sync-app.spinning{animation:bdspin .7s linear infinite}
-@keyframes bdspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.btn-sync-app{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;line-height:1}
-.btn-sync-app:hover{background:rgba(255,255,255,0.2)}
-.btn-sync-app.spinning{animation:spin .7s linear infinite}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.master-row{padding:11px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+/* Activity log */
+/* Master list rows */
+.master-row{padding:12px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .master-row:last-child{border-bottom:none}
 .master-main{font-size:13px;font-weight:600;color:#1A2D5A}
 .master-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
-.btn-edit-sm{padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.master-actions{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.btn-edit{padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-edit:hover{background:#DBEAFE}
+.btn-del-soft{padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-del-soft:hover{background:#FCA5A5}
 .status-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px}
 .status-active{background:#DCFCE7;color:#15803D}
 .status-hold{background:#FEF9C3;color:#854D0E}
 .status-completed{background:#DBEAFE;color:#1D4ED8}
 .status-deleted{background:#F1F5F9;color:#94A3B8}
 .status-inactive{background:#F1F5F9;color:#94A3B8}
-.status-pending{background:#FEF9C3;color:#854D0E}
-.status-approved{background:#DCFCE7;color:#15803D}
-.status-rejected{background:#FEE2E2;color:#B91C1C}
+.btn-dl{padding:8px 14px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
+.btn-dl:hover{background:#224080}
+.btn-print{background:#15803D}
+.btn-print:hover{background:#166534}
+.btn-del{background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:14px;padding:2px 4px;border-radius:4px;transition:color .15s;line-height:1}
+.btn-del:hover{color:#F87171;background:#FEE2E2}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.confirm-box{background:#fff;border-radius:14px;padding:24px;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.confirm-title{font-size:15px;font-weight:700;color:#1A2D5A;margin-bottom:8px}
+.confirm-msg{font-size:13px;color:#7A8BAA;margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+.confirm-cancel{flex:1;padding:10px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:9px;color:#7A8BAA;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.confirm-cancel:hover{background:#E2E8F0}
+.confirm-delete{flex:1;padding:10px;background:#EF4444;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.confirm-delete:hover{background:#DC2626}
+.pend-row{padding:10px 0;border-bottom:1px solid #EEF2F7}
+.pend-row:last-child{border-bottom:none}
+.pend-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.pend-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.pend-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.btn-approve{padding:5px 12px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;color:#15803D;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-approve:hover{background:#BBF7D0}
+.btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:#FCA5A5}
+.btn-comment{padding:5px 12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:6px;color:#92400E;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-comment:hover{background:#FDE68A}
+.btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
+.conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px}
+.conf-row:last-child{border-bottom:none}
+.conf-label{color:#7A8BAA;font-weight:600;flex-shrink:0;width:90px}
+.conf-val{color:#1A2D5A;font-weight:600;text-align:right}
+.confirm-delete:hover{background:#DC2626}
+.pend-row{padding:10px 0;border-bottom:1px solid #EEF2F7}
+.pend-row:last-child{border-bottom:none}
+.pend-main{font-size:12px;font-weight:600;color:#1A2D5A}
+.pend-sub{font-size:11px;color:#7A8BAA;margin-top:2px}
+.pend-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.btn-approve{padding:5px 12px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;color:#15803D;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-approve:hover{background:#BBF7D0}
+.btn-reject{padding:5px 12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:#FCA5A5}
+.btn-comment{padding:5px 12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:6px;color:#92400E;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-comment:hover{background:#FDE68A}
+.btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
+@media print{
+  .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
+  .strip-row,#ledgerToolbar,.bottom-nav,.debug-panel,.toast,
+  .btn-del,.nav-item,#view-add,#view-reports,#view-more,#view-home,
+  .debug-toggle{display:none!important}
+  body{background:#fff;padding:0;font-family:'Segoe UI',sans-serif}
+  #view-ledger{display:block!important}
+  .card{border:none;box-shadow:none;margin:0;padding:0}
+  #printHeader{display:block!important}
+  table{font-size:11px;width:100%}
+  thead th{background:#2B5197!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .badge{border:1px solid #ccc}
+}
 </style>
 <script>
 // ── Auto-update: check for new version on every load ────────
@@ -140,94 +318,458 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
     }).catch(function(){});
 })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <div class="header">
   <div class="header-left">
     <span class="header-icon">🏠</span>
-    <div><div class="header-title">Blue Door</div><div style="font-size:11px;color:rgba(255,255,255,0.7)" id="headerUser">—</div></div>
+    <div><div class="header-title">Blue Door <span class="header-role">Admin</span></div></div>
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
-    <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
+    <button class="btn-sync" id="syncBtn" onclick="syncAll()" title="Sync">↻</button>
+    <div class="online-dot"></div>
+    <button class="btn-logout" onclick="logout()">⏻ Sign Out</button>
   </div>
 </div>
 <div class="fy-panel" id="fyPanel"></div>
-<div class="version-bar"><span id="versionBadge">v1.9</span></div>
+<div class="version-bar">
+  <span id="versionBadge">v1.9.1</span>
+  <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
+</div>
 
-<div id="view-entry">
-  <div class="page-title">New Entry</div>
-  <!-- Category seg hidden — supervisor sees only 2 allowed entry types -->
-  <div class="card">
-    <div class="card-label">Select Entry Type</div>
-    <div class="type-grid" id="typeGrid"><div class="loading-types">Loading entry types…</div></div>
+<!-- DEBUG CONSOLE -->
+<div class="debug-panel" id="debugPanel">
+  <div class="debug-toolbar">
+    <div class="debug-toolbar-title">🛠 API Debug Console</div>
+    <div class="debug-toolbar-right">
+      <span class="debug-count">Calls: <span id="dbTotal">0</span> &nbsp;|&nbsp; Errors: <span class="err-count" id="dbErrors">0</span></span>
+      <button class="debug-clear" onclick="clearDebug()">Clear</button>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-label">Entry Details</div>
-    <div class="field"><label>Date</label><input type="date" id="eDate"></div>
-    <div class="field"><label>Project</label><select id="eProject"><option value="">— Select Project —</option></select></div>
-    <div class="field" id="costHeadField" style="display:none"><label>Cost Head</label><select id="eCostHead"><option value="">— Select Cost Head —</option></select></div>
-    <div class="field"><label>Vendor / Party</label><select id="eVendor"><option value="">— Select Vendor (optional) —</option></select></div>
-    <div class="field"><label>Amount (₹)</label><input type="number" id="eAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>Narration / Remarks</label><input type="text" id="eNarration" placeholder="Brief note about this entry"></div>
-    <div class="field" id="billPhotoField" style="display:none">
-      <label>Bill / Challan Photo <span style="color:#7A8BAA;font-weight:400">(optional)</span></label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <label style="flex:1;padding:10px;background:#F7F9FC;border:1.5px dashed #DDE3EE;border-radius:9px;text-align:center;cursor:pointer;font-size:13px;color:#7A8BAA">
-          📷 Take Photo / Choose File
-          <input type="file" id="billPhoto" accept="image/*" capture="environment" style="display:none" onchange="previewBillPhoto(this)">
-        </label>
-        <button type="button" id="billPhotoClearBtn" style="display:none;padding:8px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#B91C1C;cursor:pointer;font-size:12px" onclick="clearBillPhoto()">✕</button>
+  <div class="debug-log" id="debugLog">
+    <div class="debug-empty">No API calls yet. Make an action to see logs here.</div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="view-home">
+  <div class="page-title">Dashboard</div>
+  <div class="page-sub" id="dashSub">Loading…</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Income</div><div class="kpi-value blue" id="kpiInc">—</div></div>
+    <div class="kpi"><div class="kpi-label">Expense</div><div class="kpi-value red" id="kpiExp">—</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value green" id="kpiPro">—</div></div>
+    <div class="kpi"><div class="kpi-label">Drawings</div><div class="kpi-value amber" id="kpiDraw">—</div></div>
+  </div>
+  <div class="card"><div class="card-label">Project P&L</div><div id="projChart"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
+  <div class="card"><div class="card-label">Monthly Trend</div><div id="monthChart"><div class="empty"><div class="empty-icon">📅</div>Loading…</div></div></div>
+  <!-- Pending Approvals -->
+  <div class="card" id="pendingCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="card-label" style="margin-bottom:0">⏳ Pending Approvals</div>
+        <span id="pendingBadge" style="display:none;background:#EF4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">0</span>
       </div>
-      <div id="billPhotoPreview" style="margin-top:8px;display:none">
-        <img id="billPhotoImg" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid #DDE3EE">
+      <button onclick="loadPendingEntries()" style="padding:4px 10px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:6px;font-size:11px;color:#7A8BAA;cursor:pointer;font-family:inherit">Refresh</button>
+    </div>
+    <div id="pendingList"><div class="empty" style="padding:8px 0">Loading…</div></div>
+  </div>
+
+  <div class="card" style="cursor:pointer" onclick="toggleActivity()">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-label" style="margin-bottom:0">🕐 Recent Activity</div>
+      <span id="actChevron" style="color:#7A8BAA;font-size:16px;transition:transform .25s">▾</span>
+    </div>
+    <div id="actBody" class="hidden" style="margin-top:12px">
+      <div id="actList"><div class="empty" style="padding:12px 0">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LEDGER -->
+<div id="view-ledger" class="hidden">
+  <!-- Print header — only visible when printing -->
+  <div id="printHeader" style="display:none;padding:0 0 16px">
+    <div style="font-size:18px;font-weight:700;color:#1A2D5A">Blue Door Architects</div>
+    <div style="font-size:14px;color:#374151;margin-top:4px" id="printSubtitle">Ledger Account</div>
+    <div style="font-size:12px;color:#7A8BAA;margin-top:2px" id="printDateRange"></div>
+    <div style="font-size:12px;color:#7A8BAA" id="printFilters"></div>
+    <hr style="border:none;border-top:2px solid #2B5197;margin:10px 0">
+  </div>
+  <div class="page-title">Ledger</div>
+
+  <!-- Filter Panel -->
+  <div class="filter-panel">
+    <div class="card-label" style="margin-bottom:10px">🔍 Filters</div>
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label>Account Type</label>
+        <select id="fAccType" onchange="syncAccountFilter()">
+          <option value="">All Types</option>
+          <option value="Asset">Asset</option>
+          <option value="Liability">Liability</option>
+          <option value="Income">Income</option>
+          <option value="Expense">Expense</option>
+          <option value="Contra-Equity">Contra-Equity (Drawings)</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Account</label>
+        <select id="fAccount">
+          <option value="">All Accounts</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Project</label>
+        <select id="fProject">
+          <option value="">All Projects</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Vendor</label>
+        <select id="fVendor">
+          <option value="">All Vendors</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Cost Head</label>
+        <select id="fCostHead">
+          <option value="">All Cost Heads</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Dr / Cr</label>
+        <select id="fDrCr">
+          <option value="">All</option>
+          <option value="Dr">Debit only</option>
+          <option value="Cr">Credit only</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>From Date</label>
+        <input type="date" id="fDateFrom">
+      </div>
+      <div class="filter-field">
+        <label>To Date</label>
+        <input type="date" id="fDateTo">
+      </div>
+      <div class="filter-field full">
+        <label>Search (narration / voucher no)</label>
+        <input type="text" id="fSearch" placeholder="Type to search…">
       </div>
     </div>
-    <button class="btn-save" id="saveBtn" onclick="saveEntry()">Save Entry</button>
+    <div class="filter-actions">
+      <button class="btn-apply" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
   </div>
-</div>
 
-<div id="view-recent" class="hidden">
-  <div class="page-title">My Entries</div>
+  <!-- Active filter tags -->
+  <div class="active-filters" id="activeTags"></div>
+
+  <!-- Summary strips -->
+  <div class="strip-row" id="ledgerSummary" style="margin:0 16px 12px;display:none">
+    <div class="strip blue"><div class="strip-label">Total Dr</div><div class="strip-value" id="sumDr">—</div></div>
+    <div class="strip red"><div class="strip-label">Total Cr</div><div class="strip-value" id="sumCr">—</div></div>
+    <div class="strip green"><div class="strip-label">Net Balance</div><div class="strip-value" id="sumNet">—</div></div>
+    <div class="strip amber"><div class="strip-label">Entries</div><div class="strip-value" id="sumCount">—</div></div>
+  </div>
+
+  <!-- Download / Print toolbar -->
+  <div style="display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap" id="ledgerToolbar">
+    <button class="btn-dl" onclick="downloadCSV()" title="Download as Excel/CSV">
+      📥 Download XLS
+    </button>
+    <button class="btn-dl btn-print" onclick="printLedger()" title="Print / Save as PDF">
+      🖨 Print / PDF
+    </button>
+  </div>
+
+  <!-- Running ledger table -->
   <div class="card">
-    <div class="card-label">Recent Entries (Last 50)</div>
-    <div id="recentList"><div class="empty"><div class="empty-icon">📋</div>Loading…</div></div>
+    <div class="card-label" id="ledgerTableLabel">All Entries</div>
+    <div class="tbl-wrap" id="ledgerTable"><div class="empty"><div class="empty-icon">📒</div>Loading ledger…</div></div>
   </div>
 </div>
 
-<!-- Entry Confirmation -->
-<div class="entry-confirm-overlay hidden" id="eConfirmOverlay">
-  <div class="entry-confirm-box">
-    <div class="entry-confirm-title">Confirm Entry</div>
-    <div id="eConfirmBody"></div>
-    <div class="conf-btns">
-      <button class="conf-cancel" onclick="document.getElementById('eConfirmOverlay').classList.add('hidden')">Cancel</button>
-      <button class="conf-ok" id="eConfirmOKBtn">Save Entry</button>
+<!-- ADD -->
+<div id="view-add" class="hidden">
+  <div class="page-title">Add</div>
+  <div class="subtab-row">
+    <div class="subtab active" onclick="switchAddTab('entry',this)">Entry</div>
+    <div class="subtab" onclick="switchAddTab('project',this)">Project</div>
+    <div class="subtab" onclick="switchAddTab('vendor',this)">Vendor</div>
+    <div class="subtab" onclick="switchAddTab('opening',this)">Opening Bal.</div>
+  </div>
+
+  <!-- Entry -->
+  <div id="at-entry">
+    <div class="card">
+      <div class="card-label">Category</div>
+      <div class="entry-cat-seg">
+        <div class="entry-cat-btn active" onclick="aSelCat('client',this)">Client</div>
+        <div class="entry-cat-btn" onclick="aSelCat('vendor',this)">Vendor</div>
+        <div class="entry-cat-btn" onclick="aSelCat('expense',this)">Expense</div>
+        <div class="entry-cat-btn" onclick="aSelCat('transfer',this)">Transfer</div>
+        <div class="entry-cat-btn" onclick="aSelCat('drawings',this)">Drawings</div>
+      </div>
+      <div class="card-label" style="margin-top:4px">Entry Type</div>
+      <div class="type-grid" id="aTypeGrid"><div class="empty" style="padding:16px">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Entry Details</div>
+      <div class="field"><label>Date</label><input type="date" id="aDate"></div>
+      <div class="field"><label>Project</label><select id="aProject"><option value="">— Select Project —</option></select></div>
+      <div class="field" id="aCostHeadField" style="display:none"><label>Cost Head</label><select id="aCostHead"><option value="">— Select Cost Head —</option></select></div>
+      <div class="field"><label>Vendor / Party</label><select id="aVendor"><option value="">— Select Vendor (optional) —</option></select></div>
+      <div class="field"><label>Amount (₹)</label><input type="number" id="aAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Narration / Remarks</label><input type="text" id="aNarration" placeholder="Brief note…"></div>
+      <button class="btn-primary btn-full" id="aSaveBtn" onclick="adminSaveEntry()">Save Entry</button>
+    </div>
+  </div>
+
+  <!-- Project -->
+  <div id="at-project" class="hidden">
+    <!-- Project Form -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-label" style="margin-bottom:0" id="pFormLabel">Add Project</div>
+        <button class="btn-sm" id="pCancelBtn" style="display:none;padding:5px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:7px;font-size:12px;color:#7A8BAA;cursor:pointer;font-family:inherit" onclick="cancelEditProject()">Cancel</button>
+      </div>
+      <input type="hidden" id="pEditId">
+      <div class="row-2">
+        <div class="field"><label>Name *</label><input type="text" id="pName" placeholder="Residence, Office…"></div>
+        <div class="field"><label>Client</label><input type="text" id="pClient" placeholder="Client name"></div>
+        <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="City"></div>
+        <div class="field"><label>Start Date</label><input type="date" id="pStart"></div>
+        <div class="field"><label>Budget (₹)</label><input type="number" id="pBudget" placeholder="0"></div>
+        <div class="field"><label>Status</label>
+          <select id="pStatus">
+            <option value="Active">Active</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary btn-full" id="pSaveBtn" onclick="saveProject()">Add Project</button>
+    </div>
+    <!-- Project List -->
+    <div class="card">
+      <div class="card-label">All Projects</div>
+      <div id="projectList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- Vendor -->
+  <div id="at-vendor" class="hidden">
+    <!-- Vendor Form -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-label" style="margin-bottom:0" id="vFormLabel">Add Vendor</div>
+        <button class="btn-sm" id="vCancelBtn" style="display:none;padding:5px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:7px;font-size:12px;color:#7A8BAA;cursor:pointer;font-family:inherit" onclick="cancelEditVendor()">Cancel</button>
+      </div>
+      <input type="hidden" id="vEditId">
+      <div class="row-2">
+        <div class="field"><label>Name *</label><input type="text" id="vName" placeholder="Name"></div>
+        <div class="field"><label>Type</label>
+          <select id="vType">
+            <option>Contractor</option><option>Supplier</option>
+            <option>Consultant</option><option>Labour</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>GSTIN</label><input type="text" id="vGST" placeholder="Optional"></div>
+        <div class="field"><label>Contact</label><input type="text" id="vContact" placeholder="Phone"></div>
+      </div>
+      <button class="btn-primary btn-full" id="vSaveBtn" onclick="saveVendor()">Add Vendor</button>
+    </div>
+    <!-- Vendor List -->
+    <div class="card">
+      <div class="card-label">All Vendors</div>
+      <div id="vendorList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- Opening Balance -->
+  <div id="at-opening" class="hidden">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:8px">Opening Balances</div>
+      <div style="font-size:12px;color:#7A8BAA;margin-bottom:14px;line-height:1.6">
+        Enter opening balances for the selected FY. These represent account balances carried forward from the previous year. Ask your CA to verify before entering.
+      </div>
+      <div class="field">
+        <label>Account</label>
+        <select id="obAccount"><option value="">— Select Account —</option></select>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Dr / Cr</label>
+          <select id="obDrCr"><option value="Dr">Dr (Debit)</option><option value="Cr">Cr (Credit)</option></select>
+        </div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="obAmount" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <button class="btn-primary btn-full" onclick="saveOpeningBalance()">Save Opening Balance</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Existing Opening Balances — <span id="obFYLabel"></span></div>
+      <div id="obList"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- Vendor Opening Balances -->
+    <div class="card">
+      <div class="card-label" style="margin-bottom:8px">Vendor Opening Balances</div>
+      <div style="font-size:12px;color:#7A8BAA;margin-bottom:14px;line-height:1.6">
+        Enter how much was owed to each vendor at the start of this FY. Cr = we owe them (payable). Dr = they owe us (excess advance).
+      </div>
+      <div class="field">
+        <label>Vendor</label>
+        <select id="vobVendor"><option value="">— Select Vendor —</option></select>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Dr / Cr</label>
+          <select id="vobDrCr">
+            <option value="Cr">Cr — We owe vendor (Payable)</option>
+            <option value="Dr">Dr — Vendor owes us (Advance excess)</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="vobAmount" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <button class="btn-primary btn-full" onclick="saveVendorOB()">Save Vendor Opening Balance</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Vendor Opening Balances — <span id="vobFYLabel"></span></div>
+      <div id="vobList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORTS -->
+<div id="view-reports" class="hidden">
+  <div class="page-title">Reports</div>
+  <div class="card"><div class="card-label">Project P&L Summary</div><div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="card-label" style="margin-bottom:0">Vendor Outstanding Summary</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#7A8BAA;cursor:pointer;user-select:none">
+          <input type="checkbox" id="filterPositive" onchange="renderVendorReport()" style="accent-color:#2B5197">
+          Positive only
+        </label>
+        <button onclick="downloadVendorReportXLS()" style="padding:5px 10px;background:#2B5197;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📥 XLS</button>
+        <button onclick="printVendorReport()" style="padding:5px 10px;background:#15803D;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">🖨 PDF</button>
+      </div>
+    </div>
+    <div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
+  </div>
+
+  <!-- FY Closing Balances -->
+  <div class="card">
+    <div class="card-label" style="margin-bottom:6px">📥 FY Closing Balances</div>
+    <div style="font-size:12px;color:#7A8BAA;margin-bottom:14px;line-height:1.6">
+      Download closing balances for all accounts and vendors as at the end of the selected FY.
+      Share with your CA to verify, then use the Opening Balance tab to enter them for the next FY.
+    </div>
+    <button class="btn-primary btn-full" onclick="downloadClosingBalances()" id="closingBtn">
+      📥 Download Closing Balances (.xlsx)
+    </button>
+    <div id="closingStatus" style="font-size:12px;color:#7A8BAA;margin-top:8px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- MORE / USERS -->
+<div id="view-more" class="hidden">
+  <div class="page-title">Users</div>
+  <div class="card">
+    <div class="card-label">Add User</div>
+    <div class="row-2">
+      <div class="field"><label>Username *</label><input type="text" id="uName" placeholder="username"></div>
+      <div class="field"><label>Password *</label><input type="password" id="uPass" placeholder="••••••••"></div>
+      <div class="field"><label>Role</label><select id="uRole"><option value="Supervisor">Supervisor</option><option value="Admin">Admin</option></select></div>
+      <div class="field"><label>Google Email</label><input type="text" id="uGoogle" placeholder="gmail@gmail.com"></div>
+    </div>
+    <button class="btn-primary btn-full" onclick="addUser()">Add User</button>
+  </div>
+  <div class="card"><div class="card-label">All Users</div><div id="userList"><div class="empty">Loading…</div></div></div>
+</div>
+
+<!-- Delete confirm overlay -->
+<div class="confirm-overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete Entry?</div>
+    <div class="confirm-msg" id="confirmMsg">This will permanently remove both the Debit and Credit entries. This action cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-delete" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comment Dialog -->
+<div class="confirm-overlay hidden" id="commentOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Add Comment</div>
+    <div class="confirm-msg" id="commentMsg"></div>
+    <div class="field" style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:5px">Comment for Supervisor *</label>
+      <input type="text" id="commentText" placeholder="e.g. Bill photo missing, wrong cost head…" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3EE;border-radius:9px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit">
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('commentOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="commentOKBtn" style="background:#F59E0B">Send Comment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Dialog (no comment needed) -->
+<div class="confirm-overlay hidden" id="rejectOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Reject Entry</div>
+    <div class="confirm-msg" id="rejectMsg">This entry will be marked as Rejected. The supervisor can delete it. This cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('rejectOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="rejectOKBtn">Reject Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Confirmation Dialog -->
+<div class="confirm-overlay hidden" id="entryConfirmOverlay">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Confirm Entry</div>
+    <div id="entryConfirmBody" style="margin-bottom:18px"></div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('entryConfirmOverlay').classList.add('hidden')">Cancel</button>
+      <button class="confirm-delete" id="entryConfirmOKBtn" style="background:#2B5197">Save Entry</button>
     </div>
   </div>
 </div>
 
 <nav class="bottom-nav">
-  <div class="nav-item active" onclick="showView('entry',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+  <div class="nav-item active" onclick="showView('home',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+  <div class="nav-item" onclick="showView('ledger',this)"><span class="nav-icon">📋</span><span class="nav-label">Ledger</span></div>
   <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
-  <div class="nav-item" onclick="showView('recent',this)"><span class="nav-icon">📋</span><span class="nav-label">Entries</span></div>
-  <div class="nav-item" onclick="logout()"><span class="nav-icon">⏻</span><span class="nav-label">Sign Out</span></div>
+  <div class="nav-item" onclick="showView('reports',this)"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></div>
+  <div class="nav-item" onclick="showView('more',this)"><span class="nav-icon">···</span><span class="nav-label">More</span></div>
 </nav>
 <div class="toast" id="toast"></div>
 
 <script>
-var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
-var VERSION  = "v1.5.1";
-var token    = localStorage.getItem("bd_token");
-var role     = localStorage.getItem("bd_role");
-var curFY    = localStorage.getItem("bd_fy") || "";
-var fyList=[], allEntryTypes={}, curCat="income", selType=null;
+var API     = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+var VERSION = "v1.5.1";
+var token   = localStorage.getItem("bd_token");
+var curFY   = localStorage.getItem("bd_fy") || "";
+var fyList=[], allLedger=[], allEntryTypes={}, coaList=[], projMap={}, vendorMap={};
+var aSelType=null, aCurCat="income";
 
-var CAT_BADGE = { income:"badge-income", expense:"badge-expense", vendor:"badge-vendor", advance:"badge-advance" };
+if (!token || localStorage.getItem("bd_role") !== "Admin") { window.location.href = "index.html"; }
 
-if (!token) { window.location.href = "index.html"; }
-
+// Silent session check on load — redirect to login if token expired
 setTimeout(function(){
   fetch(API + "?payload=" + encodeURIComponent(JSON.stringify({action:"getFYList",token:token})),
     {method:"POST",redirect:"follow",body:JSON.stringify({action:"getFYList",token:token})})
@@ -241,19 +783,15 @@ setTimeout(function(){
     }
   }).catch(function(){});
 }, 500);
-var username = localStorage.getItem("bd_username")||"";
-document.getElementById("headerUser").textContent = username;
-setToday(); initApp();
 
-function setToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("eDate").value=y+"-"+m+"-"+dd; }
+document.addEventListener("DOMContentLoaded", function(){ initAdmin(); });
 
 // ── localStorage cache helpers ────────────────────────────
 var CACHE_TTL = 6 * 60 * 60 * 1000;
 function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
-// ── Init all in parallel ───────────────────────────────────
-function initApp(){ loadFY(); loadMasterData(); }
+function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -266,232 +804,1472 @@ function loadFY(){
     updateFYLabel(); renderFYPanel();
   });
 }
-function updateFYLabel(){ var f=fyList.find(x=>x.id===curFY); document.getElementById("fyLabel").textContent=f?f.label:curFY; }
+function updateFYLabel(){ var f=fyList.find(function(x){return x.id===curFY;}); document.getElementById("fyLabel").textContent=f?f.label:curFY; }
 function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
-function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join(""); }
-function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; }
+function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(function(f){ return "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+ f.label+"</div>"; }).join(""); }
+function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; loadDashboard(); }
 
-// ── Master data: all dropdowns + entry types in parallel ──
+// ── Master data (cached) ───────────────────────────────────
 function loadMasterData(){
-  var etC=lsGet("bd_c_et"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
+  function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";});}
 
-  function fillSel(id,items,mapFn,ph){ var s=document.getElementById(id); if(!s)return; s.innerHTML="<option value=''>"+ph+"</option>"; items.forEach(function(x){var m=mapFn(x);s.innerHTML+="<option value='"+m.v+"'>"+m.t+"</option>";}); }
+  var etC=lsGet("bd_c_et"), coaC=lsGet("bd_c_coa"), prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
+  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); }
+  if(coaC){ coaList=coaC; fillSel("obAccount",coaC,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); }
+  if(prC){ fillSel("aProject",prC,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); }
+  if(chC){ fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }
+  if(veC){ fillSel("aVendor",veC,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); }
 
-  if(etC){ etC.forEach(function(t){allEntryTypes[t.key]=t;}); renderAllowedTypes(); }
-  if(prC) fillSel("eProject",  prC, function(p){return{v:p.id,t:p.name+" · "+p.client};},   "— Select Project —");
-  if(chC) fillSel("eCostHead", chC, function(c){return{v:c.id,t:c.name};},                       "— Select Cost Head —");
-  if(veC) fillSel("eVendor",   veC, function(v){return{v:v.id,t:v.name+" · "+v.type};},      "— Select Vendor (optional) —");
+  api({action:"getEntryTypes",token:token},function(d){ if(!d.success)return; lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;}); aSelCat("client",document.querySelector(".entry-cat-btn.active")); });
+  api({action:"getCOA",token:token},function(d){ if(!d.success)return; lsSet("bd_c_coa",d.accounts); coaList=d.accounts; fillSel("obAccount",d.accounts,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —"); });
+  api({action:"getProjects",token:token},function(d){ if(!d.success)return; lsSet("bd_c_proj",d.projects); fillSel("aProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); });
+  api({action:"getCostHeads",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ch",d.costHeads); fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); });
+  api({action:"getVendors",token:token},function(d){ if(!d.success)return; lsSet("bd_c_ve",d.vendors); fillSel("aVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); });
+}
 
-  api({action:"getEntryTypes",token:token},function(d){
-    if(!d.success){if(!etC)document.getElementById("typeGrid").innerHTML="<div style='color:#B91C1C;padding:10px'>Failed to load entry types.</div>";return;}
-    lsSet("bd_c_et",d.entryTypes); d.entryTypes.forEach(function(t){allEntryTypes[t.key]=t;});
-    selectCat(curCat,document.querySelector(".seg-btn.active"));
+
+// ── DASHBOARD ──────────────────────────────────────────────
+function loadDashboard(){
+  document.getElementById("dashSub").textContent="Loading…";
+  api({action:"getDashboard",token:token,fyid:curFY},function(d){
+    if(!d.success){document.getElementById("dashSub").textContent="Error loading.";return;}
+    var s=d.summary, fyL=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
+    document.getElementById("dashSub").textContent="Financial overview · "+fyL;
+    document.getElementById("kpiInc").textContent="₹ "+shortNum(s.income);
+    document.getElementById("kpiExp").textContent="₹ "+shortNum(s.expense);
+    var pEl=document.getElementById("kpiPro"); pEl.textContent="₹ "+shortNum(s.profit); pEl.className="kpi-value "+(s.profit>=0?"green":"red");
+    var dEl=document.getElementById("kpiDraw"); dEl.textContent=s.drawings>0?"₹ "+shortNum(s.drawings):"—"; dEl.className="kpi-value "+(s.drawings>0?"amber":"");
+    renderProjChart(d.byProject); renderMonthChart(d.byMonth);
+    if(typeof _actOpen!=="undefined"&&_actOpen) loadActivity();
+    loadPendingEntries();
   });
+}
+function renderProjChart(data){
+  var el=document.getElementById("projChart");
+  if(!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📊</div>No data yet.</div>";return;}
+  var max=Math.max(...data.map(p=>Math.max(p.income,p.expense,1)));
+  var html="<div class='bar-chart'>";
+  data.forEach(function(p){ var iw=Math.round(p.income/max*100),ew=Math.round(p.expense/max*100); html+="<div><div class='bar-name'>"+p.project+" <span>₹"+shortNum(p.income)+" / ₹"+shortNum(p.expense)+"</span></div><div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div><div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div></div>"; });
+  html+="</div><div class='bar-legend'><span><i class='dot-blue'></i> Income</span><span><i class='dot-red'></i> Expense</span></div>";
+  el.innerHTML=html;
+}
+function renderMonthChart(data){
+  var el=document.getElementById("monthChart");
+  if(!data||!data.length){el.innerHTML="<div class='empty'><div class='empty-icon'>📅</div>No data yet.</div>";return;}
+  var max=Math.max(...data.map(m=>Math.max(m.income,m.expense,1)));
+  var html="<div class='bar-chart'>";
+  data.slice(-6).forEach(function(m){ var iw=Math.round(m.income/max*100),ew=Math.round(m.expense/max*100); html+="<div><div class='bar-name'>"+m.month+" <span>₹"+shortNum(m.income)+" / ₹"+shortNum(m.expense)+"</span></div><div class='bar-track'><div class='bar-fill-inc' style='width:"+iw+"%'></div></div><div class='bar-track'><div class='bar-fill-exp' style='width:"+ew+"%'></div></div></div>"; });
+  html+="</div>"; el.innerHTML=html;
+}
+
+// ── LEDGER — Unified Filter System v1.3 ───────────────────
+// allLedger holds the full FY dataset; all filters run in JS
+
+function initLedger() {
+  var el=document.getElementById("ledgerTable");
+  el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>Loading…</div>";
+  // Load ledger and opening balances in parallel
+  api({action:"getLedger",token:token,fyid:curFY}, function(d){
+    if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    allLedger = d.ledger;
+    populateFilterDropdowns(d.ledger);
+    applyFilters();
+  });
+  api({action:"getOpeningBalances",token:token,fyid:curFY}, function(d){
+    if(d.success) allOpeningBalances = d.balances || [];
+  });
+  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+    if(d.success) allVendorOBs = d.balances || [];
+  });
+}
+
+function populateFilterDropdowns(rows) {
+  // Build unique sets from data
+  var accounts={}, projects={}, vendors={}, costHeads={};
+  rows.forEach(function(r){
+    if(r.acCode) accounts[r.acCode] = { name:r.acName, type:r.acType };
+    if(r.projectId)   projects[r.projectId]   = r.projectName||r.projectId;
+    if(r.vendorId)    vendors[r.vendorId]      = r.vendorName||r.vendorId;
+    if(r.costHeadId)  costHeads[r.costHeadId]  = r.costHeadName||r.costHeadId;
+  });
+
+  // Account dropdown — grouped by type
+  var fAc = document.getElementById("fAccount");
+  var types = ["Asset","Liability","Income","Expense"];
+  var acHtml = "<option value=''>All Accounts</option>";
+  types.forEach(function(t){
+    var group = Object.keys(accounts).filter(function(k){ return accounts[k].type===t; });
+    if(!group.length) return;
+    acHtml += "<optgroup label='"+t+"'>";
+    group.sort().forEach(function(k){ acHtml+="<option value='"+k+"'>"+accounts[k].name+"</option>"; });
+    acHtml += "</optgroup>";
+  });
+  fAc.innerHTML = acHtml;
+
+  // Project
+  var fPr = document.getElementById("fProject");
+  fPr.innerHTML = "<option value=''>All Projects</option>";
+  Object.keys(projects).sort().forEach(function(k){ fPr.innerHTML+="<option value='"+k+"'>"+projects[k]+"</option>"; });
+
+  // Vendor
+  var fVe = document.getElementById("fVendor");
+  fVe.innerHTML = "<option value=''>All Vendors</option>";
+  Object.keys(vendors).sort().forEach(function(k){ fVe.innerHTML+="<option value='"+k+"'>"+vendors[k]+"</option>"; });
+
+  // Cost Head
+  var fCh = document.getElementById("fCostHead");
+  fCh.innerHTML = "<option value=''>All Cost Heads</option>";
+  Object.keys(costHeads).sort().forEach(function(k){ fCh.innerHTML+="<option value='"+k+"'>"+costHeads[k]+"</option>"; });
+}
+
+// When account type changes, filter the account dropdown
+function syncAccountFilter() {
+  var type  = document.getElementById("fAccType").value;
+  var fAc   = document.getElementById("fAccount");
+  var opts  = fAc.querySelectorAll("option, optgroup");
+  fAc.querySelectorAll("optgroup").forEach(function(g){
+    g.style.display = (!type || g.label===type) ? "" : "none";
+  });
+  // Reset account selection if it no longer matches type
+  if(type && fAc.value) {
+    var selOpt = fAc.querySelector("option[value='"+fAc.value+"']");
+    if(selOpt && selOpt.closest("optgroup") && selOpt.closest("optgroup").label !== type) {
+      fAc.value = "";
+    }
+  }
+}
+
+function applyFilters() {
+  var accType  = document.getElementById("fAccType").value;
+  var account  = document.getElementById("fAccount").value;
+  var project  = document.getElementById("fProject").value;
+  var vendor   = document.getElementById("fVendor").value;
+  var costHead = document.getElementById("fCostHead").value;
+  var drCr     = document.getElementById("fDrCr").value;
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var search   = document.getElementById("fSearch").value.toLowerCase().trim();
+
+  var dfTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+  var dtTs = dateTo   ? new Date(dateTo).getTime()   : Infinity;
+
+  var filtered = allLedger.filter(function(r){
+    if(accType  && r.acType     !== accType)  return false;
+    if(account  && r.acCode     !== account)  return false;
+    if(project  && r.projectId  !== project)  return false;
+    if(vendor   && r.vendorId   !== vendor)   return false;
+    if(costHead && r.costHeadId !== costHead) return false;
+    if(drCr     && r.drCr       !== drCr)     return false;
+    if(dfTs && r.dateRaw < dfTs) return false;
+    if(dtTs < Infinity && r.dateRaw > dtTs) return false;
+    if(search && !(
+      (r.narration||"").toLowerCase().includes(search) ||
+      (r.acName||"").toLowerCase().includes(search)    ||
+      (r.projectName||"").toLowerCase().includes(search) ||
+      (r.vendorName||"").toLowerCase().includes(search)  ||
+      (r.entryId||"").toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  // Sort oldest first for running balance
+  filtered.sort(function(a,b){ return a.dateRaw-b.dateRaw || a.entryId.localeCompare(b.entryId); });
+
+  renderFilteredLedger(filtered);
+  updateActiveTags(accType, account, project, vendor, costHead, drCr, dateFrom, dateTo, search);
+  document.getElementById("filterCount").textContent = filtered.length+" of "+allLedger.length+" entries";
+}
+
+// ── Detect if any filter is active (ledger mode vs journal mode)
+function isFiltered() {
+  return !!(
+    document.getElementById("fAccType").value  ||
+    document.getElementById("fAccount").value  ||
+    document.getElementById("fProject").value  ||
+    document.getElementById("fVendor").value   ||
+    document.getElementById("fCostHead").value ||
+    document.getElementById("fDrCr").value     ||
+    document.getElementById("fDateFrom").value ||
+    document.getElementById("fDateTo").value   ||
+    document.getElementById("fSearch").value.trim()
+  );
+}
+
+// ── Get opening balance for current filters from OpeningBalances data
+// (stored in allOpeningBalances after ledger load)
+var allOpeningBalances = [];
+var allVendorOBs = []; // per-vendor opening balances
+
+function getOpeningBalance(rows) {
+  // 1. Account-level opening balance (from OpeningBalances sheet)
+  var acKeys = {};
+  rows.forEach(function(r){ if(r.acKey) acKeys[r.acKey]=true; });
+  var ob = 0;
+  allOpeningBalances.forEach(function(b){
+    if (acKeys[b.accountKey]) {
+      ob += b.drCr==="Dr" ? parseFloat(b.amount)||0 : -(parseFloat(b.amount)||0);
+    }
+  });
+
+  // 2. Add vendor opening balance if a vendor filter is active
+  var vendorId = document.getElementById("fVendor") ? document.getElementById("fVendor").value : "";
+  if (vendorId && allVendorOBs.length) {
+    allVendorOBs.forEach(function(b){
+      if (b.vendorId === vendorId) {
+        // Vendor payable is Cr-normal:
+        // Cr = we owe vendor → show on Credit side → ob negative
+        // Dr = vendor owes us (advance excess) → show on Debit side → ob positive
+        ob += b.drCr==="Cr" ? -(parseFloat(b.amount)||0) : (parseFloat(b.amount)||0);
+      }
+    });
+  }
+  return ob;
+}
+
+function renderFilteredLedger(rows) {
+  var el = document.getElementById("ledgerTable");
+  if(!rows.length){
+    el.innerHTML="<div class='empty'><div class='empty-icon'>🔍</div>No entries match the current filters.</div>";
+    document.getElementById("ledgerSummary").style.display="none";
+    return;
+  }
+
+  var filtered = isFiltered();
+  var ob       = filtered ? getOpeningBalance(rows) : 0; // opening balance (signed: +Dr, -Cr)
+  var totalDr  = 0, totalCr = 0;
+
+  // Table header — no balance column
+  var html = "<table><thead><tr>"+
+    "<th>Date</th><th>Voucher No</th><th>Account</th><th>Particulars</th>"+
+    "<th>Debit ₹</th><th>Credit ₹</th><th class='no-print'></th>"+
+    "</tr></thead><tbody>";
+
+  // Opening balance row (filtered mode, non-zero only)
+  if (filtered && ob !== 0) {
+    var obAbs  = Math.abs(ob);
+    var obDr   = ob > 0 ? "₹ "+fmt(obAbs) : "—";
+    var obCr   = ob < 0 ? "₹ "+fmt(obAbs) : "—";
+    html += "<tr style='background:#FEF9C3;font-weight:600'>"+
+      "<td style='font-size:12px;color:#854D0E'></td>"+
+      "<td style='font-size:11px;color:#854D0E'></td>"+
+      "<td style='font-size:12px;color:#854D0E' colspan='2'>Opening Balance</td>"+
+      "<td style='color:#15803D;font-weight:700'>"+obDr+"</td>"+
+      "<td style='color:#B91C1C;font-weight:700'>"+obCr+"</td>"+
+      "<td class='no-print'></td>"+
+      "</tr>";
+  }
+
+  // Transaction rows
+  rows.forEach(function(r){
+    totalDr += r.debit;
+    totalCr += r.credit;
+
+    var ctx=[];
+    if(r.projectName)  ctx.push(r.projectName);
+    if(r.vendorName)   ctx.push(r.vendorName);
+    if(r.costHeadName) ctx.push(r.costHeadName);
+
+    var delBtn="<button class='btn-del no-print' data-id='"+r.entryId+"' data-date='"+r.date+"' data-ac='"+(r.acName||"").replace(/'/g,"")+"' title='Delete entry' onclick='confirmDelete(this.dataset.id,this.dataset.date,this.dataset.ac)'>🗑</button>";
+
+    html += "<tr>"+
+      "<td style='white-space:nowrap;font-size:12px;color:#1A2D5A'>"+r.date+"</td>"+
+      "<td style='font-size:10px;color:#94A3B8;white-space:nowrap'>"+r.entryId+"</td>"+
+      "<td><div style='font-size:12px;font-weight:600;color:#1A2D5A'>"+r.acName+"</div>"+
+          "<div style='font-size:10px;color:#94A3B8'>"+r.acCode+" · "+r.acType+"</div></td>"+
+      "<td><div style='font-size:12px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+r.narration+"'>"+r.narration+"</div>"+
+          (ctx.length?"<div style='font-size:10px;color:#7A8BAA'>"+ctx.join(" · ")+"</div>":"")+
+      "</td>"+
+      "<td class='dr'>"+(r.debit>0?"₹ "+fmt(r.debit):"—")+"</td>"+
+      "<td class='cr'>"+(r.credit>0?"₹ "+fmt(r.credit):"—")+"</td>"+
+      "<td class='no-print'>"+delBtn+"</td>"+
+      "</tr>";
+  });
+
+  // Closing balance row (filtered mode only, non-zero only)
+  // Closing = opening + totalDr - totalCr
+  // Place closing on opposite side so Dr total = Cr total
+  var closing = ob + totalDr - totalCr;
+  if (filtered && Math.abs(closing) > 0.001) {
+    var clAbs   = Math.abs(closing);
+    // closing > 0 means Dr side is heavier → put closing on Cr side
+    // closing < 0 means Cr side is heavier → put closing on Dr side
+    var clDr    = closing < 0 ? "₹ "+fmt(clAbs) : "—";
+    var clCr    = closing > 0 ? "₹ "+fmt(clAbs) : "—";
+    var clLabel = closing > 0 ? "Closing Balance (Dr)" : "Closing Balance (Cr)";
+    // Add to totals for the final balance row
+    if (closing < 0) totalDr += clAbs;
+    else             totalCr += clAbs;
+    html += "<tr style='background:#EEF3FF;font-weight:600;border-top:2px solid #C7D7FF'>"+
+      "<td style='font-size:12px;color:#1D4ED8'></td>"+
+      "<td style='font-size:11px;color:#1D4ED8'></td>"+
+      "<td style='font-size:12px;color:#1D4ED8' colspan='2'>"+clLabel+"</td>"+
+      "<td style='color:#15803D;font-weight:700'>"+clDr+"</td>"+
+      "<td style='color:#B91C1C;font-weight:700'>"+clCr+"</td>"+
+      "<td class='no-print'></td>"+
+      "</tr>";
+  }
+
+  // Totals row — always shown, Dr always = Cr
+  html += "<tr style='background:#1A2D5A;color:#fff;font-weight:700;font-size:13px'>"+
+    "<td colspan='4' style='color:#fff;padding:10px'>TOTAL</td>"+
+    "<td style='color:#86EFAC'>₹ "+fmt(totalDr)+"</td>"+
+    "<td style='color:#FCA5A5'>₹ "+fmt(totalCr)+"</td>"+
+    "<td class='no-print'></td>"+
+    "</tr>";
+
+  html += "</tbody></table>";
+  el.innerHTML = html;
+
+  // Update summary strips (use original totals before closing balance adjustment)
+  var origDr = rows.reduce(function(s,r){return s+r.debit;},0);
+  var origCr = rows.reduce(function(s,r){return s+r.credit;},0);
+  var net    = ob + origDr - origCr;
+  var netAbs = Math.abs(net);
+  document.getElementById("sumDr").textContent    = "₹ "+shortNum(origDr);
+  document.getElementById("sumCr").textContent    = "₹ "+shortNum(origCr);
+  document.getElementById("sumNet").textContent   = "₹ "+shortNum(netAbs)+(net>0?" Dr":net<0?" Cr":" NIL");
+  document.getElementById("sumCount").textContent = rows.length;
+  document.getElementById("ledgerSummary").style.display = "flex";
+}
+
+function updateActiveTags(accType, account, project, vendor, costHead, drCr, dateFrom, dateTo, search) {
+  var tags=[];
+  if(accType)  tags.push({label:"Type: "+accType,  clear:"fAccType"});
+  if(account)  tags.push({label:"Ac: "+document.getElementById("fAccount").options[document.getElementById("fAccount").selectedIndex].text, clear:"fAccount"});
+  if(project)  tags.push({label:"Project: "+document.getElementById("fProject").options[document.getElementById("fProject").selectedIndex].text, clear:"fProject"});
+  if(vendor)   tags.push({label:"Vendor: "+document.getElementById("fVendor").options[document.getElementById("fVendor").selectedIndex].text, clear:"fVendor"});
+  if(costHead) tags.push({label:"Cost: "+document.getElementById("fCostHead").options[document.getElementById("fCostHead").selectedIndex].text, clear:"fCostHead"});
+  if(drCr)     tags.push({label:drCr+" only", clear:"fDrCr"});
+  if(dateFrom) tags.push({label:"From: "+dateFrom, clear:"fDateFrom"});
+  if(dateTo)   tags.push({label:"To: "+dateTo, clear:"fDateTo"});
+  if(search)   tags.push({label:"Search: "+search, clear:"fSearch"});
+
+  var el=document.getElementById("activeTags");
+  el.innerHTML="";
+  tags.forEach(function(t){
+    var wrap=document.createElement("span");
+    wrap.className="filter-active-tag";
+    wrap.innerHTML=t.label;
+    var x=document.createElement("span");
+    x.textContent=" ×";
+    x.style.cursor="pointer";
+    x.onclick=(function(id){return function(){clearFilter(id);};})(t.clear);
+    wrap.appendChild(x);
+    el.appendChild(wrap);
+  });
+
+  // Update ledger label
+  var labelParts=[];
+  if(project) labelParts.push(document.getElementById("fProject").options[document.getElementById("fProject").selectedIndex].text);
+  if(vendor)  labelParts.push(document.getElementById("fVendor").options[document.getElementById("fVendor").selectedIndex].text);
+  if(accType) labelParts.push(accType+" Accounts");
+  document.getElementById("ledgerTableLabel").textContent = labelParts.length ? labelParts.join(" · ")+" Ledger" : "All Entries";
+}
+
+function clearFilter(id) {
+  document.getElementById(id).value="";
+  applyFilters();
+}
+
+function resetFilters() {
+  ["fAccType","fAccount","fProject","fVendor","fCostHead","fDrCr","fDateFrom","fDateTo"].forEach(function(id){
+    document.getElementById(id).value="";
+  });
+  document.getElementById("fSearch").value="";
+  applyFilters();
+}
+
+// ── ADD SUB-TABS ───────────────────────────────────────────
+function switchAddTab(tab,el){
+  document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
+  ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
+  if(tab==="opening") { loadOpeningBalances(); loadVendorOBTab(); }
+  if(tab==="project") loadAllProjects();
+  if(tab==="vendor")  loadAllVendors();
+}
+
+// ── ADMIN ENTRY FORM ───────────────────────────────────────
+function loadAddDropdowns(){
+  // Dropdowns now handled by loadMasterData() on init
+  // This stub kept for compatibility when called after adding project/vendor
+  setAToday();
   api({action:"getProjects",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_proj",d.projects);
-    fillSel("eProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —");
+    var s=document.getElementById("aProject"); s.innerHTML="<option value=''>— Select Project —</option>";
+    d.projects.forEach(function(p){s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>";});
+    // Also refresh filter dropdown if open
+    var fp=document.getElementById("fProject");
+    if(fp){ fp.innerHTML="<option value=''>All Projects</option>"; d.projects.forEach(function(p){fp.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";});}
   });
   api({action:"getCostHeads",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ch",d.costHeads);
-    fillSel("eCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
+    var s=document.getElementById("aCostHead"); s.innerHTML="<option value=''>— Select Cost Head —</option>";
+    d.costHeads.forEach(function(c){s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>";});
   });
   api({action:"getVendors",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ve",d.vendors);
-    fillSel("eVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
+    var s=document.getElementById("aVendor"); s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";
+    d.vendors.forEach(function(v){s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>";});
+    var fv=document.getElementById("fVendor");
+    if(fv){ fv.innerHTML="<option value=''>All Vendors</option>"; d.vendors.forEach(function(v){fv.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";});}
   });
 }
+function setAToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("aDate").value=y+"-"+m+"-"+dd; }
 
-// ── CATEGORY & TYPE (supervisor restricted to 2 types) ──────
-var ALLOWED_TYPES = ["vendor_bill","expense_petty_cash"];
-
-function selectCat(cat,el){
-  curCat=cat; selType=null;
-  document.querySelectorAll(".seg-btn").forEach(b=>b.classList.remove("active"));
-  if(el) el.classList.add("active");
-  renderAllowedTypes();
-}
-
-function renderAllowedTypes(){
-  var types = ALLOWED_TYPES.map(function(k){ return allEntryTypes[k]; }).filter(Boolean);
-  var html = types.length ? types.map(function(t){
-    var drL=t.drName||t.dr, crL=t.crName||t.cr;
-    return "<div class='type-opt' onclick='selectType(this,\""+t.key+"\")'>" +
+function aSelCat(cat,el){
+  aCurCat=cat; aSelType=null;
+  document.querySelectorAll(".entry-cat-btn").forEach(b=>b.classList.remove("active")); el.classList.add("active");
+  var items=Object.values(allEntryTypes).filter(function(t){ return t.category===cat; });
+  if(!items.length){ document.getElementById("aTypeGrid").innerHTML="<div class='empty' style='padding:16px'>Loading…</div>"; return; }
+  var html=items.map(function(t){
+    return "<div class='type-opt' onclick='aPickType(this,\""+t.key+"\")'>"+
       "<div class='type-opt-label'>"+t.label+"</div>"+
       "<div class='type-opt-hint'>"+t.hint+"</div>"+
       "<div class='type-opt-accounts'>"+
-        "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+drL+"</span></div>"+
-        "<div class='ac-row'><span class='ac-cr'>CR</span> <span class='ac-name'>"+crL+"</span></div>"+
+        "<div class='ac-row'><span class='ac-dr'>DR</span> <span class='ac-name'>"+(t.drName||t.dr)+"</span></div>"+
+        "<div class='ac-row'><span class='ac-cr'>CR</span> <span class='ac-name'>"+(t.crName||t.cr)+"</span></div>"+
       "</div></div>";
-  }).join("") : "<div class='empty'>Entry types loading…</div>";
-  document.getElementById("typeGrid").innerHTML = html;
-  document.getElementById("costHeadField").style.display = "none";
-  document.getElementById("billPhotoField").style.display = "none";
+  }).join("");
+  document.getElementById("aTypeGrid").innerHTML=html;
+  document.getElementById("aCostHeadField").style.display="none";
 }
-
-function selectType(el,key){
-  document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
-  el.classList.add("selected");
-  selType = allEntryTypes[key];
-  document.getElementById("costHeadField").style.display = (selType&&selType.needsCH)?"":"none";
-  document.getElementById("billPhotoField").style.display = (key==="vendor_bill")?"":"none";
+function aPickType(el,key){
+  document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected")); el.classList.add("selected");
+  aSelType=allEntryTypes[key];
+  document.getElementById("aCostHeadField").style.display=(aSelType&&aSelType.needsCH)?"":"none";
 }
+function adminSaveEntry(){
+  if(!aSelType){toast("Please select an entry type.",false);return;}
+  var proj=document.getElementById("aProject").value;
+  var amt=parseFloat(document.getElementById("aAmount").value);
+  if(!proj){toast("Please select a project.",false);return;}
+  if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
+  if(aSelType.needsCH&&!document.getElementById("aCostHead").value){toast("Please select a cost head.",false);return;}
 
+  // Get display names
+  var projSel=document.getElementById("aProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
+  var vendSel=document.getElementById("aVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"—";
+  var chSel=document.getElementById("aCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"—";
+  var dateVal=document.getElementById("aDate").value;
+  var narr=document.getElementById("aNarration").value||"—";
 
-// ── SAVE ───────────────────────────────────────────────────
-function saveEntry(){
-  if(!selType){ toast("Please select an entry type first.",false); return; }
-  var proj=document.getElementById("eProject").value;
-  var amt=parseFloat(document.getElementById("eAmount").value);
-  if(!proj){ toast("Please select a project.",false); return; }
-  if(!amt||amt<=0){ toast("Please enter a valid amount.",false); return; }
-  if(selType.needsCH && !document.getElementById("eCostHead").value){ toast("Please select a cost head for this entry type.",false); return; }
-
-  var projSel=document.getElementById("eProject"); var projName=projSel.options[projSel.selectedIndex]?projSel.options[projSel.selectedIndex].text:"";
-  var vendSel=document.getElementById("eVendor");  var vendName=vendSel.value&&vendSel.selectedIndex>=0?vendSel.options[vendSel.selectedIndex].text:"";
-  var chSel=document.getElementById("eCostHead");  var chName=chSel.value&&chSel.selectedIndex>=0?chSel.options[chSel.selectedIndex].text:"";
-  var dateVal=document.getElementById("eDate").value;
-  var narr=document.getElementById("eNarration").value;
-
-  var body="<div class='conf-row'><span class='conf-label'>Type</span><span class='conf-val'>"+selType.label+"</span></div>"+
-    "<div class='conf-row'><span class='conf-label'>Dr</span><span class='conf-val' style='color:#1D4ED8'>"+(selType.drName||selType.dr)+"</span></div>"+
-    "<div class='conf-row'><span class='conf-label'>Cr</span><span class='conf-val' style='color:#B91C1C'>"+(selType.crName||selType.cr)+"</span></div>"+
-    "<div class='conf-row'><span class='conf-label'>Amount</span><span class='conf-val' style='color:#2B5197;font-size:16px;font-weight:800'>₹ "+fmt(amt)+"</span></div>"+
+  // Build confirm body
+  var body="<div class='conf-row'><span class='conf-label'>Entry Type</span><span class='conf-val'>"+aSelType.label+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Dr Account</span><span class='conf-val badge badge-dr'>"+(aSelType.drName||aSelType.dr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Cr Account</span><span class='conf-val badge badge-cr'>"+(aSelType.crName||aSelType.cr)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Amount</span><span class='conf-val' style='color:#2B5197;font-size:15px'>₹ "+fmt(amt)+"</span></div>"+
     "<div class='conf-row'><span class='conf-label'>Date</span><span class='conf-val'>"+dateVal+"</span></div>"+
     "<div class='conf-row'><span class='conf-label'>Project</span><span class='conf-val'>"+projName+"</span></div>"+
     (vendSel.value?"<div class='conf-row'><span class='conf-label'>Vendor</span><span class='conf-val'>"+vendName+"</span></div>":"")+
     (chSel.value?"<div class='conf-row'><span class='conf-label'>Cost Head</span><span class='conf-val'>"+chName+"</span></div>":"")+
-    (narr?"<div class='conf-row'><span class='conf-label'>Narration</span><span class='conf-val'>"+narr+"</span></div>":"");
+    "<div class='conf-row'><span class='conf-label'>Narration</span><span class='conf-val' style='max-width:220px;text-align:right'>"+narr+"</span></div>";
 
-  document.getElementById("eConfirmBody").innerHTML=body;
-  document.getElementById("eConfirmOverlay").classList.remove("hidden");
+  document.getElementById("entryConfirmBody").innerHTML=body;
+  document.getElementById("entryConfirmOverlay").classList.remove("hidden");
 
-  document.getElementById("eConfirmOKBtn").onclick=function(){
-    document.getElementById("eConfirmOverlay").classList.add("hidden");
-    var btn=document.getElementById("saveBtn"); btn.disabled=true; btn.textContent="Saving…";
-    api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
-      costHeadId:chSel.value, vendorId:vendSel.value,
-      date:dateVal, amount:amt, narration:document.getElementById("eNarration").value},
+  document.getElementById("entryConfirmOKBtn").onclick = function(){
+    document.getElementById("entryConfirmOverlay").classList.add("hidden");
+    var btn=document.getElementById("aSaveBtn"); btn.disabled=true; btn.textContent="Saving…";
+    api({action:"saveEntry",token:token,fyid:curFY,entryType:aSelType.key,projectId:proj,
+      costHeadId:chSel.value,vendorId:vendSel.value,
+      date:dateVal,amount:amt,narration:document.getElementById("aNarration").value},
     function(d){
       btn.disabled=false; btn.textContent="Save Entry";
       if(d.success){
-        var msg = d.pending
-          ? "✓ Submitted for approval  |  Dr: "+d.dr+"  ·  Cr: "+d.cr
-          : "✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr;
-        toast(msg, true);
-        // Upload photo if present
-        var photoFile = document.getElementById("billPhoto").files[0];
-        if(photoFile && d.entryId) uploadPhoto(photoFile, d.entryId);
-        // Reset form
-        document.getElementById("eAmount").value="";
-        document.getElementById("eNarration").value="";
-        clearBillPhoto();
-        selType=null;
-        document.querySelectorAll(".type-opt").forEach(t=>t.classList.remove("selected"));
-        document.getElementById("costHeadField").style.display="none";
-        document.getElementById("billPhotoField").style.display="none";
+        toast("✓ Saved  |  Dr: "+d.dr+"  ·  Cr: "+d.cr,true);
+        document.getElementById("aAmount").value="";
+        document.getElementById("aNarration").value="";
+        aSelType=null;
+        document.querySelectorAll("#aTypeGrid .type-opt").forEach(t=>t.classList.remove("selected"));
       } else toast(d.error||"Save failed.",false);
     });
   };
 }
 
-// ── RECENT ─────────────────────────────────────────────────
-function loadRecent(){
-  var el=document.getElementById("recentList"); el.innerHTML="<div class='empty'><div class='empty-icon'>📋</div>Loading…</div>";
-  api({action:"getMyEntries",token:token,fyid:curFY},function(d){
-    if(!d.success||!d.entries.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>📋</div>No entries yet for this period.</div>"; return; }
+// ── ADD PROJECT / VENDOR ───────────────────────────────────
+// addProject and addVendor now handled by saveProject() and saveVendor()
+
+// ── OPENING BALANCES ───────────────────────────────────────
+function loadOpeningBalances(){
+  var fyL=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
+  document.getElementById("obFYLabel").textContent=fyL;
+  api({action:"getOpeningBalances",token:token,fyid:curFY},function(d){
+    var el=document.getElementById("obList");
+    if(!d.success||!d.balances.length){ el.innerHTML="<div class='empty'>No opening balances entered for "+fyL+".</div>"; return; }
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Account</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th></tr></thead><tbody>";
+    d.balances.forEach(function(b){ html+="<tr><td><div class='td-main'>"+b.accountName+"</div><div class='td-sub'>"+b.accountKey+"</div></td><td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td><td style='font-weight:700;color:#1A2D5A'>₹ "+fmt(b.amount)+"</td><td style='color:#7A8BAA;font-size:11px'>"+b.enteredBy+"</td></tr>"; });
+    html+="</tbody></table></div>"; el.innerHTML=html;
+  });
+}
+function saveOpeningBalance(){
+  var acKey=document.getElementById("obAccount").value, drCr=document.getElementById("obDrCr").value, amt=parseFloat(document.getElementById("obAmount").value);
+  if(!acKey){toast("Please select an account.",false);return;}
+  if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
+  api({action:"saveOpeningBalance",token:token,fyid:curFY,accountKey:acKey,drCr:drCr,amount:amt},
+  function(d){ if(d.success){toast("✓ Opening balance saved.",true); document.getElementById("obAmount").value=""; loadOpeningBalances();}else toast(d.error||"Failed.",false); });
+}
+
+// ── REPORTS ────────────────────────────────────────────────
+var _vendorReportData = [];
+
+function loadReports(){
+  api({action:"getProjectPL",token:token,fyid:curFY},function(d){
+    var el=document.getElementById("reportPLTable");
+    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
+    d.projects.forEach(function(p){ html+="<tr><td><div class='td-main'>"+p.projectName+"</div></td><td style='color:#7A8BAA'>"+p.client+"</td><td class='dr'>"+fmt(p.income)+"</td><td class='cr'>"+fmt(p.expense)+"</td><td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td></tr>"; });
+    html+="</tbody></table></div>"; el.innerHTML=html;
+  });
+  api({action:"getVendorOutstanding",token:token,fyid:curFY},function(d){
+    if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    _vendorReportData = d.vendors;
+    renderVendorReport();
+  });
+}
+
+function renderVendorReport(){
+  var el = document.getElementById("reportVendorTable");
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly
+    ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; })
+    : _vendorReportData;
+
+  if(!vendors.length){
+    el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>"+(positiveOnly?"No vendors with positive outstanding.":"No vendor data.")+"</div>";
+    return;
+  }
+
+  var totalBills=0, totalPaid=0, totalOut=0;
+  var html="<div class='tbl-wrap'><table><thead><tr>"+
+    "<th>Vendor</th><th>Op.Bal ₹</th><th>Bills ₹</th><th>Paid ₹</th><th>Outstanding ₹</th>"+
+    "</tr></thead><tbody>";
+
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    totalBills+=parseFloat(v.bills)||0;
+    totalPaid+=parseFloat(v.paid)||0;
+    totalOut+=out;
+    html+="<tr>"+
+      "<td><div class='td-main'>"+v.vendorName+"</div><div class='td-sub'>"+v.vendorType+"</div></td>"+
+      "<td style='font-size:12px;color:#7A8BAA'>"+( ob!==0 ? (ob>0?"Cr ":"Dr ")+"₹"+fmt(Math.abs(ob)) : "—" )+"</td>"+
+      "<td style='color:#B91C1C'>₹ "+fmt(v.bills)+"</td>"+
+      "<td style='color:#15803D'>₹ "+fmt(v.paid)+"</td>"+
+      "<td style='font-weight:700;color:"+(out>0?"#B91C1C":out<0?"#15803D":"#7A8BAA")+"'>"+
+        (out>0?"":"") +"₹ "+fmt(Math.abs(out))+(out<0?" (Adv)":out===0?" (NIL)":"")+"</td>"+
+      "</tr>";
+  });
+
+  // Totals row
+  html+="<tr style='background:#F7F9FC;font-weight:700;border-top:2px solid #DDE3EE'>"+
+    "<td style='color:#1A2D5A'>TOTAL ("+vendors.length+" vendors)</td>"+
+    "<td></td>"+
+    "<td style='color:#B91C1C'>₹ "+fmt(totalBills)+"</td>"+
+    "<td style='color:#15803D'>₹ "+fmt(totalPaid)+"</td>"+
+    "<td style='font-weight:700;color:"+(totalOut>0?"#B91C1C":totalOut<0?"#15803D":"#7A8BAA")+"'>₹ "+fmt(Math.abs(totalOut))+"</td>"+
+    "</tr>";
+
+  html+="</tbody></table></div>";
+  el.innerHTML=html;
+}
+
+function downloadVendorReportXLS(){
+  if(!_vendorReportData.length){ toast("No vendor data to download.",false); return; }
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; }) : _vendorReportData;
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+  var rows = [["Vendor Name","Type","Opening Balance","Bills Raised (₹)","Amount Paid (₹)","Outstanding (₹)","Status"]];
+  var tBills=0,tPaid=0,tOut=0;
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    tBills+=parseFloat(v.bills)||0; tPaid+=parseFloat(v.paid)||0; tOut+=out;
+    rows.push([
+      v.vendorName, v.vendorType,
+      ob!==0?(ob>0?"Cr ":"Dr ")+"₹"+parseFloat(Math.abs(ob)).toFixed(2):"NIL",
+      parseFloat(v.bills).toFixed(2),
+      parseFloat(v.paid).toFixed(2),
+      parseFloat(Math.abs(out)).toFixed(2),
+      out>0?"Payable":out<0?"Advance Excess":"NIL"
+    ]);
+  });
+  rows.push([]);
+  rows.push(["TOTAL","","",tBills.toFixed(2),tPaid.toFixed(2),Math.abs(tOut).toFixed(2),tOut>0?"Payable":tOut<0?"Advance Excess":"NIL"]);
+
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:28},{wch:14},{wch:18},{wch:16},{wch:16},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,"Vendor Outstanding");
+  XLSX.writeFile(wb,"BlueDoor_VendorOutstanding_"+fyL.replace(/\s/g,"_")+".xlsx");
+  toast("✓ Downloaded.",true);
+}
+
+function printVendorReport(){
+  if(!_vendorReportData.length){ toast("No vendor data to print.",false); return; }
+  var positiveOnly = document.getElementById("filterPositive") && document.getElementById("filterPositive").checked;
+  var vendors = positiveOnly ? _vendorReportData.filter(function(v){ return parseFloat(v.outstanding)>0; }) : _vendorReportData;
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+  var tBills=0,tPaid=0,tOut=0;
+  var rows="";
+  vendors.forEach(function(v){
+    var out=parseFloat(v.outstanding)||0;
+    var ob=parseFloat(v.openingBal)||0;
+    tBills+=parseFloat(v.bills)||0; tPaid+=parseFloat(v.paid)||0; tOut+=out;
+    rows+="<tr>"+
+      "<td>"+v.vendorName+"<br><small style='color:#888'>"+v.vendorType+"</small></td>"+
+      "<td style='text-align:right'>"+( ob!==0?(ob>0?"Cr ":"Dr ")+"₹ "+fmt(Math.abs(ob)):"—" )+"</td>"+
+      "<td style='text-align:right;color:#B91C1C'>₹ "+fmt(v.bills)+"</td>"+
+      "<td style='text-align:right;color:#15803D'>₹ "+fmt(v.paid)+"</td>"+
+      "<td style='text-align:right;font-weight:700;color:"+(out>0?"#B91C1C":out<0?"#15803D":"#888")+"'>₹ "+fmt(Math.abs(out))+(out<0?" (Adv)":out===0?" (NIL)":"")+"</td>"+
+      "</tr>";
+  });
+
+  var win=window.open("","_blank");
+  win.document.write(
+    "<html><head><title>Vendor Outstanding — "+fyL+"</title>"+
+    "<style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}"+
+    "h2{color:#1A2D5A;margin-bottom:4px}h4{color:#7A8BAA;font-weight:normal;margin-bottom:16px}"+
+    "table{width:100%;border-collapse:collapse}th{background:#2B5197;color:#fff;padding:8px;text-align:left}"+
+    "td{padding:7px 8px;border-bottom:1px solid #eee}tr:last-child td{border-bottom:none}"+
+    ".tot{background:#F7F9FC;font-weight:700;border-top:2px solid #ddd}</style></head><body>"+
+    "<h2>Blue Door Architects</h2>"+
+    "<h4>Vendor Outstanding Summary &mdash; "+fyL+(positiveOnly?" (Positive Only)":"")+"</h4>"+
+    "<table><thead><tr><th>Vendor</th><th>Opening Bal</th><th>Bills ₹</th><th>Paid ₹</th><th>Outstanding ₹</th></tr></thead>"+
+    "<tbody>"+rows+
+    "<tr class='tot'><td>TOTAL ("+vendors.length+")</td><td></td><td style='text-align:right;color:#B91C1C'>₹ "+fmt(tBills)+"</td><td style='text-align:right;color:#15803D'>₹ "+fmt(tPaid)+"</td>"+
+    "<td style='text-align:right;font-weight:700;color:"+(tOut>0?"#B91C1C":tOut<0?"#15803D":"#888")+"'>₹ "+fmt(Math.abs(tOut))+"</td></tr>"+
+    "</tbody></table>"+
+    "<p style='color:#888;font-size:10px;margin-top:16px'>Generated: "+new Date().toLocaleString("en-IN")+"</p>"+
+    "</body></html>"
+  );
+  win.document.close();
+  win.print();
+}
+
+// ── USERS ──────────────────────────────────────────────────
+function loadUsers(){
+  api({action:"getUsers",token:token},function(d){
+    var el=document.getElementById("userList"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
     var html="";
-    d.entries.forEach(function(e){
-      var et=allEntryTypes[e.entryType]||{};
-      var cat=et.category||"expense";
-      var status=e.status||"Approved";
-      var stCls=status==="Pending"?"status-pending":status==="Rejected"?"status-rejected":"status-approved";
-      var delBtn=(e.source==="pending"&&status==="Pending")
-        ?"<button style='padding:4px 8px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:10px;cursor:pointer;font-family:inherit;margin-top:4px' data-id='"+e.entryId+"' onclick='deletePendingEntry(this.dataset.id)'>Delete</button>"
-        :"";
-      var rejReason=(status==="Rejected"&&e.rejectReason)
-        ?"<div style='font-size:10px;color:#B91C1C;margin-top:2px'>✗ "+e.rejectReason+"</div>":"";
-      var photoLink=e.driveFileUrl
-        ?"<a href='"+e.driveFileUrl+"' target='_blank' style='font-size:10px;color:#2B5197;margin-top:2px;display:block'>📎 View Bill</a>":"";
-      html+="<div class='entry-row'><div style='flex:1'><div class='entry-main'>"+(et.label||humanize(e.entryType))+"</div>"+
-        "<div class='entry-sub'>"+e.projectId+(e.costHeadId?" · "+e.costHeadId:"")+(e.vendorId?" · "+e.vendorId:"")+"</div>"+
-        "<span class='status-badge "+stCls+"'>"+status+"</span>"+
-        rejReason+photoLink+delBtn+"</div>"+
-        "<div style='text-align:right'><div class='entry-amount'>₹ "+fmt(e.amount)+"</div><div class='entry-date'>"+e.date+"</div></div></div>";
+    d.users.forEach(function(u){
+      html+="<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EEF2F7'>"+
+        "<div><div style='font-size:13px;font-weight:600;color:#1A2D5A'>"+u.username+"</div>"+
+        "<span class='badge "+(u.role==="Admin"?"badge-amber":"badge-blue")+"'>"+u.role+"</span>"+
+        (u.googleEmail?"<div style='font-size:10px;color:#7A8BAA;margin-top:2px'>"+u.googleEmail+"</div>":"")+
+        "</div><div style='display:flex;align-items:center;gap:8px'>"+
+        "<span class='badge "+(u.active?"badge-active":"badge-inactive")+"'>"+(u.active?"Active":"Inactive")+"</span>"+
+        "<button onclick='toggleUser(\""+u.username+"\")' style='border:1px solid #DDE3EE;background:#F7F9FC;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1A2D5A;font-family:inherit'>"+(u.active?"Deactivate":"Activate")+"</button>"+
+        "</div></div>";
+    });
+    el.innerHTML=html||"<div class='empty'>No users.</div>";
+  });
+}
+function addUser(){
+  var u=document.getElementById("uName").value.trim(), p=document.getElementById("uPass").value;
+  if(!u||!p){toast("Username and password required.",false);return;}
+  api({action:"addUser",token:token,username:u,password:p,role:document.getElementById("uRole").value,googleEmail:document.getElementById("uGoogle").value},
+  function(d){ if(d.success){toast("✓ User added.",true);loadUsers();}else toast(d.error||"Failed.",false); });
+}
+function toggleUser(uname){ api({action:"toggleUser",token:token,username:uname},function(d){ if(d.success){toast("✓ Updated.",true);loadUsers();}else toast(d.error,false); }); }
+
+// ── VIEW ROUTING ───────────────────────────────────────────
+var VIEWS=["home","ledger","add","reports","more"];
+function showView(name,el){
+  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active")); el.classList.add("active");
+  VIEWS.forEach(v=>document.getElementById("view-"+v).classList.add("hidden"));
+  document.getElementById("view-"+name).classList.remove("hidden");
+  if(name==="ledger") { if(!allLedger.length) initLedger(); else applyFilters(); }
+  if(name==="reports") loadReports();
+  if(name==="more") loadUsers();
+}
+
+// ── DELETE ENTRY ───────────────────────────────────────────
+var _pendingDeleteId = null;
+
+function confirmDelete(entryId, date, acName) {
+  _pendingDeleteId = entryId;
+  document.getElementById("confirmMsg").textContent =
+    "Delete entry " + entryId + " (" + date + " · " + acName + ")? " +
+    "Both the Debit and Credit entries will be permanently removed. This cannot be undone.";
+  document.getElementById("confirmOverlay").classList.remove("hidden");
+  document.getElementById("confirmDeleteBtn").onclick = function(){ doDelete(_pendingDeleteId); };
+}
+
+function closeConfirm() {
+  document.getElementById("confirmOverlay").classList.add("hidden");
+  _pendingDeleteId = null;
+}
+
+function doDelete(entryId) {
+  closeConfirm();
+  api({ action:"deleteEntry", token:token, entryId:entryId }, function(d){
+    if(d.success){
+      toast("✓ Entry "+entryId+" deleted ("+d.deleted+" rows removed).", true);
+      // Remove from in-memory ledger and re-render
+      allLedger = allLedger.filter(function(r){ return r.entryId !== entryId; });
+      applyFilters();
+    } else {
+      toast(d.error || "Delete failed.", false);
+    }
+  });
+}
+
+// ── DOWNLOAD CSV ────────────────────────────────────────────
+function downloadCSV() {
+  if(!allLedger.length){ toast("No ledger data to download.", false); return; }
+  var rows = getCurrentFilteredRows();
+  if(!rows.length){ toast("No entries match current filters.", false); return; }
+
+  var filtered = isFiltered();
+  var ob       = filtered ? getOpeningBalance(rows) : 0;
+  var headers  = ["Date","Voucher No","Account","Particulars","Debit (INR)","Credit (INR)","Project","Vendor","Cost Head"];
+  var lines    = [headers.join(",")];
+
+  if (filtered && ob !== 0) {
+    var obAbs = Math.abs(ob);
+    lines.push(["","","","Opening Balance",ob>0?obAbs.toFixed(2):"",ob<0?obAbs.toFixed(2):"","","",""].join(","));
+  }
+
+  var totalDr=0, totalCr=0;
+  rows.forEach(function(r){
+    totalDr += r.debit; totalCr += r.credit;
+    lines.push([r.date,r.entryId,csvEsc(r.acName),csvEsc(r.narration),
+      r.debit>0?r.debit.toFixed(2):"",r.credit>0?r.credit.toFixed(2):"",
+      csvEsc(r.projectName),csvEsc(r.vendorName),csvEsc(r.costHeadName)].join(","));
+  });
+
+  var closing = ob + totalDr - totalCr;
+  var grandDr = totalDr, grandCr = totalCr;
+  if (filtered && Math.abs(closing) > 0.001) {
+    var clAbs = Math.abs(closing);
+    lines.push(["","","",closing>0?"Closing Balance (Dr)":"Closing Balance (Cr)",
+      closing<0?clAbs.toFixed(2):"",closing>0?clAbs.toFixed(2):"","","",""].join(","));
+    if(closing<0) grandDr+=clAbs; else grandCr+=clAbs;
+  }
+
+  lines.push("");
+  lines.push(["TOTAL","","","",grandDr.toFixed(2),grandCr.toFixed(2),"","",""].join(","));
+
+  var blob = new Blob([lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement("a");
+  var fyL  = (document.getElementById("fyLabel").textContent||"").replace(/\s/g,"_");
+  var lbl  = (document.getElementById("ledgerTableLabel").textContent||"Ledger").replace(/\s/g,"_");
+  a.href = url;
+  a.download = "BlueDoor_"+lbl+"_"+fyL+".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("✓ CSV downloaded — open in Excel.", true);
+}
+
+function csvEsc(s){ s=s||""; return s.includes(",") || s.includes('"') ? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+// ── PRINT / PDF ─────────────────────────────────────────────
+function printLedger() {
+  if(!allLedger.length){ toast("No ledger data to print.", false); return; }
+  var rows = getCurrentFilteredRows();
+  if(!rows.length){ toast("No entries match current filters.", false); return; }
+
+  // Build print header info
+  var subtitle = document.getElementById("ledgerTableLabel").textContent || "Ledger Account";
+  var fyL      = document.getElementById("fyLabel").textContent || "";
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var dateRange= (dateFrom||"Start") + " to " + (dateTo||"Present") + " · " + fyL;
+
+  // Active filters summary
+  var filters = [];
+  var proj=document.getElementById("fProject"),vend=document.getElementById("fVendor");
+  var acct=document.getElementById("fAccount"),actp=document.getElementById("fAccType");
+  if(actp.value) filters.push("Type: "+actp.value);
+  if(acct.value) filters.push("Account: "+acct.options[acct.selectedIndex].text);
+  if(proj.value) filters.push("Project: "+proj.options[proj.selectedIndex].text);
+  if(vend.value) filters.push("Vendor: "+vend.options[vend.selectedIndex].text);
+
+  document.getElementById("printSubtitle").textContent  = subtitle;
+  document.getElementById("printDateRange").textContent = dateRange;
+  document.getElementById("printFilters").textContent   = filters.length ? "Filters: "+filters.join(" | ") : "";
+  document.getElementById("printHeader").style.display  = "block";
+
+  window.print();
+
+  // Hide print header after printing
+  setTimeout(function(){ document.getElementById("printHeader").style.display="none"; }, 1000);
+}
+
+// ── HELPER: get currently filtered+sorted rows from allLedger ─
+function getCurrentFilteredRows() {
+  var accType  = document.getElementById("fAccType").value;
+  var account  = document.getElementById("fAccount").value;
+  var project  = document.getElementById("fProject").value;
+  var vendor   = document.getElementById("fVendor").value;
+  var costHead = document.getElementById("fCostHead").value;
+  var drCr     = document.getElementById("fDrCr").value;
+  var dateFrom = document.getElementById("fDateFrom").value;
+  var dateTo   = document.getElementById("fDateTo").value;
+  var search   = document.getElementById("fSearch").value.toLowerCase().trim();
+  var dfTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+  var dtTs = dateTo   ? new Date(dateTo).getTime()   : Infinity;
+
+  var rows = allLedger.filter(function(r){
+    if(accType  && r.acType     !== accType)  return false;
+    if(account  && r.acCode     !== account)  return false;
+    if(project  && r.projectId  !== project)  return false;
+    if(vendor   && r.vendorId   !== vendor)   return false;
+    if(costHead && r.costHeadId !== costHead) return false;
+    if(drCr     && r.drCr       !== drCr)     return false;
+    if(dfTs && r.dateRaw < dfTs) return false;
+    if(dtTs < Infinity && r.dateRaw > dtTs) return false;
+    if(search && !(
+      (r.narration||"").toLowerCase().includes(search)||
+      (r.acName||"").toLowerCase().includes(search)||
+      (r.projectName||"").toLowerCase().includes(search)||
+      (r.vendorName||"").toLowerCase().includes(search)||
+      (r.entryId||"").toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+  rows.sort(function(a,b){ return a.dateRaw-b.dateRaw || a.entryId.localeCompare(b.entryId); });
+  return rows;
+}
+
+// ── PROJECT CRUD ───────────────────────────────────────────
+function saveProject() {
+  var name  = document.getElementById("pName").value.trim();
+  var editId= document.getElementById("pEditId").value;
+  if (!name) { toast("Project name is required.", false); return; }
+
+  var payload = {
+    token:     token,
+    name:      name,
+    client:    document.getElementById("pClient").value,
+    location:  document.getElementById("pLoc").value,
+    startDate: document.getElementById("pStart").value,
+    budget:    document.getElementById("pBudget").value,
+    status:    document.getElementById("pStatus").value,
+    fyid:      curFY
+  };
+
+  if (editId) {
+    payload.action = "editProject";
+    payload.id     = editId;
+    api(payload, function(d){
+      if(d.success){ toast("✓ Project updated.", true); cancelEditProject(); loadAllProjects(); localStorage.removeItem("bd_c_proj"); }
+      else toast(d.error||"Update failed.", false);
+    });
+  } else {
+    payload.action = "addProject";
+    api(payload, function(d){
+      if(d.success){ toast("✓ Project added: "+d.id, true); clearProjectForm(); loadAllProjects(); localStorage.removeItem("bd_c_proj"); }
+      else toast(d.error||"Failed.", false);
+    });
+  }
+}
+
+function editProjectRow(id, name, client, location, startDate, budget, status) {
+  document.getElementById("pEditId").value    = id;
+  document.getElementById("pName").value      = name;
+  document.getElementById("pClient").value    = client;
+  document.getElementById("pLoc").value       = location;
+  document.getElementById("pStart").value     = startDate||"";
+  document.getElementById("pBudget").value    = budget||"";
+  document.getElementById("pStatus").value    = status||"Active";
+  document.getElementById("pFormLabel").textContent = "Edit Project";
+  document.getElementById("pSaveBtn").textContent   = "Update Project";
+  document.getElementById("pCancelBtn").style.display = "";
+  // Scroll to form
+  document.getElementById("at-project").scrollIntoView({behavior:"smooth"});
+}
+
+function cancelEditProject() {
+  clearProjectForm();
+  document.getElementById("pFormLabel").textContent    = "Add Project";
+  document.getElementById("pSaveBtn").textContent      = "Add Project";
+  document.getElementById("pCancelBtn").style.display  = "none";
+}
+
+function clearProjectForm() {
+  ["pEditId","pName","pClient","pLoc","pStart","pBudget"].forEach(function(id){
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("pStatus").value = "Active";
+}
+
+function confirmDeleteProject(id, name, entryCount) {
+  var msg = entryCount > 0
+    ? "'"+name+"' has "+entryCount+" entries linked to it. It will be marked Deleted and hidden from dropdowns, but existing entries are preserved. Continue?"
+    : "Mark '"+name+"' as Deleted? It will be hidden from dropdowns.";
+  if (!confirm(msg)) return;
+  api({ action:"deleteProject", token:token, id:id }, function(d){
+    if(d.success){
+      var warn = d.entriesExist ? " ("+d.entryCount+" entries preserved)" : "";
+      toast("✓ Project marked as Deleted"+warn, true);
+      loadAllProjects(); localStorage.removeItem("bd_c_proj");
+    } else toast(d.error||"Delete failed.", false);
+  });
+}
+
+function loadAllProjects() {
+  var el = document.getElementById("projectList");
+  if (!el) return;
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({ action:"getAllProjects", token:token }, function(d){
+    if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if (!d.projects.length){ el.innerHTML="<div class='empty'>No projects yet.</div>"; return; }
+    var isAdmin = localStorage.getItem("bd_role")==="Admin";
+    var html = "";
+    d.projects.forEach(function(p){
+      var stCls = p.status==="Active"?"status-active":p.status==="On Hold"?"status-hold":p.status==="Completed"?"status-completed":"status-deleted";
+      var edBtn = "<button class='btn-edit' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' data-cl='"+esc(p.client)+"' data-lo='"+esc(p.location)+"' data-st='"+esc(p.startDate||"")+"' data-bu='"+p.budget+"' data-ss='"+p.status+"' onclick='editProjectRow(this.dataset.id,this.dataset.nm,this.dataset.cl,this.dataset.lo,this.dataset.st,this.dataset.bu,this.dataset.ss)'>Edit</button>";
+      var delBtn = isAdmin && p.status !== "Deleted"
+        ? "<button class='btn-del-soft' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' onclick='confirmDeleteProject(this.dataset.id,this.dataset.nm,0)'>Delete</button>"
+        : "";
+      html += "<div class='master-row'>"+
+        "<div><div class='master-main'>"+p.name+"</div>"+
+        "<div class='master-sub'>"+p.client+(p.location?" · "+p.location:"")+"</div>"+
+        "<span class='status-badge "+stCls+"'>"+p.status+"</span>"+
+        (p.budget>0?"<div class='master-sub'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
+        "</div>"+
+        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+  });
+}
+
+// ── VENDOR CRUD ─────────────────────────────────────────────
+function saveVendor() {
+  var name  = document.getElementById("vName").value.trim();
+  var editId= document.getElementById("vEditId").value;
+  if (!name) { toast("Vendor name is required.", false); return; }
+
+  var payload = {
+    token:   token,
+    name:    name,
+    type:    document.getElementById("vType").value,
+    gstin:   document.getElementById("vGST").value,
+    contact: document.getElementById("vContact").value
+  };
+
+  if (editId) {
+    payload.action = "editVendor";
+    payload.id     = editId;
+    api(payload, function(d){
+      if(d.success){ toast("✓ Vendor updated.", true); cancelEditVendor(); loadAllVendors(); localStorage.removeItem("bd_c_ve"); }
+      else toast(d.error||"Update failed.", false);
+    });
+  } else {
+    payload.action = "addVendor";
+    api(payload, function(d){
+      if(d.success){ toast("✓ Vendor added: "+d.id, true); clearVendorForm(); loadAllVendors(); localStorage.removeItem("bd_c_ve"); }
+      else toast(d.error||"Failed.", false);
+    });
+  }
+}
+
+function editVendorRow(id, name, type, gstin, contact) {
+  document.getElementById("vEditId").value   = id;
+  document.getElementById("vName").value     = name;
+  document.getElementById("vType").value     = type;
+  document.getElementById("vGST").value      = gstin||"";
+  document.getElementById("vContact").value  = contact||"";
+  document.getElementById("vFormLabel").textContent = "Edit Vendor";
+  document.getElementById("vSaveBtn").textContent   = "Update Vendor";
+  document.getElementById("vCancelBtn").style.display = "";
+  document.getElementById("at-vendor").scrollIntoView({behavior:"smooth"});
+}
+
+function cancelEditVendor() {
+  clearVendorForm();
+  document.getElementById("vFormLabel").textContent   = "Add Vendor";
+  document.getElementById("vSaveBtn").textContent     = "Add Vendor";
+  document.getElementById("vCancelBtn").style.display = "none";
+}
+
+function clearVendorForm() {
+  ["vEditId","vName","vGST","vContact"].forEach(function(id){
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("vType").value = "Contractor";
+}
+
+function confirmDeleteVendor(id, name) {
+  api({ action:"getAllVendors", token:token }, function(d){
+    // Count entries for this vendor
+    api({ action:"getVendorOutstanding", token:token, fyid:"", vendorId:id }, function(vd){
+      var count = 0;
+      if(vd.success && vd.vendors.length) count = vd.vendors[0].bills + vd.vendors[0].paid;
+      var msg = count > 0
+        ? "'"+name+"' has transactions against it. It will be marked Inactive and hidden from dropdowns, but data is preserved. Continue?"
+        : "Mark '"+name+"' as Inactive? It will be hidden from entry dropdowns.";
+      if (!confirm(msg)) return;
+      api({ action:"deleteVendor", token:token, id:id }, function(del){
+        if(del.success){
+          toast("✓ Vendor marked as Inactive"+(del.entriesExist?" (entries preserved)":"")+".", true);
+          loadAllVendors(); localStorage.removeItem("bd_c_ve");
+        } else toast(del.error||"Delete failed.", false);
+      });
+    });
+  });
+}
+
+function loadAllVendors() {
+  var el = document.getElementById("vendorList");
+  if (!el) return;
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({ action:"getAllVendors", token:token }, function(d){
+    if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if (!d.vendors.length){ el.innerHTML="<div class='empty'>No vendors yet.</div>"; return; }
+    var isAdmin = localStorage.getItem("bd_role")==="Admin";
+    var html = "";
+    d.vendors.forEach(function(v){
+      var stCls = v.active ? "status-active" : "status-inactive";
+      var edBtn = "<button class='btn-edit' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' data-ty='"+esc(v.type)+"' data-gs='"+esc(v.gstin||"")+"' data-co='"+esc(v.contact||"")+"' onclick='editVendorRow(this.dataset.id,this.dataset.nm,this.dataset.ty,this.dataset.gs,this.dataset.co)'>Edit</button>";
+      var delBtn = isAdmin && v.active
+        ? "<button class='btn-del-soft' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' onclick='confirmDeleteVendor(this.dataset.id,this.dataset.nm)'>Delete</button>"
+        : "";
+      html += "<div class='master-row'>"+
+        "<div><div class='master-main'>"+v.name+"</div>"+
+        "<div class='master-sub'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
+        (v.gstin?"<div class='master-sub'>GST: "+v.gstin+"</div>":"")+
+        "<span class='status-badge "+stCls+"'>"+(v.active?"Active":"Inactive")+"</span>"+
+        "</div>"+
+        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+  });
+}
+
+// ── SYNC ────────────────────────────────────────────────────
+function syncAll(){
+  var btn=document.getElementById("syncBtn");
+  btn.classList.add("spinning"); btn.disabled=true;
+  ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
+  allLedger=[]; allOpeningBalances=[]; allVendorOBs=[];
+  loadMasterData(); loadDashboard();
+  if(!document.getElementById("view-ledger").classList.contains("hidden")) initLedger();
+  setTimeout(function(){ btn.classList.remove("spinning"); btn.disabled=false; toast("✓ Data synced.",true); },2000);
+}
+
+// ── RECENT ACTIVITY ─────────────────────────────────────────
+var _actOpen=false;
+function toggleActivity(){
+  _actOpen=!_actOpen;
+  document.getElementById("actBody").classList.toggle("hidden",!_actOpen);
+  document.getElementById("actChevron").style.transform=_actOpen?"rotate(180deg)":"";
+  if(_actOpen) loadActivity();
+}
+function loadActivity(){
+  var el=document.getElementById("actList");
+  el.innerHTML="<div class='empty' style='padding:12px 0'>Loading…</div>";
+  api({action:"getRecentActivity",token:token},function(d){
+    if(!d.success||!d.activities.length){
+      el.innerHTML="<div class='empty' style='padding:12px 0'>No activity yet.</div>"; return;
+    }
+    var html="";
+    d.activities.forEach(function(a){
+      var isDel=a.action.toLowerCase().indexOf("delete")!==-1;
+      var ic=isDel?"delete":a.entityType==="Entry"?"entry":a.entityType==="Project"?"project":"vendor";
+      var ico=isDel?"🗑":a.entityType==="Entry"?"📝":a.entityType==="Project"?"🏗":"🤝";
+      html+="<div class='act-row'>"+
+        "<div class='act-icon "+ic+"'>"+ico+"</div>"+
+        "<div style='flex:1;min-width:0'>"+
+          "<div class='act-main'>"+a.action+" — "+a.entityName+"</div>"+
+          (a.details?"<div class='act-sub'>"+a.details+"</div>":"")+
+          "<div class='act-sub' style='color:#94A3B8'>by "+a.username+"</div>"+
+        "</div>"+
+        "<div class='act-ts'>"+a.timestamp+"</div>"+
+        "</div>";
     });
     el.innerHTML=html;
   });
 }
 
-function deletePendingEntry(entryId){
-  if(!confirm("Delete this pending entry? This cannot be undone.")) return;
-  api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
-    if(d.success){ toast("✓ Entry deleted.",true); loadRecent(); }
-    else toast(d.error||"Delete failed.",false);
+// ── VENDOR OPENING BALANCE ─────────────────────────────────
+function loadVendorOBTab() {
+  // Populate vendor dropdown
+  var sel = document.getElementById("vobVendor");
+  var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+  document.getElementById("vobFYLabel").textContent = fyL;
+  sel.innerHTML = "<option value=''>— Select Vendor —</option>";
+  api({action:"getVendors",token:token}, function(d){
+    if(!d.success) return;
+    d.vendors.forEach(function(v){
+      sel.innerHTML += "<option value='"+v.id+"'>"+v.name+"</option>";
+    });
+  });
+  // Load existing vendor OBs
+  loadVendorOBList();
+}
+
+function loadVendorOBList() {
+  var el = document.getElementById("vobList");
+  el.innerHTML = "<div class='empty'>Loading…</div>";
+  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+    if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances for this FY.</div>"; return; }
+    // Build vendor name map from dropdown
+    var vMap={};
+    document.querySelectorAll("#vobVendor option").forEach(function(o){ if(o.value) vMap[o.value]=o.textContent; });
+    var html="<table><thead><tr><th>Vendor</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th><th>Date</th></tr></thead><tbody>";
+    d.balances.forEach(function(b){
+      html+="<tr>"+
+        "<td style='font-size:12px;font-weight:600;color:#1A2D5A'>"+(vMap[b.vendorId]||b.vendorId)+"</td>"+
+        "<td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td>"+
+        "<td class='"+(b.drCr==="Dr"?"dr":"cr")+"'>₹ "+fmt(b.amount)+"</td>"+
+        "<td style='font-size:11px;color:#7A8BAA'>"+b.enteredBy+"</td>"+
+        "<td style='font-size:11px;color:#7A8BAA;white-space:nowrap'>"+b.enteredAt+"</td>"+
+        "</tr>";
+    });
+    html+="</tbody></table>";
+    el.innerHTML=html;
   });
 }
 
-// Bill photo helpers
-function previewBillPhoto(input){
-  var file=input.files[0]; if(!file) return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById("billPhotoImg").src=e.target.result;
-    document.getElementById("billPhotoPreview").style.display="block";
-    document.getElementById("billPhotoClearBtn").style.display="";
-  };
-  reader.readAsDataURL(file);
-}
-function clearBillPhoto(){
-  document.getElementById("billPhoto").value="";
-  document.getElementById("billPhotoPreview").style.display="none";
-  document.getElementById("billPhotoClearBtn").style.display="none";
-  document.getElementById("billPhotoImg").src="";
-}
-function uploadPhoto(file, entryId){
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var dataUrl=e.target.result;
-    var base64=dataUrl.split(",")[1];
-    var ctype=file.type||"image/jpeg";
-    api({action:"uploadBillPhoto",token:token,entryId:entryId,base64:base64,filename:file.name,contentType:ctype},
-    function(d){ if(d.success) toast("📎 Bill photo uploaded.",true); else toast("Photo upload failed: "+d.error,false); });
-  };
-  reader.readAsDataURL(file);
+function saveVendorOB() {
+  var vid  = document.getElementById("vobVendor").value;
+  var drCr = document.getElementById("vobDrCr").value;
+  var amt  = parseFloat(document.getElementById("vobAmount").value);
+  if(!vid)       { toast("Please select a vendor.", false); return; }
+  if(!amt||amt<=0){ toast("Please enter a valid amount.", false); return; }
+  api({action:"saveVendorOB",token:token,fyid:curFY,vendorId:vid,drCr:drCr,amount:amt}, function(d){
+    if(d.success){
+      toast("✓ Vendor opening balance saved.", true);
+      document.getElementById("vobAmount").value="";
+      document.getElementById("vobVendor").value="";
+      loadVendorOBList();
+    } else toast(d.error||"Failed.", false);
+  });
 }
 
-function showView(name,el){
-  document.querySelectorAll(".bottom-nav .nav-item").forEach(n=>n.classList.remove("active")); el.classList.add("active");
-  document.getElementById("view-entry").classList.add("hidden");
-  document.getElementById("view-recent").classList.add("hidden");
-  if(name==="entry"||name==="add") document.getElementById("view-entry").classList.remove("hidden");
-  else if(name==="recent"){ document.getElementById("view-recent").classList.remove("hidden"); loadRecent(); }
+// ── DOWNLOAD CLOSING BALANCES (.xlsx) ──────────────────────
+function downloadClosingBalances() {
+  var btn = document.getElementById("closingBtn");
+  var status = document.getElementById("closingStatus");
+  btn.disabled = true;
+  btn.textContent = "Generating…";
+  status.textContent = "";
+
+  // Need ledger data — load if not already loaded
+  function generate(ledger, vendorOBs) {
+    var fyL = (fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+
+    // ── SHEET 1: Account Closing Balances ─────────────────────
+    // Only Balance Sheet accounts (Asset + Liability) carry forward
+    // P&L accounts (Income + Expense) reset to zero each FY
+
+    // Build running balance per account from ledger
+    var acMap = {}; // acKey -> { name, code, type, normal, dr, cr }
+    ledger.forEach(function(r){
+      if (!r.acKey) return;
+      // Only balance sheet accounts
+      if (r.acType !== "Asset" && r.acType !== "Liability" && r.acType !== "Contra-Equity") return;
+      if (!acMap[r.acKey]) acMap[r.acKey] = { name:r.acName, code:r.acCode, type:r.acType, normal:r.acNormal, dr:0, cr:0 };
+      acMap[r.acKey].dr += r.debit;
+      acMap[r.acKey].cr += r.credit;
+    });
+
+    // Add account opening balances to get true closing balance
+    allOpeningBalances.forEach(function(b){
+      if (!acMap[b.accountKey]) return;
+      if (b.drCr === "Dr") acMap[b.accountKey].dr += parseFloat(b.amount)||0;
+      else                  acMap[b.accountKey].cr += parseFloat(b.amount)||0;
+    });
+
+    // Build account rows
+    var acRows = [["Account Code","Account Name","Account Type","Total Debits (₹)","Total Credits (₹)","Closing Balance (₹)","Balance Side","Notes for CA"]];
+    Object.keys(acMap).sort().forEach(function(key){
+      var a = acMap[key];
+      var net = a.dr - a.cr;
+      // For Asset (Dr-normal): positive net = Dr balance
+      // For Liability (Cr-normal): negative net = Cr balance
+      var balAmt, balSide;
+      if (a.normal === "Dr") {
+        balAmt = net; balSide = net >= 0 ? "Dr" : "Cr";
+      } else {
+        balAmt = -net; balSide = net <= 0 ? "Cr" : "Dr";
+      }
+      acRows.push([
+        a.code, a.name, a.type,
+        Math.round(a.dr*100)/100,
+        Math.round(a.cr*100)/100,
+        Math.round(Math.abs(balAmt)*100)/100,
+        balSide,
+        ""
+      ]);
+    });
+    // Separator + instructions
+    acRows.push([]);
+    acRows.push(["NOTE: Enter these as Opening Balances for the next FY using the same Dr/Cr side shown above.",
+                 "","","","","","",""]);
+    acRows.push(["P&L accounts (Income/Expense) are excluded — they reset to zero each FY.",
+                 "","","","","","",""]);
+
+    // ── SHEET 2: Vendor Closing Balances ──────────────────────
+    // Fetch fresh from server so OBs are factored in
+    api({action:"getVendorOutstanding",token:token,fyid:curFY}, function(d){
+      var vendorRows = [["Vendor Name","Vendor Type","Opening Balance (₹)","Bills Raised (₹)","Amount Paid (₹)","Closing Balance (₹)","Balance Side","Notes for CA"]];
+
+      if (d.success && d.vendors.length) {
+        d.vendors.forEach(function(v){
+          var obAmt = Math.abs(parseFloat(v.openingBal)||0);
+          var obSide = (parseFloat(v.openingBal)||0) >= 0 ? "Cr" : "Dr";
+          var closing = parseFloat(v.outstanding)||0;
+          var closingSide = closing > 0 ? "Cr (Payable)" : closing < 0 ? "Dr (Advance)" : "NIL";
+          vendorRows.push([
+            v.vendorName, v.vendorType,
+            obAmt + " " + obSide,
+            Math.round(parseFloat(v.bills)*100)/100,
+            Math.round(parseFloat(v.paid)*100)/100,
+            Math.round(Math.abs(closing)*100)/100,
+            closingSide,
+            ""
+          ]);
+        });
+      } else {
+        vendorRows.push(["No vendor data for this FY.","","","","","","",""]);
+      }
+      vendorRows.push([]);
+      vendorRows.push(["NOTE: Positive closing balance = we owe vendor (enter as Cr in next FY opening).",
+                       "","","","","","",""]);
+      vendorRows.push(["Negative closing balance = vendor owes us (enter as Dr in next FY opening).",
+                       "","","","","","",""]);
+
+      // ── Build .xlsx ────────────────────────────────────────
+      var wb = XLSX.utils.book_new();
+
+      // Sheet 1 — Accounts
+      var ws1 = XLSX.utils.aoa_to_sheet(acRows);
+      ws1["!cols"] = [{wch:14},{wch:28},{wch:16},{wch:18},{wch:18},{wch:20},{wch:14},{wch:40}];
+      XLSX.utils.book_append_sheet(wb, ws1, "Account Balances");
+
+      // Sheet 2 — Vendors
+      var ws2 = XLSX.utils.aoa_to_sheet(vendorRows);
+      ws2["!cols"] = [{wch:28},{wch:16},{wch:20},{wch:18},{wch:18},{wch:20},{wch:20},{wch:40}];
+      XLSX.utils.book_append_sheet(wb, ws2, "Vendor Balances");
+
+      // Download
+      var fname = "BlueDoor_ClosingBalances_" + fyL.replace(/\s/g,"_") + ".xlsx";
+      XLSX.writeFile(wb, fname);
+
+      btn.disabled = false;
+      btn.textContent = "📥 Download Closing Balances (.xlsx)";
+      status.textContent = "✓ Downloaded: " + fname;
+      toast("✓ Closing balances downloaded.", true);
+    });
+  }
+
+  // Ensure ledger is loaded
+  if (allLedger.length) {
+    generate(allLedger, allVendorOBs);
+  } else {
+    status.textContent = "Loading ledger data…";
+    api({action:"getLedger",token:token,fyid:curFY}, function(d){
+      if (!d.success) {
+        status.textContent = "Failed to load ledger: " + d.error;
+        btn.disabled = false; btn.textContent = "📥 Download Closing Balances (.xlsx)";
+        return;
+      }
+      allLedger = d.ledger;
+      api({action:"getOpeningBalances",token:token,fyid:curFY}, function(ob){
+        if(ob.success) allOpeningBalances = ob.balances || [];
+        api({action:"getVendorOB",token:token,fyid:curFY}, function(vob){
+          if(vob.success) allVendorOBs = vob.balances || [];
+          generate(allLedger, allVendorOBs);
+        });
+      });
+    });
+  }
 }
 
-function api(body,cb){
+// ── PENDING APPROVALS ───────────────────────────────────────
+function loadPendingEntries(){
+  var el = document.getElementById("pendingList");
+  el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
+  api({action:"getPendingEntries",token:token,fyid:curFY,status:"Pending"}, function(d){
+    var badge = document.getElementById("pendingBadge");
+    if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    var count = d.pendingCount||0;
+    badge.textContent = count;
+    badge.style.display = count>0 ? "" : "none";
+    if(!d.entries.length){
+      el.innerHTML="<div class='empty' style='padding:8px 0'>No pending entries. ✓</div>"; return;
+    }
+    var html="";
+    d.entries.forEach(function(e){
+      var photoBtn = e.driveFileUrl
+        ? "<a class='btn-view-bill' href='"+e.driveFileUrl+"' target='_blank'>📎 View Bill</a>" : "";
+      html+="<div class='pend-row'>"+
+        "<div class='pend-main'>"+e.entryLabel+" — ₹ "+fmt(e.amount)+"</div>"+
+        "<div class='pend-sub'>"+e.date+" · "+e.projectName+(e.vendorName?" · "+e.vendorName:"")+(e.costHeadName?" · "+e.costHeadName:"")+"</div>"+
+        "<div class='pend-sub'>by "+e.submittedBy+" · "+e.submittedAt+"</div>"+
+        (e.narration?"<div class='pend-sub' style='font-style:italic'>"+e.narration+"</div>":"")+
+        "<div class='pend-actions'>"+
+          "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
+          "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
+          "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
+          photoBtn+
+        "</div>"+
+        "</div>";
+    });
+    el.innerHTML=html;
+  });
+}
+
+function confirmApprove(entryId, label, amount){
+  if(!confirm("Approve entry: "+label+" \u2014 \u20b9 "+fmt(amount)+"? This will post the double entry to the ledger.")) return;
+  api({action:"approveEntry",token:token,entryId:entryId}, function(d){
+    if(d.success){
+      toast("✓ Approved: Dr "+d.dr+" / Cr "+d.cr, true);
+      loadPendingEntries();
+      loadDashboard();
+    } else toast(d.error||"Approve failed.", false);
+  });
+}
+
+var _rejectEntryId="", _commentEntryId="";
+
+function openComment(entryId, label){
+  _commentEntryId=entryId;
+  document.getElementById("commentMsg").textContent='Add a comment for the supervisor on: "'+label+'". Entry stays Pending — supervisor can edit and resubmit.';
+  document.getElementById("commentText").value="";
+  document.getElementById("commentOverlay").classList.remove("hidden");
+  document.getElementById("commentOKBtn").onclick=function(){
+    var comment=document.getElementById("commentText").value.trim();
+    if(!comment){ toast("Please enter a comment.",false); return; }
+    document.getElementById("commentOverlay").classList.add("hidden");
+    api({action:"commentEntry",token:token,entryId:_commentEntryId,comment:comment}, function(d){
+      if(d.success){ toast("✓ Comment sent to supervisor.",true); loadPendingEntries(); }
+      else toast(d.error||"Failed.",false);
+    });
+  };
+}
+
+function openReject(entryId, label){
+  _rejectEntryId=entryId;
+  document.getElementById("rejectMsg").textContent='Reject "'+label+'"? The supervisor can delete rejected entries. This cannot be undone.';
+  document.getElementById("rejectOverlay").classList.remove("hidden");
+  document.getElementById("rejectOKBtn").onclick=function(){
+    document.getElementById("rejectOverlay").classList.add("hidden");
+    api({action:"rejectEntry",token:token,entryId:_rejectEntryId}, function(d){
+      if(d.success){ toast("Entry rejected.",true); loadPendingEntries(); }
+      else toast(d.error||"Reject failed.",false);
+    });
+  };
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+var _dbTotal=0, _dbErrors=0, _debugOpen=false;
+
+function api(body, cb) {
+  var action  = body.action || "unknown";
+  var t0      = Date.now();
+  var callNum = ++_dbTotal;
+
+  // Sanitise payload for display — hide token
+  var display = Object.assign({}, body);
+  if (display.token) display.token = display.token.substring(0,8)+"…";
+
+  // Append payload as query param — survives GAS POST→GET redirect
   var url = API + "?payload=" + encodeURIComponent(JSON.stringify(body));
-  fetch(url,{method:"POST",redirect:"follow",body:JSON.stringify(body)})
-    .then(r=>r.json())
+  fetch(url, { method:"POST", redirect:"follow", body:JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
     .then(function(d){
-      if(!d.success && d.error && d.error.indexOf("Session expired")!==-1){
+      var ms = Date.now()-t0;
+      logDebug(callNum, action, d.success, d.error||null, display, d, ms);
+      if (!d.success && d.error && d.error.indexOf("Session expired") !== -1) {
         localStorage.removeItem("bd_token");
         localStorage.removeItem("bd_role");
         localStorage.removeItem("bd_username");
-        window.location.href="index.html";
+        window.location.href = "index.html";
         return;
       }
       cb(d);
     })
-    .catch(()=>cb({success:false,error:"Network error."}));
+    .catch(function(e){
+      var ms = Date.now()-t0;
+      var err = { success:false, error:"Network error: "+e.message };
+      logDebug(callNum, action, false, err.error, display, null, ms);
+      cb(err);
+    });
 }
+
+function logDebug(num, action, ok, errMsg, req, res, ms) {
+  if (!ok) _dbErrors++;
+  document.getElementById("dbTotal").textContent  = _dbTotal;
+  document.getElementById("dbErrors").textContent = _dbErrors;
+
+  var log   = document.getElementById("debugLog");
+  var empty = log.querySelector(".debug-empty");
+  if (empty) empty.remove();
+
+  var now  = new Date();
+  var time = String(now.getHours()).padStart(2,"0")+":"+
+             String(now.getMinutes()).padStart(2,"0")+":"+
+             String(now.getSeconds()).padStart(2,"0");
+
+  var reqStr = JSON.stringify(req);
+  var resStr = res ? JSON.stringify(res).substring(0,300) : "null";
+
+  var entry = document.createElement("div");
+  entry.className = "debug-entry";
+  entry.innerHTML =
+    "<div class='debug-time'>"+time+"<br><span style='color:#334155'>"+ms+"ms</span></div>"+
+    "<div class='debug-body'>"+
+      "<div>"+
+        "<span class='debug-action'>"+action+"</span>"+
+        (ok
+          ? "<span class='debug-status-ok'>✓ OK</span>"
+          : "<span class='debug-status-err'>✗ ERROR</span>")+
+        "<span style='color:#475569;font-size:10px;margin-left:8px'>#"+num+"</span>"+
+      "</div>"+
+      (errMsg ? "<div class='debug-error-msg'>"+errMsg+"</div>" : "")+
+      "<div class='debug-payload collapsed' onclick='this.classList.toggle(\"collapsed\")' title='Click to expand'>"+
+        "REQ: "+reqStr+
+      "</div>"+
+      (res ? "<div class='debug-payload collapsed' onclick='this.classList.toggle(\"collapsed\")' title='Click to expand'>"+
+        "RES: "+resStr+(resStr.length>=300?"…":"")+
+      "</div>" : "")+
+    "</div>";
+
+  // Newest at top
+  log.insertBefore(entry, log.firstChild);
+
+  // If error and debug panel is closed — flash the toggle
+  if (!ok && !_debugOpen) {
+    var toggle = document.getElementById("debugToggle");
+    toggle.style.color    = "#F87171";
+    toggle.style.borderColor = "#F87171";
+    setTimeout(function(){
+      if(!_debugOpen){ toggle.style.color=""; toggle.style.borderColor=""; }
+    }, 3000);
+  }
+}
+
+function toggleDebug() {
+  _debugOpen = !_debugOpen;
+  document.getElementById("debugPanel").classList.toggle("open", _debugOpen);
+  var toggle = document.getElementById("debugToggle");
+  toggle.classList.toggle("active", _debugOpen);
+  toggle.style.color=""; toggle.style.borderColor="";
+  // Adjust body padding so content isn't hidden behind console
+  document.body.style.paddingBottom = _debugOpen ? "calc(40vh + 64px)" : "80px";
+}
+
+function clearDebug() {
+  _dbTotal=0; _dbErrors=0;
+  document.getElementById("dbTotal").textContent  = "0";
+  document.getElementById("dbErrors").textContent = "0";
+  document.getElementById("debugLog").innerHTML   = "<div class='debug-empty'>No API calls yet.</div>";
+}
+
 function toast(msg,ok){ var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err"); clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",4000); }
 function fmt(n){ return parseFloat(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function humanize(s){ return (s||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
-function syncApp(){
-  var b=document.getElementById("syncBtn"); b.classList.add("spinning"); b.disabled=true;
-  ["bd_c_fylist","bd_c_et","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){ localStorage.removeItem(k); });
-  loadFY(); loadMasterData();
-  setTimeout(function(){ b.classList.remove("spinning"); b.disabled=false; toast("✓ Synced.",true); },2000);
-}
+function shortNum(n){ n=parseFloat(n||0); if(n>=10000000)return(n/10000000).toFixed(1)+"Cr"; if(n>=100000)return(n/100000).toFixed(1)+"L"; if(n>=1000)return(n/1000).toFixed(1)+"K"; return n.toFixed(0); }
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 function logout(){ localStorage.removeItem("bd_token"); localStorage.removeItem("bd_role"); localStorage.removeItem("bd_username"); window.location.href="index.html"; }
 </script>
 <script>
