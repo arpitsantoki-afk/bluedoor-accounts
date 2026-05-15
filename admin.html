@@ -807,7 +807,7 @@ var CACHE_TTL = 6 * 60 * 60 * 1000;
 function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
-function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); _addDropdownsBuilt=false; }
+function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -1515,21 +1515,28 @@ function showView(name,el){
 }
 
 // Rebuild combo dropdowns when Add tab becomes visible
-// (they may not have been built if view was hidden during init)
-var _addDropdownsBuilt = false;
 function rebuildAddDropdowns(){
-  if(_addDropdownsBuilt) return;
-  _addDropdownsBuilt = true;
-  // Re-run fillSel for entry form dropdowns using cached data
-  var prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve");
+  // Force destroy existing instances so they rebuild fresh
+  ["aProject","aCostHead","aVendor","obAccount","vobVendor"].forEach(function(id){
+    if(window._ssInstances && window._ssInstances[id]){
+      var wrap=document.getElementById("ss-wrap-"+id);
+      if(wrap) wrap.parentNode.removeChild(wrap);
+      var orig=document.getElementById(id);
+      if(orig) orig.style.display="";
+      delete window._ssInstances[id];
+    }
+  });
+  // Rebuild from cache or server data
+  var prC=lsGet("bd_c_proj"), chC=lsGet("bd_c_ch"), veC=lsGet("bd_c_ve"), coaC=lsGet("bd_c_coa");
   if(prC) fillSel("aProject",prC,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —");
+  else api({action:"getProjects",token:token},function(d){ if(d.success) fillSel("aProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —"); });
   if(chC){
     window._allCostHeads=window._allCostHeads||{};
     chC.forEach(function(c){window._allCostHeads[c.id]=c;});
     fillSel("aCostHead",chC,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
-  }
+  } else api({action:"getCostHeads",token:token},function(d){ if(d.success){ window._allCostHeads={}; d.costHeads.forEach(function(c){window._allCostHeads[c.id]=c;}); fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —"); }});
   if(veC) fillSel("aVendor",veC,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
-  var coaC=lsGet("bd_c_coa");
+  else api({action:"getVendors",token:token},function(d){ if(d.success) fillSel("aVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —"); });
   if(coaC) fillSel("obAccount",coaC,function(a){return{v:a.key,t:a.code+" — "+a.name+" ("+a.type+")"};},"— Select Account —");
 }
 
