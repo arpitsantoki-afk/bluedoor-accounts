@@ -1214,28 +1214,19 @@ function switchAddTab(tab,el){
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
 function loadAddDropdowns(){
-  // Dropdowns now handled by loadMasterData() on init
-  // This stub kept for compatibility when called after adding project/vendor
   setAToday();
   api({action:"getProjects",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_proj",d.projects);
-    var s=document.getElementById("aProject"); s.innerHTML="<option value=''>— Select Project —</option>";
-    d.projects.forEach(function(p){s.innerHTML+="<option value='"+p.id+"'>"+p.name+" · "+p.client+"</option>";});
-    // Also refresh filter dropdown if open
-    var fp=document.getElementById("fProject");
-    if(fp){ fp.innerHTML="<option value=''>All Projects</option>"; d.projects.forEach(function(p){fp.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";});}
+    fillSel("aProject",d.projects,function(p){return{v:p.id,t:p.name+" · "+p.client};},"— Select Project —");
   });
   api({action:"getCostHeads",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ch",d.costHeads);
-    var s=document.getElementById("aCostHead"); s.innerHTML="<option value=''>— Select Cost Head —</option>";
-    d.costHeads.forEach(function(c){s.innerHTML+="<option value='"+c.id+"'>"+c.name+"</option>";});
+    window._allCostHeads={}; d.costHeads.forEach(function(c){window._allCostHeads[c.id]=c;});
+    fillSel("aCostHead",d.costHeads,function(c){return{v:c.id,t:c.name};},"— Select Cost Head —");
   });
   api({action:"getVendors",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ve",d.vendors);
-    var s=document.getElementById("aVendor"); s.innerHTML="<option value=''>— Select Vendor (optional) —</option>";
-    d.vendors.forEach(function(v){s.innerHTML+="<option value='"+v.id+"'>"+v.name+" · "+v.type+"</option>";});
-    var fv=document.getElementById("fVendor");
-    if(fv){ fv.innerHTML="<option value=''>All Vendors</option>"; d.vendors.forEach(function(v){fv.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";});}
+    fillSel("aVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
   });
 }
 function setAToday(){ var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); document.getElementById("aDate").value=y+"-"+m+"-"+dd; }
