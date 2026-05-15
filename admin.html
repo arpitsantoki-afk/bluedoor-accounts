@@ -350,7 +350,7 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.9.1</span>
+  <span id="versionBadge">…</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug Console</span>
 </div>
 
@@ -574,6 +574,7 @@ td{padding:9px 10px;vertical-align:top}
     <!-- Project List -->
     <div class="card">
       <div class="card-label">All Projects</div>
+      <input type="text" id="projSearch" placeholder="Search projects…" oninput="filterProjectList()" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;color:#1A2D5A;background:#F7F9FC url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8BAA' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:10px">
       <div id="projectList"><div class="empty">Loading…</div></div>
     </div>
   </div>
@@ -603,6 +604,7 @@ td{padding:9px 10px;vertical-align:top}
     <!-- Vendor List -->
     <div class="card">
       <div class="card-label">All Vendors</div>
+      <input type="text" id="vendSearch" placeholder="Search vendors…" oninput="filterVendorList()" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;color:#1A2D5A;background:#F7F9FC url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8BAA' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:10px">
       <div id="vendorList"><div class="empty">Loading…</div></div>
     </div>
   </div>
@@ -775,7 +777,7 @@ td{padding:9px 10px;vertical-align:top}
 
 <script>
 var API     = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
-var VERSION = "v1.5.1";
+var VERSION = "…";
 var token   = localStorage.getItem("bd_token");
 var curFY   = localStorage.getItem("bd_fy") || "";
 var fyList=[], allLedger=[], allEntryTypes={}, coaList=[], projMap={}, vendorMap={};
@@ -898,7 +900,6 @@ function initLedger() {
 }
 
 function populateFilterDropdowns(rows) {
-  // Build unique sets from data
   var accounts={}, projects={}, vendors={}, costHeads={};
   rows.forEach(function(r){
     if(r.acCode) accounts[r.acCode] = { name:r.acName, type:r.acType };
@@ -907,33 +908,40 @@ function populateFilterDropdowns(rows) {
     if(r.costHeadId)  costHeads[r.costHeadId]  = r.costHeadName||r.costHeadId;
   });
 
-  // Account dropdown — grouped by type
+  // Account — flat list with type prefix (ssCreate doesn't support optgroup)
   var fAc = document.getElementById("fAccount");
-  var types = ["Asset","Liability","Income","Expense"];
-  var acHtml = "<option value=''>All Accounts</option>";
-  types.forEach(function(t){
-    var group = Object.keys(accounts).filter(function(k){ return accounts[k].type===t; });
-    if(!group.length) return;
-    acHtml += "<optgroup label='"+t+"'>";
-    group.sort().forEach(function(k){ acHtml+="<option value='"+k+"'>"+accounts[k].name+"</option>"; });
-    acHtml += "</optgroup>";
+  fAc.innerHTML = "<option value=''>All Accounts</option>";
+  var acOpts = [{value:"",label:"All Accounts"}];
+  ["Asset","Liability","Income","Expense"].forEach(function(t){
+    Object.keys(accounts).filter(function(k){return accounts[k].type===t;}).sort().forEach(function(k){
+      fAc.innerHTML += "<option value='"+k+"'>"+accounts[k].name+" ("+t+")</option>";
+      acOpts.push({value:k, label:accounts[k].name+" ("+t+")"});
+    });
   });
-  fAc.innerHTML = acHtml;
+  ssCreate("fAccount", acOpts.slice(1), "All Accounts", function(val){
+    fAc.value=val; applyFilters();
+  });
 
   // Project
+  var prOpts = Object.keys(projects).sort().map(function(k){return{value:k,label:projects[k]};});
   var fPr = document.getElementById("fProject");
   fPr.innerHTML = "<option value=''>All Projects</option>";
-  Object.keys(projects).sort().forEach(function(k){ fPr.innerHTML+="<option value='"+k+"'>"+projects[k]+"</option>"; });
+  prOpts.forEach(function(o){fPr.innerHTML+="<option value='"+o.value+"'>"+o.label+"</option>";});
+  ssCreate("fProject", prOpts, "All Projects", function(val){fPr.value=val; applyFilters();});
 
   // Vendor
+  var veOpts = Object.keys(vendors).sort().map(function(k){return{value:k,label:vendors[k]};});
   var fVe = document.getElementById("fVendor");
   fVe.innerHTML = "<option value=''>All Vendors</option>";
-  Object.keys(vendors).sort().forEach(function(k){ fVe.innerHTML+="<option value='"+k+"'>"+vendors[k]+"</option>"; });
+  veOpts.forEach(function(o){fVe.innerHTML+="<option value='"+o.value+"'>"+o.label+"</option>";});
+  ssCreate("fVendor", veOpts, "All Vendors", function(val){fVe.value=val; applyFilters();});
 
   // Cost Head
+  var chOpts = Object.keys(costHeads).sort().map(function(k){return{value:k,label:costHeads[k]};});
   var fCh = document.getElementById("fCostHead");
   fCh.innerHTML = "<option value=''>All Cost Heads</option>";
-  Object.keys(costHeads).sort().forEach(function(k){ fCh.innerHTML+="<option value='"+k+"'>"+costHeads[k]+"</option>"; });
+  chOpts.forEach(function(o){fCh.innerHTML+="<option value='"+o.value+"'>"+o.label+"</option>";});
+  ssCreate("fCostHead", chOpts, "All Cost Heads", function(val){fCh.value=val; applyFilters();});
 }
 
 // When account type changes, filter the account dropdown
@@ -955,10 +963,10 @@ function syncAccountFilter() {
 
 function applyFilters() {
   var accType  = document.getElementById("fAccType").value;
-  var account  = document.getElementById("fAccount").value;
-  var project  = document.getElementById("fProject").value;
-  var vendor   = document.getElementById("fVendor").value;
-  var costHead = document.getElementById("fCostHead").value;
+  var account  = ssGet("fAccount");
+  var project  = ssGet("fProject");
+  var vendor   = ssGet("fVendor");
+  var costHead = ssGet("fCostHead");
   var drCr     = document.getElementById("fDrCr").value;
   var dateFrom = document.getElementById("fDateFrom").value;
   var dateTo   = document.getElementById("fDateTo").value;
@@ -998,10 +1006,10 @@ function applyFilters() {
 function isFiltered() {
   return !!(
     document.getElementById("fAccType").value  ||
-    document.getElementById("fAccount").value  ||
-    document.getElementById("fProject").value  ||
-    document.getElementById("fVendor").value   ||
-    document.getElementById("fCostHead").value ||
+    ssGet("fAccount")  ||
+    ssGet("fProject")  ||
+    ssGet("fVendor")   ||
+    ssGet("fCostHead") ||
     document.getElementById("fDrCr").value     ||
     document.getElementById("fDateFrom").value ||
     document.getElementById("fDateTo").value   ||
@@ -1186,10 +1194,12 @@ function clearFilter(id) {
 }
 
 function resetFilters() {
-  ["fAccType","fAccount","fProject","fVendor","fCostHead","fDrCr","fDateFrom","fDateTo"].forEach(function(id){
-    document.getElementById(id).value="";
-  });
+  document.getElementById("fAccType").value="";
+  document.getElementById("fDrCr").value="";
+  document.getElementById("fDateFrom").value="";
+  document.getElementById("fDateTo").value="";
   document.getElementById("fSearch").value="";
+  ["fAccount","fProject","fVendor","fCostHead"].forEach(function(id){ ssSet(id,""); });
   applyFilters();
 }
 
@@ -1629,10 +1639,10 @@ function printLedger() {
 // ── HELPER: get currently filtered+sorted rows from allLedger ─
 function getCurrentFilteredRows() {
   var accType  = document.getElementById("fAccType").value;
-  var account  = document.getElementById("fAccount").value;
-  var project  = document.getElementById("fProject").value;
-  var vendor   = document.getElementById("fVendor").value;
-  var costHead = document.getElementById("fCostHead").value;
+  var account  = ssGet("fAccount");
+  var project  = ssGet("fProject");
+  var vendor   = ssGet("fVendor");
+  var costHead = ssGet("fCostHead");
   var drCr     = document.getElementById("fDrCr").value;
   var dateFrom = document.getElementById("fDateFrom").value;
   var dateTo   = document.getElementById("fDateTo").value;
@@ -1674,6 +1684,25 @@ function checkAdminProjectRequired(){
   }
   var req = document.getElementById("aProjRequired");
   if(req) req.style.display = isOptional?"none":"";
+}
+
+// ── LIST SEARCH FILTERS ────────────────────────────────────
+var _allProjectRows = [], _allVendorRows = [];
+
+function filterProjectList(){
+  var q = (document.getElementById("projSearch")||{value:""}).value.toLowerCase();
+  var el = document.getElementById("projectList"); if(!el) return;
+  if(!_allProjectRows.length){ return; }
+  var filtered = q ? _allProjectRows.filter(function(r){ return r.name.toLowerCase().includes(q)||r.client.toLowerCase().includes(q); }) : _allProjectRows;
+  renderProjectRows(filtered);
+}
+
+function filterVendorList(){
+  var q = (document.getElementById("vendSearch")||{value:""}).value.toLowerCase();
+  var el = document.getElementById("vendorList"); if(!el) return;
+  if(!_allVendorRows.length){ return; }
+  var filtered = q ? _allVendorRows.filter(function(r){ return r.name.toLowerCase().includes(q)||(r.type||"").toLowerCase().includes(q)||(r.contact||"").toLowerCase().includes(q); }) : _allVendorRows;
+  renderVendorRows(filtered);
 }
 
 // ── PROJECT CRUD ───────────────────────────────────────────
@@ -1759,25 +1788,32 @@ function loadAllProjects() {
   api({ action:"getAllProjects", token:token }, function(d){
     if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     if (!d.projects.length){ el.innerHTML="<div class='empty'>No projects yet.</div>"; return; }
-    var isAdmin = localStorage.getItem("bd_role")==="Admin";
-    var html = "";
-    d.projects.forEach(function(p){
-      var stCls = p.status==="Active"?"status-active":p.status==="On Hold"?"status-hold":p.status==="Completed"?"status-completed":"status-deleted";
-      var edBtn = "<button class='btn-edit' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' data-cl='"+esc(p.client)+"' data-lo='"+esc(p.location)+"' data-st='"+esc(p.startDate||"")+"' data-bu='"+p.budget+"' data-ss='"+p.status+"' onclick='editProjectRow(this.dataset.id,this.dataset.nm,this.dataset.cl,this.dataset.lo,this.dataset.st,this.dataset.bu,this.dataset.ss)'>Edit</button>";
-      var delBtn = isAdmin && p.status !== "Deleted"
-        ? "<button class='btn-del-soft' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' onclick='confirmDeleteProject(this.dataset.id,this.dataset.nm,0)'>Delete</button>"
-        : "";
-      html += "<div class='master-row'>"+
-        "<div><div class='master-main'>"+p.name+"</div>"+
-        "<div class='master-sub'>"+p.client+(p.location?" · "+p.location:"")+"</div>"+
-        "<span class='status-badge "+stCls+"'>"+p.status+"</span>"+
-        (p.budget>0?"<div class='master-sub'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
-        "</div>"+
-        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
-        "</div>";
-    });
-    el.innerHTML = html;
+    _allProjectRows = d.projects;
+    renderProjectRows(d.projects);
   });
+}
+
+function renderProjectRows(projects){
+  var el = document.getElementById("projectList"); if(!el) return;
+  if(!projects.length){ el.innerHTML="<div class='empty'>No matching projects.</div>"; return; }
+  var isAdmin = localStorage.getItem("bd_role")==="Admin";
+  var html = "";
+  projects.forEach(function(p){
+    var stCls = p.status==="Active"?"status-active":p.status==="On Hold"?"status-hold":p.status==="Completed"?"status-completed":"status-deleted";
+    var edBtn = "<button class='btn-edit' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' data-cl='"+esc(p.client)+"' data-lo='"+esc(p.location)+"' data-st='"+esc(p.startDate||"")+"' data-bu='"+p.budget+"' data-ss='"+p.status+"' onclick='editProjectRow(this.dataset.id,this.dataset.nm,this.dataset.cl,this.dataset.lo,this.dataset.st,this.dataset.bu,this.dataset.ss)'>Edit</button>";
+    var delBtn = isAdmin && p.status !== "Deleted"
+      ? "<button class='btn-del-soft' data-id='"+p.id+"' data-nm='"+esc(p.name)+"' onclick='confirmDeleteProject(this.dataset.id,this.dataset.nm,0)'>Delete</button>"
+      : "";
+    html += "<div class='master-row'>"+
+      "<div><div class='master-main'>"+p.name+"</div>"+
+      "<div class='master-sub'>"+p.client+(p.location?" · "+p.location:"")+"</div>"+
+      "<span class='status-badge "+stCls+"'>"+p.status+"</span>"+
+      (p.budget>0?"<div class='master-sub'>Budget: ₹"+fmt(p.budget)+"</div>":"")+
+      "</div>"+
+      "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+      "</div>";
+  });
+  el.innerHTML = html;
 }
 
 // ── VENDOR CRUD ─────────────────────────────────────────────
@@ -1863,25 +1899,32 @@ function loadAllVendors() {
   api({ action:"getAllVendors", token:token }, function(d){
     if (!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     if (!d.vendors.length){ el.innerHTML="<div class='empty'>No vendors yet.</div>"; return; }
-    var isAdmin = localStorage.getItem("bd_role")==="Admin";
-    var html = "";
-    d.vendors.forEach(function(v){
-      var stCls = v.active ? "status-active" : "status-inactive";
-      var edBtn = "<button class='btn-edit' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' data-ty='"+esc(v.type)+"' data-gs='"+esc(v.gstin||"")+"' data-co='"+esc(v.contact||"")+"' onclick='editVendorRow(this.dataset.id,this.dataset.nm,this.dataset.ty,this.dataset.gs,this.dataset.co)'>Edit</button>";
-      var delBtn = isAdmin && v.active
-        ? "<button class='btn-del-soft' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' onclick='confirmDeleteVendor(this.dataset.id,this.dataset.nm)'>Delete</button>"
-        : "";
-      html += "<div class='master-row'>"+
-        "<div><div class='master-main'>"+v.name+"</div>"+
-        "<div class='master-sub'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
-        (v.gstin?"<div class='master-sub'>GST: "+v.gstin+"</div>":"")+
-        "<span class='status-badge "+stCls+"'>"+(v.active?"Active":"Inactive")+"</span>"+
-        "</div>"+
-        "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
-        "</div>";
-    });
-    el.innerHTML = html;
+    _allVendorRows = d.vendors;
+    renderVendorRows(d.vendors);
   });
+}
+
+function renderVendorRows(vendors){
+  var el = document.getElementById("vendorList"); if(!el) return;
+  if(!vendors.length){ el.innerHTML="<div class='empty'>No matching vendors.</div>"; return; }
+  var isAdmin = localStorage.getItem("bd_role")==="Admin";
+  var html = "";
+  vendors.forEach(function(v){
+    var stCls = v.active ? "status-active" : "status-inactive";
+    var edBtn = "<button class='btn-edit' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' data-ty='"+esc(v.type)+"' data-gs='"+esc(v.gstin||"")+"' data-co='"+esc(v.contact||"")+"' onclick='editVendorRow(this.dataset.id,this.dataset.nm,this.dataset.ty,this.dataset.gs,this.dataset.co)'>Edit</button>";
+    var delBtn = isAdmin && v.active
+      ? "<button class='btn-del-soft' data-id='"+v.id+"' data-nm='"+esc(v.name)+"' onclick='confirmDeleteVendor(this.dataset.id,this.dataset.nm)'>Delete</button>"
+      : "";
+    html += "<div class='master-row'>"+
+      "<div><div class='master-main'>"+v.name+"</div>"+
+      "<div class='master-sub'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
+      (v.gstin?"<div class='master-sub'>GST: "+v.gstin+"</div>":"")+
+      "<span class='status-badge "+stCls+"'>"+(v.active?"Active":"Inactive")+"</span>"+
+      "</div>"+
+      "<div class='master-actions'>"+edBtn+delBtn+"</div>"+
+      "</div>";
+  });
+  el.innerHTML = html;
 }
 
 // ── SYNC ────────────────────────────────────────────────────
