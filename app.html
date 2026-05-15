@@ -197,7 +197,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 </div>
 <div class="fy-panel" id="fyPanel"></div>
 <div class="version-bar">
-  <span id="versionBadge">v1.9.1</span>
+  <span id="versionBadge">…</span>
   <span class="debug-toggle" id="debugToggle" onclick="toggleDebug()">🛠 Debug</span>
 </div>
 
@@ -283,6 +283,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   <!-- Vendor List -->
   <div class="card">
     <div class="card-label">All Vendors</div>
+    <input type="text" id="supVendSearch" placeholder="Search vendors…" oninput="filterSupVendors()" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;color:#1A2D5A;background:#F7F9FC url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8BAA' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
     <div id="supVendorList"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
   </div>
 </div>
@@ -310,7 +311,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 
 <script>
 var API      = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
-var VERSION  = "v1.5.1";
+var VERSION = "…";
 var token    = localStorage.getItem("bd_token");
 var role     = localStorage.getItem("bd_role");
 var curFY    = localStorage.getItem("bd_fy") || "";
@@ -763,28 +764,45 @@ function syncApp(){
 }
 // ── BACKEND STATUS PING ─────────────────────────────────────
 // ── SUPERVISOR VENDOR MANAGEMENT ───────────────────────────
+var _supAllVendors = [];
+
 function loadSupVendors(){
   var el=document.getElementById("supVendorList");
   el.innerHTML="<div class='empty'>Loading…</div>";
   api({action:"getAllVendors",token:token},function(d){
-    if(!d.success||!d.vendors.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendors yet.</div>"; return; }
-    var html="";
-    d.vendors.filter(function(v){return v.active;}).forEach(function(v){
-      html+="<div style='padding:11px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px'>"+
-        "<div><div style='font-size:13px;font-weight:600;color:#1A2D5A'>"+v.name+"</div>"+
-        "<div style='font-size:11px;color:#7A8BAA'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
-        (v.gstin?"<div style='font-size:10px;color:#94A3B8'>GST: "+v.gstin+"</div>":"")+
-        "</div>"+
-        "<button style='padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit' data-id='"+v.id+"' data-nm='"+sEsc(v.name)+"' data-ty='"+sEsc(v.type)+"' data-gs='"+sEsc(v.gstin||"")+"' data-co='"+sEsc(v.contact||"")+"' onclick='editSupVendor(this)'>Edit</button>"+
-        "</div>";
-    });
-    el.innerHTML=html||"<div class='empty'>No active vendors.</div>";
+    if(!d.success){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>Error loading vendors.</div>"; return; }
+    _supAllVendors = d.vendors.filter(function(v){return v.active;});
+    renderSupVendors(_supAllVendors);
   });
   // Also refresh vendor dropdown in entry form
   api({action:"getVendors",token:token},function(d){
     if(!d.success)return; lsSet("bd_c_ve",d.vendors);
     fillSel("eVendor",d.vendors,function(v){return{v:v.id,t:v.name+" · "+v.type};},"— Select Vendor (optional) —");
   });
+}
+
+function renderSupVendors(vendors){
+  var el=document.getElementById("supVendorList"); if(!el)return;
+  if(!vendors.length){ el.innerHTML="<div class='empty'><div class='empty-icon'>🤝</div>No vendors found.</div>"; return; }
+  var html="";
+  vendors.forEach(function(v){
+    html+="<div style='padding:11px 0;border-bottom:1px solid #EEF2F7;display:flex;align-items:flex-start;justify-content:space-between;gap:8px'>"+
+      "<div><div style='font-size:13px;font-weight:600;color:#1A2D5A'>"+v.name+"</div>"+
+      "<div style='font-size:11px;color:#7A8BAA'>"+v.type+(v.contact?" · "+v.contact:"")+"</div>"+
+      (v.gstin?"<div style='font-size:10px;color:#94A3B8'>GST: "+v.gstin+"</div>":"")+
+      "</div>"+
+      "<button style='padding:5px 10px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit' data-id='"+v.id+"' data-nm='"+sEsc(v.name)+"' data-ty='"+sEsc(v.type)+"' data-gs='"+sEsc(v.gstin||"")+"' data-co='"+sEsc(v.contact||"")+"' onclick='editSupVendor(this)'>Edit</button>"+
+      "</div>";
+  });
+  el.innerHTML=html;
+}
+
+function filterSupVendors(){
+  var q=(document.getElementById("supVendSearch")||{value:""}).value.toLowerCase();
+  var filtered=q?_supAllVendors.filter(function(v){
+    return v.name.toLowerCase().includes(q)||(v.type||"").toLowerCase().includes(q)||(v.contact||"").toLowerCase().includes(q);
+  }):_supAllVendors;
+  renderSupVendors(filtered);
 }
 
 function saveSupVendor(){
