@@ -1338,10 +1338,13 @@ function resetFilters() {
 // ── ADD SUB-TABS ───────────────────────────────────────────
 function switchAddTab(tab,el){
   document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
-  ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
-  if(tab==="opening") { loadOpeningBalances(); loadVendorOBTab(); }
-  if(tab==="project") loadAllProjects();
-  if(tab==="vendor")  loadAllVendors();
+  ["entry","project","vendor","opening","bankimport"].forEach(function(t){
+    var d=document.getElementById("at-"+t); if(d) d.classList[t===tab?"remove":"add"]("hidden");
+  });
+  if(tab==="opening")    { loadOpeningBalances(); loadVendorOBTab(); }
+  if(tab==="project")    loadAllProjects();
+  if(tab==="vendor")     loadAllVendors();
+  if(tab==="bankimport") initBankImport();
 }
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
