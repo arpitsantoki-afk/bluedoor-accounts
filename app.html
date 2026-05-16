@@ -244,6 +244,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
       <div style="font-size:16px;font-weight:700;color:#2B5197;margin-top:2px" id="pcBalance">—</div>
     </div>
   </div>
+  <!-- Voucher Generator -->
+  <div class="card">
+    <div class="card-label" style="margin-bottom:8px">📄 Monthly Expense Voucher</div>
+    <div style="font-size:12px;color:#7A8BAA;margin-bottom:12px">Generate a petty cash expense voucher PDF for any month.</div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">Month</div>
+        <input type="month" id="voucherMonth" style="width:100%;padding:8px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;box-sizing:border-box">
+      </div>
+      <button onclick="generateVoucher()" style="padding:9px 16px;background:#2B5197;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Generate PDF</button>
+    </div>
+  </div>
+
   <!-- Ledger table -->
   <div class="card" style="margin-bottom:80px">
     <div id="pcLedger"><div class="empty"><div class="empty-icon">💰</div>Loading…</div></div>
@@ -883,10 +896,53 @@ function sEsc(s){return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").rep
 // ── PETTY CASH LEDGER (Home tab) ───────────────────────────
 var _pcLoaded = false;
 
+function getFYDates(fyid){
+  // Derive start/end from FY ID e.g. FY2627 = Apr 2026 - Mar 2027
+  // Also handles FY2526, FY2425 etc.
+  var fy = fyid || curFY || "";
+  var m = fy.match(/FY(\d{2})(\d{2})/);
+  if(m){
+    var startYear = 2000 + parseInt(m[1]);
+    var endYear   = 2000 + parseInt(m[2]);
+    return {
+      from: startYear+"-04-01",
+      to:   endYear+"-03-31"
+    };
+  }
+  // Fallback: current Apr-Mar
+  var now = new Date();
+  var y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear()-1;
+  return { from: y+"-04-01", to: (y+1)+"-03-31" };
+}
+
+function setDefaultPCDates(){
+  var dates = getFYDates(curFY);
+  var fromEl = document.getElementById("pcDateFrom");
+  var toEl   = document.getElementById("pcDateTo");
+  if(fromEl && !fromEl.value) fromEl.value = dates.from;
+  if(toEl   && !toEl.value)   toEl.value   = dates.to;
+  // Default voucher month to current month
+  var vm = document.getElementById("voucherMonth");
+  if(vm && !vm.value){
+    var now=new Date(); vm.value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  }
+}
+
+function resetPCFilter(){
+  // Reset to FY start/end
+  var dates = getFYDates(curFY);
+  var fromEl = document.getElementById("pcDateFrom");
+  var toEl   = document.getElementById("pcDateTo");
+  if(fromEl) fromEl.value = dates.from;
+  if(toEl)   toEl.value   = dates.to;
+  loadPettyCashLedger();
+}
+
 function loadPettyCashLedger(){
   var el = document.getElementById("pcLedger");
   if(!el) return;
   el.innerHTML = "<div class='empty'>Loading…</div>";
+  setDefaultPCDates();
 
   var dateFrom = document.getElementById("pcDateFrom").value;
   var dateTo   = document.getElementById("pcDateTo").value;
@@ -950,10 +1006,155 @@ function loadPettyCashLedger(){
   });
 }
 
-function resetPCFilter(){
-  document.getElementById("pcDateFrom").value="";
-  document.getElementById("pcDateTo").value="";
-  loadPettyCashLedger();
+
+
+function amountInWords(n){
+  var a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  var b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  function tw(n){ return n<20?a[n]:b[Math.floor(n/10)]+(n%10?" "+a[n%10]:""); }
+  function convert(n){
+    if(n>=10000000) return tw(Math.floor(n/10000000))+" Crore "+(n%10000000?convert(n%10000000):"");
+    if(n>=100000)  return tw(Math.floor(n/100000))+" Lakh "+(n%100000?convert(n%100000):"");
+    if(n>=1000)    return tw(Math.floor(n/1000))+" Thousand "+(n%1000?convert(n%1000):"");
+    if(n>=100)     return a[Math.floor(n/100)]+" Hundred "+(n%100?convert(n%100):"");
+    return tw(n);
+  }
+  if(!n||n===0) return "Zero Rupees Only";
+  var rupees=Math.floor(n), paise=Math.round((n-rupees)*100);
+  var w=convert(rupees).trim()+" Rupee"+(rupees!==1?"s":"");
+  if(paise>0) w+=" and "+convert(paise).trim()+" Paise";
+  return w+" Only";
+}
+
+function generateVoucher(){
+  var monthVal = document.getElementById("voucherMonth").value;
+  if(!monthVal){ toast("Please select a month.",false); return; }
+  var parts = monthVal.split("-");
+  var year  = parseInt(parts[0]), month = parseInt(parts[1]);
+  var monthNames=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+  var monthLabel = monthNames[month]+" "+year;
+  var dateFrom = year+"-"+String(month).padStart(2,"0")+"-01";
+  var lastDay  = new Date(year,month,0).getDate();
+  var dateTo   = year+"-"+String(month).padStart(2,"0")+"-"+String(lastDay).padStart(2,"0");
+
+  api({action:"getPettyCashLedger",token:token,fyid:curFY},function(d){
+    if(!d.success){ toast("Failed to load data: "+d.error,false); return; }
+    var rows=d.entries.filter(function(r){
+      return r.dateRaw>=new Date(dateFrom).getTime() && r.dateRaw<=new Date(dateTo).getTime()+86399999;
+    });
+
+    if(!rows.length){ toast("No petty cash entries for "+monthLabel+".",false); return; }
+
+    var total=0;
+    rows.forEach(function(r){ total+=r.credit; }); // petty cash out = credit
+
+    // Build HTML for print window
+    var rows_html="";
+    var sno=1;
+    rows.forEach(function(r){
+      var particulars=[r.narration];
+      if(r.vendorName)   particulars.push(r.vendorName);
+      if(r.projectName)  particulars.push(r.projectName);
+      if(r.costHeadName) particulars.push(r.costHeadName);
+      rows_html+="<tr>"+
+        "<td style='padding:6px 8px;border:1px solid #000;text-align:center;font-size:12px'>"+sno+"</td>"+
+        "<td style='padding:6px 8px;border:1px solid #000;font-size:12px'>"+r.date+"</td>"+
+        "<td style='padding:6px 8px;border:1px solid #000;font-size:12px'>"+particulars.join(" — ")+"</td>"+
+        "<td style='padding:6px 8px;border:1px solid #000;text-align:right;font-size:12px'>"+(r.debit>0?"₹ "+fmt(r.debit):"")+"</td>"+
+        "<td style='padding:6px 8px;border:1px solid #000;text-align:right;font-size:12px'>"+(r.credit>0?"₹ "+fmt(r.credit):"")+"</td>"+
+        "</tr>";
+      sno++;
+    });
+
+    var uname = localStorage.getItem("bd_username")||"";
+
+    var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<title>Petty Cash Voucher — '+monthLabel+'</title>'+
+      '<style>'+
+        'body{font-family:Arial,sans-serif;margin:0;padding:24px;font-size:12px;color:#000}'+
+        '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:12px}'+
+        '.logo-block{display:flex;align-items:center;gap:10px}'+
+        '.logo-box{border:3px solid #000;padding:4px 8px;font-size:16px;font-weight:900;letter-spacing:1px;line-height:1.2}'+
+        '.logo-sub{font-size:8px;letter-spacing:2px;font-weight:400}'+
+        '.firm-info{text-align:right;font-size:11px;line-height:1.7}'+
+        '.firm-name{font-size:14px;font-weight:700;margin-bottom:2px}'+
+        '.voucher-title{background:#000;color:#fff;display:inline-block;padding:3px 14px;font-size:14px;font-weight:700;letter-spacing:2px;margin-bottom:16px}'+
+        '.meta-row{display:flex;gap:32px;margin-bottom:8px;font-size:12px}'+
+        '.meta-row span{border-bottom:1px solid #000;min-width:140px;padding-bottom:2px}'+
+        'table{width:100%;border-collapse:collapse;margin:16px 0}'+
+        'th{background:#f0f0f0;border:1px solid #000;padding:7px 8px;text-align:left;font-size:12px}'+
+        '.total-row td{font-weight:700;border:1px solid #000;padding:7px 8px;background:#f9f9f9}'+
+        '.footer-section{margin-top:20px;border-top:1px solid #000;padding-top:12px;font-size:11px}'+
+        '.sig-row{display:flex;justify-content:space-between;margin-top:48px}'+
+        '.sig-block{text-align:center;min-width:120px}'+
+        '.sig-line{border-top:1px solid #000;margin-bottom:4px}'+
+        '@media print{body{padding:12px} button{display:none}}'+
+      '</style></head><body>'+
+
+      '<button onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#2B5197;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-family:Arial">🖨 Print / Save as PDF</button>'+
+
+      '<div class="header">'+
+        '<div class="logo-block">'+
+          '<div class="logo-box">BLUE<br>DOOR<br><span class="logo-sub">ARCHITECTS</span></div>'+
+        '</div>'+
+        '<div class="firm-info">'+
+          '<div class="firm-name">BLUE DOOR ARCHITECTS</div>'+
+          'Altezza office, Palm Road, Nr. Sargasan Cross Road,<br>'+
+          'Gandhinagar, Gujarat 382421.'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="voucher-title">VOUCHER</div>'+
+
+      '<div class="meta-row">'+
+        '<div>NO.: <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'+
+        '<div>Date: <span>'+monthLabel+'</span></div>'+
+      '</div>'+
+      '<div class="meta-row">Debit Account Head: <span style="border-bottom:1px solid #000;min-width:200px;display:inline-block">&nbsp;</span></div>'+
+      '<div class="meta-row">Name: <span style="border-bottom:1px solid #000;min-width:220px;display:inline-block">&nbsp;'+uname+'</span></div>'+
+      '<div class="meta-row">Payment for Description Given Below</div>'+
+
+      '<table>'+
+        '<thead><tr>'+
+          '<th style="width:30px">No.</th>'+
+          '<th style="width:80px">Date</th>'+
+          '<th>Particulars</th>'+
+          '<th style="width:80px;text-align:right">DR (RS)</th>'+
+          '<th style="width:80px;text-align:right">CR (RS)</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rows_html+'</tbody>'+
+        '<tfoot><tr class="total-row">'+
+          '<td colspan="4" style="text-align:right;padding:7px 8px;border:1px solid #000">TOTAL</td>'+
+          '<td style="text-align:right;padding:7px 8px;border:1px solid #000">₹ '+fmt(total)+'</td>'+
+        '</tr></tfoot>'+
+      '</table>'+
+
+      '<div class="footer-section">'+
+        '<div style="margin-bottom:8px">'+
+          '<strong>By Cash / Cheque / E-Pay No.:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:120px">&nbsp;Cash</span>'+
+          '&nbsp;&nbsp;&nbsp;<strong>Dated:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:100px">&nbsp;</span>'+
+          '&nbsp;&nbsp;&nbsp;<strong>Branch:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:100px">&nbsp;</span>'+
+        '</div>'+
+        '<div style="margin-bottom:8px">'+
+          '<strong>Drawn on:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:200px">&nbsp;</span>'+
+        '</div>'+
+        '<div><strong>Amount in Words:</strong> '+amountInWords(total)+'</div>'+
+      '</div>'+
+
+      '<div class="sig-row">'+
+        '<div class="sig-block"><div class="sig-line"></div>Prepared by</div>'+
+        '<div class="sig-block"><div class="sig-line"></div>Checked by</div>'+
+        '<div class="sig-block"><div class="sig-line"></div>Authorised by</div>'+
+        '<div class="sig-block"><div class="sig-line"></div>Receiver&apos;s Signature</div>'+
+      '</div>'+
+
+      '</body></html>';
+
+    var win=window.open("","_blank","width=900,height=700");
+    win.document.write(html);
+    win.document.close();
+    toast("✓ Voucher ready — tap Print / Save as PDF.",true);
+  });
 }
 
 function pingBackend(){
