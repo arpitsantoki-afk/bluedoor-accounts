@@ -24,6 +24,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .header-role{background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
 .header-right{display:flex;align-items:center;gap:8px}
 .fy-badge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.co-badge{background:rgba(255,165,0,0.2);border:1px solid rgba(255,165,0,0.5);border-radius:6px;padding:4px 10px;color:#FFD700;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .2s}
+.co-badge:hover{background:rgba(255,165,0,0.35)}
+.co-panel{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1A2D5A;border:1px solid rgba(255,255,255,0.2);border-radius:8px;min-width:180px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden}
+.co-option{padding:10px 14px;color:#fff;font-size:12px;cursor:pointer;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.08)}
+.co-option:last-child{border-bottom:none}
+.co-option:hover{background:rgba(255,255,255,0.1)}
+.co-option.active{background:rgba(255,165,0,0.25);color:#FFD700;font-weight:700}
 .online-dot{width:7px;height:7px;background:#22C55E;border-radius:50%}
 .btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 11px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
 .btn-logout:hover{background:rgba(239,68,68,0.35);border-color:rgba(239,68,68,0.5)}
@@ -343,6 +350,10 @@ td{padding:9px 10px;vertical-align:top}
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
+    <div style="position:relative">
+      <div class="co-badge" onclick="toggleCoPanel()"><span id="coLabel">…</span> <span>▾</span></div>
+      <div class="co-panel" id="coPanel"></div>
+    </div>
     <button class="btn-sync" id="syncBtn" onclick="syncAll()" title="Sync">↻</button>
     <div class="online-dot"></div>
     <button class="btn-logout" onclick="logout()">⏻ Sign Out</button>
@@ -807,7 +818,7 @@ var CACHE_TTL = 6 * 60 * 60 * 1000;
 function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o||Date.now()>o.exp){localStorage.removeItem(k);return null;} return o.data; }catch(e){return null;} }
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
-function initAdmin(){ loadFY(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
+function initAdmin(){ loadFY(); loadCompanies(); loadDashboard(); loadMasterData(); setAToday(); loadPendingEntries(); }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -824,6 +835,63 @@ function updateFYLabel(){ var f=fyList.find(function(x){return x.id===curFY;}); 
 function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
 function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(function(f){ return "<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+ f.label+"</div>"; }).join(""); }
 function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; loadDashboard(); }
+
+// ── COMPANY ──────────────────────────────────────────────────
+var curCompany = localStorage.getItem("bd_company") || "All";
+var companyList = [];
+
+function loadCompanies(){
+  api({action:"getCompanies",token:token}, function(d){
+    if(!d.success) return;
+    companyList = d.companies;
+    renderCoPanel(); updateCoLabel();
+    if(curCompany!=="All" && !companyList.find(function(c){return c.id===curCompany;})){
+      curCompany="All"; localStorage.setItem("bd_company","All");
+    }
+  });
+}
+
+function updateCoLabel(){
+  var el=document.getElementById("coLabel"); if(!el) return;
+  if(!curCompany||curCompany==="All") el.textContent="All Co.";
+  else{
+    var co=companyList.find(function(c){return c.id===curCompany;});
+    el.textContent = co?co.name:curCompany;
+  }
+}
+
+function renderCoPanel(){
+  var panel=document.getElementById("coPanel"); if(!panel) return;
+  var html="<div class='co-option"+((!curCompany||curCompany==="All")?" active":"")+"' onclick='setCompany(\"All\")'>🏢 All Companies</div>";
+  companyList.forEach(function(co){
+    html+="<div class='co-option"+(curCompany===co.id?" active":"")+"' onclick='setCompany(\""+co.id+"\")'>"+co.name+"</div>";
+  });
+  panel.innerHTML=html;
+}
+
+function toggleCoPanel(){
+  var panel=document.getElementById("coPanel"); if(!panel) return;
+  panel.style.display=panel.style.display==="block"?"none":"block";
+}
+
+function setCompany(id){
+  curCompany=id; localStorage.setItem("bd_company",id);
+  updateCoLabel(); renderCoPanel();
+  document.getElementById("coPanel").style.display="none";
+  allLedger=[]; allOpeningBalances=[]; allVendorOBs=[];
+  loadDashboard(); loadPendingEntries();
+  if(!document.getElementById("view-ledger").classList.contains("hidden")) initLedger();
+  if(!document.getElementById("view-reports").classList.contains("hidden")) loadReports();
+}
+
+document.addEventListener("click",function(e){
+  var panel=document.getElementById("coPanel");
+  var badge=document.getElementById("coLabel");
+  if(panel&&badge&&!badge.parentElement.parentElement.contains(e.target)){
+    panel.style.display="none";
+  }
+});
+
 
 // ── Master data (cached) ───────────────────────────────────
 function loadMasterData(){
@@ -847,7 +915,7 @@ function loadMasterData(){
 // ── DASHBOARD ──────────────────────────────────────────────
 function loadDashboard(){
   document.getElementById("dashSub").textContent="Loading…";
-  api({action:"getDashboard",token:token,fyid:curFY},function(d){
+  api({action:"getDashboard",token:token,fyid:curFY,companyId:curCompany},function(d){
     if(!d.success){document.getElementById("dashSub").textContent="Error loading.";return;}
     var s=d.summary, fyL=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
     document.getElementById("dashSub").textContent="Financial overview · "+fyL;
@@ -885,7 +953,7 @@ function initLedger() {
   var el=document.getElementById("ledgerTable");
   el.innerHTML="<div class='empty'><div class='empty-icon'>📒</div>Loading…</div>";
   // Load ledger and opening balances in parallel
-  api({action:"getLedger",token:token,fyid:curFY}, function(d){
+  api({action:"getLedger",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
     allLedger = d.ledger;
     populateFilterDropdowns(d.ledger);
@@ -1283,7 +1351,8 @@ function adminSaveEntry(){
   var narr=document.getElementById("aNarration").value||"—";
 
   // Build confirm body
-  var body="<div class='conf-row'><span class='conf-label'>Entry Type</span><span class='conf-val'>"+aSelType.label+"</span></div>"+
+  var body="<div class='conf-row'><span class='conf-label'>Company</span><span class='conf-val' style='color:#F59E0B;font-weight:700'>"+(curCompany==="All"?"— Select company —":( companyList.find(function(c){return c.id===curCompany;})||{name:curCompany}).name)+"</span></div>"+
+    "<div class='conf-row'><span class='conf-label'>Entry Type</span><span class='conf-val'>"+aSelType.label+"</span></div>"+
     "<div class='conf-row'><span class='conf-label'>Dr Account</span><span class='conf-val badge badge-dr'>"+(aSelType.drName||aSelType.dr)+"</span></div>"+
     "<div class='conf-row'><span class='conf-label'>Cr Account</span><span class='conf-val badge badge-cr'>"+(aSelType.crName||aSelType.cr)+"</span></div>"+
     "<div class='conf-row'><span class='conf-label'>Amount</span><span class='conf-val' style='color:#2B5197;font-size:15px'>₹ "+fmt(amt)+"</span></div>"+
@@ -1342,14 +1411,14 @@ function saveOpeningBalance(){
 var _vendorReportData = [];
 
 function loadReports(){
-  api({action:"getProjectPL",token:token,fyid:curFY},function(d){
+  api({action:"getProjectPL",token:token,fyid:curFY,companyId:curCompany},function(d){
     var el=document.getElementById("reportPLTable");
     if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
     var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
     d.projects.forEach(function(p){ html+="<tr><td><div class='td-main'>"+p.projectName+"</div></td><td style='color:#7A8BAA'>"+p.client+"</td><td class='dr'>"+fmt(p.income)+"</td><td class='cr'>"+fmt(p.expense)+"</td><td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td></tr>"; });
     html+="</tbody></table></div>"; el.innerHTML=html;
   });
-  api({action:"getVendorOutstanding",token:token,fyid:curFY},function(d){
+  api({action:"getVendorOutstanding",token:token,fyid:curFY,companyId:curCompany},function(d){
     if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     _vendorReportData = d.vendors;
     renderVendorReport();
@@ -2111,7 +2180,7 @@ function downloadClosingBalances() {
 
     // ── SHEET 2: Vendor Closing Balances ──────────────────────
     // Fetch fresh from server so OBs are factored in
-    api({action:"getVendorOutstanding",token:token,fyid:curFY}, function(d){
+    api({action:"getVendorOutstanding",token:token,fyid:curFY,companyId:curCompany}, function(d){
       var vendorRows = [["Vendor Name","Vendor Type","Opening Balance (₹)","Bills Raised (₹)","Amount Paid (₹)","Closing Balance (₹)","Balance Side","Notes for CA"]];
 
       if (d.success && d.vendors.length) {
@@ -2168,7 +2237,7 @@ function downloadClosingBalances() {
     generate(allLedger, allVendorOBs);
   } else {
     status.textContent = "Loading ledger data…";
-    api({action:"getLedger",token:token,fyid:curFY}, function(d){
+    api({action:"getLedger",token:token,fyid:curFY,companyId:curCompany}, function(d){
       if (!d.success) {
         status.textContent = "Failed to load ledger: " + d.error;
         btn.disabled = false; btn.textContent = "📥 Download Closing Balances (.xlsx)";
@@ -2190,7 +2259,7 @@ function downloadClosingBalances() {
 function loadPendingEntries(){
   var el = document.getElementById("pendingList");
   el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
-  api({action:"getPendingEntries",token:token,fyid:curFY,status:"Pending"}, function(d){
+  api({action:"getPendingEntries",token:token,fyid:curFY,companyId:curCompany,status:"Pending"}, function(d){
     var badge = document.getElementById("pendingBadge");
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     var count = d.pendingCount||0;
