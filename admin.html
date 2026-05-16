@@ -2333,7 +2333,7 @@ function loadPendingEntries(){
   el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
   api({action:"getPendingEntries",token:token,fyid:curFY,companyId:curCompany,status:""}, function(d){
     if(d.success) d.entries=d.entries.filter(function(e){return e.status==="Pending"||e.status==="BankImport";});
-    d.pendingCount=(d.entries||[]).filter(function(e){return e.status==="Pending";}).length;
+    d.pendingCount=(d.entries||[]).filter(function(e){return e.status==="Pending"||e.status==="BankImport";}).length;
     var badge = document.getElementById("pendingBadge");
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     var count = d.pendingCount||0;
@@ -2359,7 +2359,18 @@ function loadPendingEntries(){
         "</div>"+
         "</div>";
     });
-    el.innerHTML=html;
+    var biRows=d.entries.filter(function(e){return e.status==="BankImport";});
+    var biHtml="";
+    biRows.forEach(function(e){biHtml+=renderBankImportRow(e);});
+    if(biHtml){
+      el.innerHTML=html+
+        "<div style='margin-top:12px;border-top:2px dashed #F59E0B;padding-top:10px'>"+
+        "<div style='font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:8px'>"+
+        "&#127974; Bank Import - "+biRows.length+" row(s) · Assign Parameters &amp; Approve</div>"+
+        biHtml+"</div>";
+    } else {
+      el.innerHTML = html || "<div class='empty' style='padding:8px 0'>No pending entries. &#10003;</div>";
+    }
   });
 }
 
