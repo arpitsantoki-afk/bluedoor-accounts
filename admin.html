@@ -271,6 +271,22 @@ td{padding:9px 10px;vertical-align:top}
 .btn-comment:hover{background:#FDE68A}
 .btn-view-bill{padding:5px 12px;background:#EEF3FF;border:1px solid #C7D7FF;border-radius:6px;color:#2B5197;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none}
 .conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #EEF2F7;font-size:12px}
+.pl-row{border-bottom:1px solid #EEF2F7;overflow:hidden}
+.pl-row-hdr{display:flex;align-items:center;padding:10px 8px;cursor:pointer;gap:6px;transition:background .15s}
+.pl-row-hdr:hover{background:#F7F9FC}
+.pl-row-chevron{font-size:11px;color:#7A8BAA;transition:transform .25s;flex-shrink:0;width:14px}
+.pl-row-chevron.open{transform:rotate(90deg)}
+.pl-row-detail{display:none;padding:0 14px 10px 28px;background:#FAFBFF;border-top:1px solid #EEF2F7}
+.pl-row-detail.open{display:block}
+.pl-detail-section{margin-top:8px}
+.pl-detail-label{font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.pl-detail-line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #F1F5F9;color:#1A2D5A}
+.pl-detail-line:last-child{border-bottom:none;font-weight:700}
+.bs-section{margin-bottom:16px}
+.bs-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#7A8BAA;padding:6px 0;border-bottom:2px solid #DDE3EE;margin-bottom:6px}
+.bs-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #F1F5F9}
+.bs-total{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:7px 0;border-top:2px solid #1A2D5A;margin-top:4px;color:#1A2D5A}
+.report-pdf-btn{padding:6px 14px;background:#15803D;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
 .conf-row:last-child{border-bottom:none}
 .conf-label{color:#7A8BAA;font-weight:600;flex-shrink:0;width:90px}
 .conf-val{color:#1A2D5A;font-weight:600;text-align:right}
@@ -679,7 +695,15 @@ td{padding:9px 10px;vertical-align:top}
 <!-- REPORTS -->
 <div id="view-reports" class="hidden">
   <div class="page-title">Reports</div>
-  <div class="card"><div class="card-label">Project P&L Summary</div><div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div></div>
+
+  <!-- Project P&L -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-label" style="margin-bottom:0">📊 Project P&amp;L Summary</div>
+      <button class="report-pdf-btn" onclick="printProjectPL()">🖨 PDF</button>
+    </div>
+    <div id="reportPLTable"><div class="empty"><div class="empty-icon">📊</div>Loading…</div></div>
+  </div>
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="card-label" style="margin-bottom:0">Vendor Outstanding Summary</div>
@@ -693,6 +717,24 @@ td{padding:9px 10px;vertical-align:top}
       </div>
     </div>
     <div id="reportVendorTable"><div class="empty"><div class="empty-icon">🤝</div>Loading…</div></div>
+  </div>
+
+  <!-- P&L Statement -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-label" style="margin-bottom:0">📋 P&amp;L Statement</div>
+      <button class="report-pdf-btn" onclick="printPLStatement()">🖨 PDF</button>
+    </div>
+    <div id="reportPLStatement"><div class="empty"><div class="empty-icon">📋</div>Loading…</div></div>
+  </div>
+
+  <!-- Balance Sheet -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-label" style="margin-bottom:0">⚖️ Balance Sheet</div>
+      <button class="report-pdf-btn" onclick="printBalanceSheet()">🖨 PDF</button>
+    </div>
+    <div id="reportBS"><div class="empty"><div class="empty-icon">⚖️</div>Loading…</div></div>
   </div>
 
   <!-- FY Closing Balances -->
@@ -1410,19 +1452,207 @@ function saveOpeningBalance(){
 // ── REPORTS ────────────────────────────────────────────────
 var _vendorReportData = [];
 
+// Store data for PDF
+var _plData=null, _bsData=null, _plStmtData=null;
+
 function loadReports(){
+  // Project P&L
   api({action:"getProjectPL",token:token,fyid:curFY,companyId:curCompany},function(d){
     var el=document.getElementById("reportPLTable");
-    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
-    var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
-    d.projects.forEach(function(p){ html+="<tr><td><div class='td-main'>"+p.projectName+"</div></td><td style='color:#7A8BAA'>"+p.client+"</td><td class='dr'>"+fmt(p.income)+"</td><td class='cr'>"+fmt(p.expense)+"</td><td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td></tr>"; });
-    html+="</tbody></table></div>"; el.innerHTML=html;
+    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No project data.</div>";return;}
+    _plData=d;
+    renderProjectPL(d.projects);
   });
+  // Vendor Outstanding
   api({action:"getVendorOutstanding",token:token,fyid:curFY,companyId:curCompany},function(d){
     if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
-    _vendorReportData = d.vendors;
-    renderVendorReport();
+    _vendorReportData = d.vendors; renderVendorReport();
   });
+  // P&L Statement
+  api({action:"getPLStatement",token:token,fyid:curFY,companyId:curCompany},function(d){
+    var el=document.getElementById("reportPLStatement"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    _plStmtData=d; renderPLStatement(d);
+  });
+  // Balance Sheet
+  api({action:"getBalanceSheet",token:token,fyid:curFY,companyId:curCompany},function(d){
+    var el=document.getElementById("reportBS"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    _bsData=d; renderBalanceSheet(d);
+  });
+}
+
+// ── PROJECT P&L (collapsible) ──────────────────────────────
+function renderProjectPL(projects){
+  var el=document.getElementById("reportPLTable");
+  // Summary header
+  var totalIn=0,totalEx=0;
+  projects.forEach(function(p){totalIn+=p.income;totalEx+=p.expense;});
+  var html="<div style='display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap'>"+
+    "<div style='background:#DCFCE7;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#15803D;text-transform:uppercase'>Total Income</div>"+
+      "<div style='font-size:15px;font-weight:700;color:#15803D'>₹ "+fmt(totalIn)+"</div></div>"+
+    "<div style='background:#FEE2E2;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#B91C1C;text-transform:uppercase'>Total Expense</div>"+
+      "<div style='font-size:15px;font-weight:700;color:#B91C1C'>₹ "+fmt(totalEx)+"</div></div>"+
+    "<div style='background:#EEF3FF;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#2B5197;text-transform:uppercase'>Net P&L</div>"+
+      "<div style='font-size:15px;font-weight:700;color:"+(totalIn-totalEx>=0?"#2B5197":"#B91C1C")+"'>₹ "+fmt(Math.abs(totalIn-totalEx))+(totalIn-totalEx<0?" (Loss)":"")+"</div></div>"+
+    "</div>";
+
+  // Collapsible rows
+  html+="<div style='border:1px solid #DDE3EE;border-radius:9px;overflow:hidden'>";
+  html+="<div style='display:grid;grid-template-columns:1fr 90px 90px 90px;padding:8px 8px 8px 36px;background:#F7F9FC;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px'>"+
+    "<div>Project</div><div style='text-align:right'>Income ₹</div><div style='text-align:right'>Expense ₹</div><div style='text-align:right'>P&L ₹</div></div>";
+
+  projects.forEach(function(p,idx){
+    var pColor=p.profit>=0?"#15803D":"#B91C1C";
+    html+="<div class='pl-row' id='plrow-"+idx+"'>"+
+      "<div class='pl-row-hdr' onclick='togglePLRow("+idx+")'>"+
+        "<span class='pl-row-chevron' id='plchev-"+idx+"'>▶</span>"+
+        "<div style='flex:1;min-width:0'>"+
+          "<div style='font-size:13px;font-weight:600;color:#1A2D5A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+p.projectName+"</div>"+
+          "<div style='font-size:11px;color:#7A8BAA'>"+p.client+"</div>"+
+        "</div>"+
+        "<div style='width:90px;text-align:right;color:#15803D;font-size:12px;font-weight:600'>₹ "+fmt(p.income)+"</div>"+
+        "<div style='width:90px;text-align:right;color:#B91C1C;font-size:12px;font-weight:600'>₹ "+fmt(p.expense)+"</div>"+
+        "<div style='width:90px;text-align:right;font-weight:700;color:"+pColor+";font-size:12px'>"+
+          "₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" L":"")+"</div>"+
+      "</div>"+
+      "<div class='pl-row-detail' id='pldetail-"+idx+"'>"+
+        // Income breakdown
+        "<div class='pl-detail-section'>"+
+          "<div class='pl-detail-label' style='color:#15803D'>Income</div>";
+    p.incomeLines.forEach(function(line){
+      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#15803D'>₹ "+fmt(line.amount)+"</span></div>";
+    });
+    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Income</span><span style='color:#15803D'>₹ "+fmt(p.income)+"</span></div>"+
+        "</div>"+
+        // Expense breakdown
+        "<div class='pl-detail-section' style='margin-top:10px'>"+
+          "<div class='pl-detail-label' style='color:#B91C1C'>Expenses</div>";
+    p.expenseLines.forEach(function(line){
+      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#B91C1C'>₹ "+fmt(line.amount)+"</span></div>";
+    });
+    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Expense</span><span style='color:#B91C1C'>₹ "+fmt(p.expense)+"</span></div>"+
+        "</div>"+
+        // Net
+        "<div style='display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:8px 0 4px;border-top:2px solid #DDE3EE;margin-top:8px;color:"+pColor+"'>"+
+          "<span>Net P&L</span><span>₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div>"+
+      "</div>"+
+    "</div>";
+  });
+  html+="</div>";
+  el.innerHTML=html;
+}
+
+function togglePLRow(idx){
+  var chev=document.getElementById("plchev-"+idx);
+  var detail=document.getElementById("pldetail-"+idx);
+  var isOpen=chev.classList.contains("open");
+  chev.classList.toggle("open",!isOpen);
+  detail.classList.toggle("open",!isOpen);
+}
+
+// ── P&L STATEMENT ─────────────────────────────────────────
+function renderPLStatement(d){
+  var el=document.getElementById("reportPLStatement");
+  var html="<div class='bs-section'>"+
+    "<div class='bs-section-title' style='color:#15803D'>Income</div>";
+  d.incomeLines.forEach(function(l){
+    html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#15803D'>₹ "+fmt(l.amount)+"</span></div>";
+  });
+  html+="<div class='bs-total'><span>Total Income</span><span style='color:#15803D'>₹ "+fmt(d.totalIncome)+"</span></div></div>"+
+    "<div class='bs-section'>"+
+    "<div class='bs-section-title' style='color:#B91C1C'>Expenses</div>";
+  d.expenseLines.forEach(function(l){
+    html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#B91C1C'>₹ "+fmt(l.amount)+"</span></div>";
+  });
+  html+="<div class='bs-total'><span>Total Expenses</span><span style='color:#B91C1C'>₹ "+fmt(d.totalExpense)+"</span></div></div>"+
+    "<div style='display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:12px;background:"+(d.netProfit>=0?"#DCFCE7":"#FEE2E2")+";border-radius:8px;margin-top:8px;color:"+(d.netProfit>=0?"#15803D":"#B91C1C")+"'>"+
+      "<span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>₹ "+fmt(Math.abs(d.netProfit))+"</span></div>";
+  el.innerHTML=html;
+}
+
+// ── BALANCE SHEET ─────────────────────────────────────────
+function renderBalanceSheet(d){
+  var el=document.getElementById("reportBS");
+  function bsRows(items,normalSide){
+    return items.map(function(a){
+      return "<div class='bs-row'><span>"+a.code+" — "+a.name+"</span><span>₹ "+fmt(a.balance)+"</span></div>";
+    }).join("");
+  }
+  var html="<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>";
+  // Left — Assets
+  html+="<div><div class='bs-section'><div class='bs-section-title'>Assets</div>"+bsRows(d.assets)+"<div class='bs-total'><span>Total Assets</span><span>₹ "+fmt(d.totalAssets)+"</span></div></div></div>";
+  // Right — Liabilities + P&L
+  html+="<div><div class='bs-section'><div class='bs-section-title'>Liabilities</div>"+bsRows(d.liabilities)+"</div>"+
+    "<div class='bs-section'><div class='bs-section-title'>Equity</div>"+bsRows(d.equity)+
+    "<div class='bs-row'><span>Net P&L (Current FY)</span><span style='color:"+(d.netPL>=0?"#15803D":"#B91C1C")+"'>₹ "+fmt(Math.abs(d.netPL))+(d.netPL<0?" L":"")+"</span></div>"+
+    "<div class='bs-total'><span>Total Liabilities + Equity</span><span>₹ "+fmt(d.totalLiabilities)+"</span></div></div></div>";
+  html+="</div>";
+  el.innerHTML=html;
+}
+
+// ── PDF PRINTERS ───────────────────────────────────────────
+function _openPrintWin(title, body){
+  var fyL=(fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+  var coL=curCompany==="All"?"All Companies":((companyList.find(function(c){return c.id===curCompany;})||{name:curCompany}).name);
+  var win=window.open("","_blank");
+  win.document.write("<html><head><title>"+title+"</title>"+
+    "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}"+
+    "h2{color:#1A2D5A;margin-bottom:2px}h4{color:#7A8BAA;font-weight:normal;margin-bottom:16px}"+
+    ".row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}"+
+    ".section{margin-bottom:16px}.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;padding:5px 0;border-bottom:2px solid #ddd;margin-bottom:6px}"+
+    ".total{display:flex;justify-content:space-between;font-weight:700;padding:7px 0;border-top:2px solid #1A2D5A;margin-top:4px}"+
+    ".grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}"+
+    "@media print{button{display:none}}</style></head><body>"+
+    "<button onclick='window.print()' style='margin-bottom:12px;padding:8px 16px;background:#2B5197;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px'>🖨 Print / Save PDF</button>"+
+    "<h2>Blue Door Architects</h2><h4>"+title+" &mdash; "+fyL+" &mdash; "+coL+
+    "<br><small style='color:#94A3B8'>Generated: "+new Date().toLocaleString("en-IN")+"</small></h4>"+
+    body+"</body></html>");
+  win.document.close();
+}
+
+function printProjectPL(){
+  if(!_plData){toast("Load reports first.",false);return;}
+  var body="";
+  _plData.projects.forEach(function(p){
+    body+="<div class='section'><div class='section-title'>"+p.projectName+" — "+p.client+"</div>"+
+      "<div class='row'><span style='font-weight:700;color:#888'>INCOME</span><span></span></div>";
+    p.incomeLines.forEach(function(l){body+="<div class='row'><span>&nbsp;&nbsp;"+l.label+"</span><span style='color:green'>₹ "+fmt(l.amount)+"</span></div>";});
+    body+="<div class='row'><b>Total Income</b><b style='color:green'>₹ "+fmt(p.income)+"</b></div>"+
+      "<div class='row'><span style='font-weight:700;color:#888'>EXPENSES</span><span></span></div>";
+    p.expenseLines.forEach(function(l){body+="<div class='row'><span>&nbsp;&nbsp;"+l.label+"</span><span style='color:red'>₹ "+fmt(l.amount)+"</span></div>";});
+    body+="<div class='row'><b>Total Expense</b><b style='color:red'>₹ "+fmt(p.expense)+"</b></div>"+
+      "<div class='total'><span>Net P&L</span><span style='color:"+(p.profit>=0?"green":"red")+"'>₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div></div>";
+  });
+  _openPrintWin("Project P&L Summary",body);
+}
+
+function printPLStatement(){
+  if(!_plStmtData){toast("Load reports first.",false);return;}
+  var d=_plStmtData;
+  var body="<div class='section'><div class='section-title' style='color:green'>Income</div>";
+  d.incomeLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:green'>₹ "+fmt(l.amount)+"</span></div>";});
+  body+="<div class='total'><span>Total Income</span><span style='color:green'>₹ "+fmt(d.totalIncome)+"</span></div></div>"+
+    "<div class='section'><div class='section-title' style='color:red'>Expenses</div>";
+  d.expenseLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:red'>₹ "+fmt(l.amount)+"</span></div>";});
+  body+="<div class='total'><span>Total Expenses</span><span style='color:red'>₹ "+fmt(d.totalExpense)+"</span></div>"+
+    "<div class='total' style='font-size:15px;color:"+(d.netProfit>=0?"green":"red")+"'><span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>₹ "+fmt(Math.abs(d.netProfit))+"</span></div>";
+  _openPrintWin("P&L Statement",body);
+}
+
+function printBalanceSheet(){
+  if(!_bsData){toast("Load reports first.",false);return;}
+  var d=_bsData;
+  function rows(items){return items.map(function(a){return "<div class='row'><span>"+a.code+" — "+a.name+"</span><span>₹ "+fmt(a.balance)+"</span></div>";}).join("");}
+  var body="<div class='grid'>"+
+    "<div><div class='section'><div class='section-title'>Assets</div>"+rows(d.assets)+"<div class='total'><span>Total Assets</span><span>₹ "+fmt(d.totalAssets)+"</span></div></div></div>"+
+    "<div><div class='section'><div class='section-title'>Liabilities</div>"+rows(d.liabilities)+"</div>"+
+    "<div class='section'><div class='section-title'>Equity</div>"+rows(d.equity)+
+    "<div class='row'><span>Net P&L (FY)</span><span style='color:"+(d.netPL>=0?"green":"red")+"'>₹ "+fmt(Math.abs(d.netPL))+"</span></div>"+
+    "<div class='total'><span>Total Liabilities + Equity</span><span>₹ "+fmt(d.totalLiabilities)+"</span></div></div></div>"+
+    "</div>";
+  _openPrintWin("Balance Sheet",body);
 }
 
 function renderVendorReport(){
