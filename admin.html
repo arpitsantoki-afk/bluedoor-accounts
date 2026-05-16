@@ -2766,9 +2766,15 @@ function renderBankImportRow(e){
     ? "<span style='color:#B91C1C;font-size:10px;font-weight:700'>WITHDRAWAL (Bank Cr)</span>"
     : "<span style='color:#15803D;font-size:10px;font-weight:700'>DEPOSIT (Bank Dr)</span>";
 
-  // Build entry type options filtered by direction
+  // Filter entry types to those involving BANK account
+  // isDebit = withdrawal = bank is Cr leg; isDeposit = bank is Dr leg
   var etOpts="<option value=''>— Select Entry Type —</option>";
-  Object.values(allEntryTypes||{}).filter(function(t){return t.active;}).forEach(function(t){
+  Object.values(allEntryTypes||{}).filter(function(t){
+    if(!t.active) return false;
+    var dr=(t.dr||"").toUpperCase(), cr=(t.cr||"").toUpperCase();
+    // Include if BANK is one of the legs
+    return dr==="BANK" || cr==="BANK";
+  }).forEach(function(t){
     etOpts+="<option value='"+t.key+"'>"+t.label+"</option>";
   });
   // Build project options from cache
