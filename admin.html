@@ -545,6 +545,7 @@ td{padding:9px 10px;vertical-align:top}
     <div class="subtab" onclick="switchAddTab('project',this)">Project</div>
     <div class="subtab" onclick="switchAddTab('vendor',this)">Vendor</div>
     <div class="subtab" onclick="switchAddTab('opening',this)">Opening Bal.</div>
+    <div class="subtab" onclick="switchAddTab('bankimport',this)">🏦 Import</div>
   </div>
 
   <!-- Entry -->
@@ -688,6 +689,27 @@ td{padding:9px 10px;vertical-align:top}
     <div class="card">
       <div class="card-label">Vendor Opening Balances — <span id="vobFYLabel"></span></div>
       <div id="vobList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- BANK IMPORT TAB -->
+  <div id="at-bankimport" class="hidden">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:6px">🏦 Import Bank Statement</div>
+      <div style="font-size:12px;color:#7A8BAA;line-height:1.6;margin-bottom:12px">
+        Upload your bank statement (.xls or .csv from HDFC). All rows are imported to Pending Entries.
+        You can then assign Entry Type, Project, Vendor and Cost Head inline before approving.
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Select Bank Statement File</label>
+        <input type="file" id="bankFile" accept=".xls,.xlsx,.csv" style="width:100%;padding:10px;border:1.5px dashed #DDE3EE;border-radius:9px;background:#F7F9FC;font-size:13px;cursor:pointer">
+      </div>
+      <div id="bankParseStatus" style="font-size:12px;color:#7A8BAA;margin-bottom:10px"></div>
+      <div id="bankPreview" style="margin-bottom:12px;max-height:300px;overflow-y:auto"></div>
+      <button class="btn-primary btn-full" id="bankImportBtn" onclick="doImportBank()" style="display:none">
+        📥 Import to Pending Entries
+      </button>
+      <div id="bankImportStatus" style="font-size:12px;color:#7A8BAA;margin-top:8px;text-align:center"></div>
     </div>
   </div>
 </div>
@@ -2489,7 +2511,10 @@ function downloadClosingBalances() {
 function loadPendingEntries(){
   var el = document.getElementById("pendingList");
   el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
-  api({action:"getPendingEntries",token:token,fyid:curFY,companyId:curCompany,status:"Pending"}, function(d){
+  api({action:"getPendingEntries",token:token,fyid:curFY,companyId:curCompany,status:""}, function(d){
+    // Filter to Pending + BankImport only
+    if(d.success) d.entries=d.entries.filter(function(e){return e.status==="Pending"||e.status==="BankImport";});
+    d.pendingCount=(d.entries||[]).filter(function(e){return e.status==="Pending";}).length;
     var badge = document.getElementById("pendingBadge");
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     var count = d.pendingCount||0;
@@ -2507,15 +2532,29 @@ function loadPendingEntries(){
         "<div class='pend-sub'>"+e.date+" · "+e.projectName+(e.vendorName?" · "+e.vendorName:"")+(e.costHeadName?" · "+e.costHeadName:"")+"</div>"+
         "<div class='pend-sub'>by "+e.submittedBy+" · "+e.submittedAt+"</div>"+
         (e.narration?"<div class='pend-sub' style='font-style:italic'>"+e.narration+"</div>":"")+
-        "<div class='pend-actions'>"+
-          "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
-          "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
-          "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
-          photoBtn+
-        "</div>"+
+        (e.status==="BankImport"
+          ? "<div class='pend-actions'><span style='font-size:11px;color:#7A8BAA;font-style:italic'>Assign parameters below to approve →</span></div>"
+          : "<div class='pend-actions'>"+
+              "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
+              "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
+              "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
+              photoBtn+
+            "</div>")+
         "</div>";
     });
-    el.innerHTML=html;
+    // Separate bank import rows for inline editing
+    var regularHtml = html;
+    var biRows = d.entries.filter(function(e){return e.status==="BankImport";});
+    var biHtml = "";
+    biRows.forEach(function(e){ biHtml += renderBankImportRow(e); });
+    if(biHtml){
+      el.innerHTML = regularHtml +
+        "<div style='margin-top:12px;border-top:2px dashed #F59E0B;padding-top:10px'>"+
+        "<div style='font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:8px'>🏦 Bank Import — Assign Parameters &amp; Approve</div>"+
+        biHtml+"</div>";
+    } else {
+      el.innerHTML = regularHtml;
+    }
   });
 }
 
@@ -2571,6 +2610,215 @@ function fillSel(id,items,mapFn,ph){
     if(id==="aCostHead"||id==="aProject") checkAdminProjectRequired();
   });
 }
+// ── BANK STATEMENT IMPORT ────────────────────────────────────
+var _bankRows = [];
+
+function initBankImport(){
+  document.getElementById("bankFile").onchange = function(e){
+    var file = e.target.files[0]; if(!file) return;
+    document.getElementById("bankParseStatus").textContent = "Parsing…";
+    document.getElementById("bankPreview").innerHTML = "";
+    document.getElementById("bankImportBtn").style.display = "none";
+
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try {
+        var wb = XLSX.read(ev.target.result, {type:"binary", cellDates:true});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        parseBankRows(raw, file.name);
+      } catch(err) {
+        document.getElementById("bankParseStatus").textContent = "Parse error: "+err.message;
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+}
+
+function parseBankRows(raw, fname){
+  _bankRows = [];
+  // Find the header row (contains "Date" and "Narration" and "Withdrawal")
+  var headerIdx = -1;
+  for(var i=0;i<raw.length;i++){
+    var r = raw[i].join("|").toLowerCase();
+    if(r.indexOf("date")!==-1 && r.indexOf("narration")!==-1 && r.indexOf("withdrawal")!==-1){
+      headerIdx = i; break;
+    }
+  }
+  if(headerIdx===-1){
+    document.getElementById("bankParseStatus").textContent = "Could not find header row. Expected columns: Date, Narration, Withdrawal Amt., Deposit Amt.";
+    return;
+  }
+
+  var headers = raw[headerIdx].map(function(h){return (h||"").toString().toLowerCase().trim();});
+  var iDate  = headers.findIndex(function(h){return h.indexOf("date")!==-1&&h.indexOf("value")===-1;});
+  var iNarr  = headers.findIndex(function(h){return h.indexOf("narration")!==-1;});
+  var iRef   = headers.findIndex(function(h){return h.indexOf("chq")!==-1||h.indexOf("ref")!==-1;});
+  var iWD    = headers.findIndex(function(h){return h.indexOf("withdrawal")!==-1;});
+  var iDep   = headers.findIndex(function(h){return h.indexOf("deposit")!==-1;});
+  var iClBal = headers.findIndex(function(h){return h.indexOf("closing")!==-1;});
+
+  for(var j=headerIdx+2; j<raw.length; j++){  // skip separator row
+    var r = raw[j];
+    if(!r || !r[iDate]) continue;
+    var wd  = parseFloat((r[iWD]||"").toString().replace(/,/g,""))||0;
+    var dep = parseFloat((r[iDep]||"").toString().replace(/,/g,""))||0;
+    if(!wd && !dep) continue;
+    // Parse date
+    var rawDate = r[iDate];
+    var dateStr = "";
+    if(rawDate instanceof Date) {
+      dateStr = rawDate.toISOString().split("T")[0];
+    } else {
+      var parts = rawDate.toString().split("/");
+      if(parts.length===3){
+        var yr = parseInt(parts[2]); if(yr<100) yr+=2000;
+        dateStr = yr+"-"+parts[1].padStart(2,"0")+"-"+parts[0].padStart(2,"0");
+      } else dateStr = rawDate.toString();
+    }
+    _bankRows.push({
+      date:        dateStr,
+      narration:   (r[iNarr]||"").toString().trim(),
+      refNo:       (r[iRef]||"").toString().trim(),
+      withdrawal:  wd,
+      deposit:     dep,
+      closingBal:  parseFloat((r[iClBal]||"").toString().replace(/,/g,""))||0
+    });
+  }
+
+  if(!_bankRows.length){
+    document.getElementById("bankParseStatus").textContent = "No transaction rows found.";
+    return;
+  }
+  document.getElementById("bankParseStatus").textContent =
+    "✓ Found "+_bankRows.length+" transactions in "+fname;
+  renderBankPreview();
+  document.getElementById("bankImportBtn").style.display = "";
+}
+
+function renderBankPreview(){
+  var html="<div style='font-size:11px;color:#7A8BAA;margin-bottom:6px'>Preview (first 20 rows):</div>"+
+    "<table style='width:100%;border-collapse:collapse;font-size:11px'>"+
+    "<thead><tr style='background:#F7F9FC'>"+
+    "<th style='padding:6px 8px;text-align:left;border-bottom:1px solid #DDE3EE;color:#7A8BAA'>Date</th>"+
+    "<th style='padding:6px 8px;text-align:left;border-bottom:1px solid #DDE3EE;color:#7A8BAA'>Narration</th>"+
+    "<th style='padding:6px 8px;text-align:right;border-bottom:1px solid #DDE3EE;color:#B91C1C'>Withdrawal</th>"+
+    "<th style='padding:6px 8px;text-align:right;border-bottom:1px solid #DDE3EE;color:#15803D'>Deposit</th>"+
+    "</tr></thead><tbody>";
+  _bankRows.slice(0,20).forEach(function(r){
+    html+="<tr style='border-bottom:1px solid #EEF2F7'>"+
+      "<td style='padding:5px 8px;white-space:nowrap'>"+r.date+"</td>"+
+      "<td style='padding:5px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+esc(r.narration)+"'>"+r.narration+"</td>"+
+      "<td style='padding:5px 8px;text-align:right;color:#B91C1C;font-weight:600'>"+(r.withdrawal>0?"₹ "+fmt(r.withdrawal):"")+"</td>"+
+      "<td style='padding:5px 8px;text-align:right;color:#15803D;font-weight:600'>"+(r.deposit>0?"₹ "+fmt(r.deposit):"")+"</td>"+
+      "</tr>";
+  });
+  if(_bankRows.length>20) html+="<tr><td colspan='4' style='padding:6px 8px;color:#7A8BAA;font-style:italic'>… and "+(_bankRows.length-20)+" more rows</td></tr>";
+  html+="</tbody></table>";
+  document.getElementById("bankPreview").innerHTML=html;
+}
+
+function doImportBank(){
+  if(!_bankRows.length){ toast("No rows to import.",false); return; }
+  var btn=document.getElementById("bankImportBtn");
+  var status=document.getElementById("bankImportStatus");
+  btn.disabled=true; btn.textContent="Importing…";
+  status.textContent="";
+  api({action:"importBankStatement",token:token,fyid:curFY,companyId:curCompany,rows:_bankRows},
+  function(d){
+    btn.disabled=false; btn.textContent="📥 Import to Pending Entries";
+    if(d.success){
+      status.textContent="✓ Imported "+d.imported+" rows"+(d.skipped>0?" ("+d.skipped+" skipped)":"");
+      toast("✓ "+d.imported+" bank rows imported to Pending Entries.",true);
+      _bankRows=[];
+      document.getElementById("bankFile").value="";
+      document.getElementById("bankPreview").innerHTML="";
+      document.getElementById("bankImportBtn").style.display="none";
+      document.getElementById("bankParseStatus").textContent="";
+      loadPendingEntries(); // Refresh home pending list
+    } else {
+      status.textContent="Error: "+d.error;
+      toast(d.error||"Import failed.",false);
+    }
+  });
+}
+
+// ── INLINE EDIT FOR BANK IMPORT PENDING ROWS ─────────────────
+function renderBankImportRow(e){
+  // Returns HTML for an incomplete bank import pending entry
+  // with inline dropdowns to assign entry type, project, vendor, cost head
+  var drCrHint = e.rejectReason||""; // stored hint e.g. "Cr:BANK" or "Dr:BANK"
+  var isDebit  = drCrHint.indexOf("Cr:BANK")!==-1; // withdrawal = Cr bank
+  var sideLabel= isDebit
+    ? "<span style='color:#B91C1C;font-size:10px;font-weight:700'>WITHDRAWAL (Bank Cr)</span>"
+    : "<span style='color:#15803D;font-size:10px;font-weight:700'>DEPOSIT (Bank Dr)</span>";
+
+  // Build entry type options filtered by direction
+  var etOpts="<option value=''>— Select Entry Type —</option>";
+  Object.values(allEntryTypes||{}).filter(function(t){return t.active;}).forEach(function(t){
+    etOpts+="<option value='"+t.key+"'>"+t.label+"</option>";
+  });
+  // Build project options from cache
+  var prC=lsGet("bd_c_proj")||[];
+  var prOpts="<option value=''>— Project (optional) —</option>";
+  prC.forEach(function(p){prOpts+="<option value='"+p.id+"'>"+p.name+"</option>";});
+  // Vendor options
+  var veC=lsGet("bd_c_ve")||[];
+  var veOpts="<option value=''>— Vendor (optional) —</option>";
+  veC.forEach(function(v){veOpts+="<option value='"+v.id+"'>"+v.name+"</option>";});
+  // Cost head options
+  var chC=lsGet("bd_c_ch")||[];
+  var chOpts="<option value=''>— Cost Head (optional) —</option>";
+  chC.forEach(function(c){chOpts+="<option value='"+c.id+"'>"+c.name+"</option>";});
+
+  var sel=function(id,opts,style){return "<select id='"+id+"_"+e.entryId+"' style='"+
+    "padding:5px 8px;border:1.5px solid #DDE3EE;border-radius:7px;font-size:11px;color:#1A2D5A;"+
+    "background:#F7F9FC;outline:none;font-family:inherit;width:100%;margin-top:3px"+(style?";"+style:"")+"'>"+opts+"</select>";};
+
+  return "<div class='pend-row' style='background:#FFF9E6;border-left:3px solid #F59E0B'>"+
+    "<div class='pend-main'>🏦 Bank Import — ₹ "+fmt(e.amount)+" &nbsp;"+sideLabel+"</div>"+
+    "<div class='pend-sub' style='margin-bottom:6px'>"+e.date+" · "+e.narration+"</div>"+
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px'>"+
+      "<div>"+sel("bi_et",etOpts)+"</div>"+
+      "<div>"+sel("bi_proj",prOpts)+"</div>"+
+      "<div>"+sel("bi_vend",veOpts)+"</div>"+
+      "<div>"+sel("bi_ch",chOpts)+"</div>"+
+    "</div>"+
+    "<div style='display:flex;gap:6px'>"+
+      "<button class='btn-approve' data-id='"+e.entryId+"' onclick='approveBankImport(this.dataset.id)'>&#10003; Approve</button>"+
+      "<button style='padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit' data-id='"+e.entryId+"' onclick='deletePendingEntryAdmin(this.dataset.id)'>&#10007; Delete</button>"+
+    "</div>"+
+    "</div>";
+}
+
+function approveBankImport(entryId){
+  var etEl=document.getElementById("bi_et_"+entryId);
+  if(!etEl||!etEl.value){ toast("Please select an Entry Type first.",false); return; }
+  var entryType=etEl.value;
+  var projectId=(document.getElementById("bi_proj_"+entryId)||{value:""}).value;
+  var vendorId=(document.getElementById("bi_vend_"+entryId)||{value:""}).value;
+  var costHeadId=(document.getElementById("bi_ch_"+entryId)||{value:""}).value;
+  // First update the pending entry with the assigned parameters
+  api({action:"editPendingEntry",token:token,entryId:entryId,
+    entryType:entryType,projectId:projectId,vendorId:vendorId,costHeadId:costHeadId},
+  function(d){
+    if(!d.success){ toast(d.error||"Update failed.",false); return; }
+    // Then approve it
+    api({action:"approveEntry",token:token,entryId:entryId},function(d2){
+      if(d2.success){ toast("✓ Entry approved: Dr "+d2.dr+" / Cr "+d2.cr,true); loadPendingEntries(); }
+      else toast(d2.error||"Approve failed.",false);
+    });
+  });
+}
+
+function deletePendingEntryAdmin(entryId){
+  if(!confirm("Delete this pending entry?")) return;
+  api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
+    if(d.success){ toast("Deleted.",true); loadPendingEntries(); }
+    else toast(d.error||"Failed.",false);
+  });
+}
+
 // ── UTILS ──────────────────────────────────────────────────
 var _dbTotal=0, _dbErrors=0, _debugOpen=false;
 
