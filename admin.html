@@ -2156,9 +2156,12 @@ function loadVendorOBList() {
   api({action:"getVendorOB",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances for this FY.</div>"; return; }
-    // Build vendor name map from dropdown
+    // Build vendor name map from cache
     var vMap={};
-    document.querySelectorAll("#vobVendor option").forEach(function(o){ if(o.value) vMap[o.value]=o.textContent; });
+    var veC=lsGet("bd_c_ve")||[];
+    veC.forEach(function(v){ vMap[v.id]=v.name; });
+    // Also try from the dropdown as fallback
+    document.querySelectorAll("#vobVendor option").forEach(function(o){ if(o.value&&!vMap[o.value]) vMap[o.value]=o.textContent; });
     var html="<table><thead><tr><th>Vendor</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th><th>Date</th></tr></thead><tbody>";
     d.balances.forEach(function(b){
       html+="<tr>"+
