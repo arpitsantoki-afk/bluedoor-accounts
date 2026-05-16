@@ -2527,7 +2527,7 @@ function loadPendingEntries(){
       el.innerHTML="<div class='empty' style='padding:8px 0'>No pending entries. ✓</div>"; return;
     }
     var html="";
-    d.entries.forEach(function(e){
+    d.entries.filter(function(e){return e.status!=="BankImport";}).forEach(function(e){
       var photoBtn = e.driveFileUrl
         ? "<a class='btn-view-bill' href='"+e.driveFileUrl+"' target='_blank'>📎 View Bill</a>" : "";
       html+="<div class='pend-row'>"+
@@ -2545,7 +2545,7 @@ function loadPendingEntries(){
             "</div>")+
         "</div>";
     });
-    // Separate bank import rows for inline editing
+    // Bank import rows shown ONLY with dropdowns (not in regular list above)
     var regularHtml = html;
     var biRows = d.entries.filter(function(e){return e.status==="BankImport";});
     var biHtml = "";
@@ -2661,9 +2661,19 @@ function parseBankRows(raw, fname){
   var iDep   = headers.findIndex(function(h){return h.indexOf("deposit")!==-1;});
   var iClBal = headers.findIndex(function(h){return h.indexOf("closing")!==-1;});
 
-  for(var j=headerIdx+2; j<raw.length; j++){  // skip separator row
+  for(var j=headerIdx+2; j<raw.length; j++){  // skip separator row after header
     var r = raw[j];
-    if(!r || !r[iDate]) continue;
+    if(!r) continue;
+    // Stop at separator rows (***...) or STATEMENT SUMMARY
+    var rowStr = r.join("").toString();
+    if(rowStr.replace(/\*/g,"").replace(/,/g,"").trim()==="") continue; // all stars = separator
+    if(rowStr.indexOf("STATEMENT SUMMARY")!==-1) break;
+    if(rowStr.indexOf("Opening Balance")!==-1) break;
+    if(rowStr.indexOf("Generated On")!==-1) break;
+    // Stop if date column looks like a star row
+    var dateVal = (r[iDate]||"").toString().trim();
+    if(dateVal.replace(/\*/g,"").trim()==="") break;
+    if(!dateVal || dateVal.indexOf("*")!==-1) continue;
     var wd  = parseFloat((r[iWD]||"").toString().replace(/,/g,""))||0;
     var dep = parseFloat((r[iDep]||"").toString().replace(/,/g,""))||0;
     if(!wd && !dep) continue;
@@ -2731,7 +2741,7 @@ function doImportBank(){
   function(d){
     btn.disabled=false; btn.textContent="📥 Import to Pending Entries";
     if(d.success){
-      status.textContent="✓ Imported "+d.imported+" rows"+(d.skipped>0?" ("+d.skipped+" skipped)":"");
+      status.textContent="✓ Imported "+d.imported+" rows"+(d.duplicates>0?" · "+d.duplicates+" duplicates skipped":"")+(d.skipped>0?" · "+d.skipped+" empty skipped":"");
       toast("✓ "+d.imported+" bank rows imported to Pending Entries.",true);
       _bankRows=[];
       document.getElementById("bankFile").value="";
