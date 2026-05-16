@@ -1028,10 +1028,10 @@ function initLedger() {
     populateFilterDropdowns(d.ledger);
     applyFilters();
   });
-  api({action:"getOpeningBalances",token:token,fyid:curFY}, function(d){
+  api({action:"getOpeningBalances",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(d.success) allOpeningBalances = d.balances || [];
   });
-  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+  api({action:"getVendorOB",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(d.success) allVendorOBs = d.balances || [];
   });
 }
@@ -1343,10 +1343,13 @@ function resetFilters() {
 // ── ADD SUB-TABS ───────────────────────────────────────────
 function switchAddTab(tab,el){
   document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
-  ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
-  if(tab==="opening") { loadOpeningBalances(); loadVendorOBTab(); }
-  if(tab==="project") loadAllProjects();
-  if(tab==="vendor")  loadAllVendors();
+  ["entry","project","vendor","opening","bankimport"].forEach(function(t){
+    var d=document.getElementById("at-"+t); if(d) d.classList[t===tab?"remove":"add"]("hidden");
+  });
+  if(tab==="opening")    { loadOpeningBalances(); loadVendorOBTab(); }
+  if(tab==="project")    loadAllProjects();
+  if(tab==="vendor")     loadAllVendors();
+  if(tab==="bankimport") initBankImport();
 }
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
@@ -1463,7 +1466,7 @@ function adminSaveEntry(){
 function loadOpeningBalances(){
   var fyL=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
   document.getElementById("obFYLabel").textContent=fyL;
-  api({action:"getOpeningBalances",token:token,fyid:curFY},function(d){
+  api({action:"getOpeningBalances",token:token,fyid:curFY,companyId:curCompany},function(d){
     var el=document.getElementById("obList");
     if(!d.success||!d.balances.length){ el.innerHTML="<div class='empty'>No opening balances entered for "+fyL+".</div>"; return; }
     var html="<div class='tbl-wrap'><table><thead><tr><th>Account</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th></tr></thead><tbody>";
@@ -1475,7 +1478,7 @@ function saveOpeningBalance(){
   var acKey=ssGet("obAccount"), drCr=document.getElementById("obDrCr").value, amt=parseFloat(document.getElementById("obAmount").value);
   if(!acKey){toast("Please select an account.",false);return;}
   if(!amt||amt<=0){toast("Please enter a valid amount.",false);return;}
-  api({action:"saveOpeningBalance",token:token,fyid:curFY,accountKey:acKey,drCr:drCr,amount:amt},
+  api({action:"saveOpeningBalance",token:token,fyid:curFY,companyId:curCompany,accountKey:acKey,drCr:drCr,amount:amt},
   function(d){ if(d.success){toast("✓ Opening balance saved.",true); document.getElementById("obAmount").value=""; loadOpeningBalances();}else toast(d.error||"Failed.",false); });
 }
 
@@ -2150,7 +2153,7 @@ function loadVendorOBTab() {
 function loadVendorOBList() {
   var el = document.getElementById("vobList");
   el.innerHTML = "<div class='empty'>Loading…</div>";
-  api({action:"getVendorOB",token:token,fyid:curFY}, function(d){
+  api({action:"getVendorOB",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances for this FY.</div>"; return; }
     // Build vendor name map from dropdown
@@ -2177,7 +2180,7 @@ function saveVendorOB() {
   var amt  = parseFloat(document.getElementById("vobAmount").value);
   if(!vid)       { toast("Please select a vendor.", false); return; }
   if(!amt||amt<=0){ toast("Please enter a valid amount.", false); return; }
-  api({action:"saveVendorOB",token:token,fyid:curFY,vendorId:vid,drCr:drCr,amount:amt}, function(d){
+  api({action:"saveVendorOB",token:token,fyid:curFY,companyId:curCompany,vendorId:vid,drCr:drCr,amount:amt}, function(d){
     if(d.success){
       toast("✓ Vendor opening balance saved.", true);
       document.getElementById("vobAmount").value="";
