@@ -109,6 +109,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
 .toast.ok{background:#DCFCE7;color:#15803D;border:1px solid #BBF7D0}
 .toast.err{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
 .hidden{display:none!important}
+.co-badge-app{background:rgba(255,165,0,0.2);border:1px solid rgba(255,165,0,0.5);border-radius:6px;padding:4px 8px;color:#FFD700;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.co-panel-app{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1A2D5A;border:1px solid rgba(255,255,255,0.2);border-radius:8px;min-width:160px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden}
+.co-opt-app{padding:10px 14px;color:#fff;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08)}
+.co-opt-app:last-child{border-bottom:none}
+.co-opt-app:hover{background:rgba(255,255,255,0.1)}
+.co-opt-app.active{background:rgba(255,165,0,0.25);color:#FFD700;font-weight:700}
 .entry-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0}
 .entry-confirm-box{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.15)}
 .entry-confirm-title{font-size:16px;font-weight:700;color:#1A2D5A;margin-bottom:14px;text-align:center}
@@ -191,6 +197,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F
   </div>
   <div class="header-right">
     <div class="fy-badge" onclick="toggleFYPanel()"><span id="fyLabel">FY —</span> <span>▾</span></div>
+    <div style="position:relative">
+      <div class="co-badge-app" id="coBadgeApp" onclick="toggleCoPanelApp()"><span id="coLabelApp">…</span></div>
+      <div class="co-panel-app" id="coPanelApp"></div>
+    </div>
     <button class="btn-sync-app" id="syncBtn" onclick="syncApp()" title="Sync">↻</button>
     <div class="online-dot" id="onlineDot" title="Backend status"></div>
   </div>
@@ -396,7 +406,7 @@ function lsGet(k){ try{ var o=JSON.parse(localStorage.getItem(k)||"null"); if(!o
 function lsSet(k,d){ try{localStorage.setItem(k,JSON.stringify({data:d,exp:Date.now()+CACHE_TTL}));}catch(e){} }
 
 // ── Init all in parallel ───────────────────────────────────
-function initApp(){ loadFY(); loadMasterData(); }
+function initApp(){ loadFY(); loadCompanies(); loadMasterData(); }
 
 // ── FY ─────────────────────────────────────────────────────
 function loadFY(){
@@ -413,6 +423,60 @@ function updateFYLabel(){ var f=fyList.find(x=>x.id===curFY); document.getElemen
 function toggleFYPanel(){ var p=document.getElementById("fyPanel"); p.style.display=p.style.display==="block"?"none":"block"; }
 function renderFYPanel(){ document.getElementById("fyPanel").innerHTML=fyList.map(f=>"<div class='fy-option"+(f.id===curFY?" active":"")+"' onclick='setFY(\""+f.id+"\")'>"+f.label+"</div>").join(""); }
 function setFY(id){ curFY=id; localStorage.setItem("bd_fy",id); updateFYLabel(); renderFYPanel(); document.getElementById("fyPanel").style.display="none"; }
+
+// ── COMPANY (app) ─────────────────────────────────────────────
+var curCompany = localStorage.getItem("bd_company") || "";
+var companyList = [];
+
+function loadCompanies(){
+  api({action:"getCompanies",token:token},function(d){
+    if(!d.success) return;
+    companyList = d.companies;
+    // Set default company if not set or invalid
+    if(!curCompany || !companyList.find(function(c){return c.id===curCompany;})){
+      curCompany = companyList.length ? companyList[0].id : "";
+      localStorage.setItem("bd_company", curCompany);
+    }
+    renderCoPanelApp(); updateCoLabelApp();
+  });
+}
+
+function updateCoLabelApp(){
+  var el=document.getElementById("coLabelApp"); if(!el) return;
+  var co=companyList.find(function(c){return c.id===curCompany;});
+  el.textContent = co?co.name:(curCompany||"…");
+}
+
+function renderCoPanelApp(){
+  var panel=document.getElementById("coPanelApp"); if(!panel) return;
+  var html="";
+  companyList.forEach(function(co){
+    html+="<div class='co-opt-app"+(curCompany===co.id?" active":"")+"' data-id='"+co.id+"'>"+co.name+"</div>";
+  });
+  panel.innerHTML=html;
+  panel.querySelectorAll(".co-opt-app").forEach(function(el){
+    el.addEventListener("click",function(){ setCompanyApp(this.dataset.id); });
+  });
+}
+
+function toggleCoPanelApp(){
+  var panel=document.getElementById("coPanelApp"); if(!panel) return;
+  panel.style.display=panel.style.display==="block"?"none":"block";
+}
+
+function setCompanyApp(id){
+  curCompany=id; localStorage.setItem("bd_company",id);
+  updateCoLabelApp(); renderCoPanelApp();
+  document.getElementById("coPanelApp").style.display="none";
+  // Reload petty cash with new company
+  if(!document.getElementById("view-home").classList.contains("hidden")) loadPettyCashLedger();
+}
+
+document.addEventListener("click",function(e){
+  var panel=document.getElementById("coPanelApp");
+  var badge=document.getElementById("coBadgeApp");
+  if(panel&&badge&&!badge.contains(e.target)&&!panel.contains(e.target)) panel.style.display="none";
+});
 
 // ── Master data: all dropdowns + entry types in parallel ──
 // ── Global fillSel — used by loadMasterData and loadSupVendors ──
@@ -553,7 +617,7 @@ function saveEntry(){
 
     // If editing an existing pending entry, use editPendingEntry action
     if(_editingPendingId){
-      api({action:"editPendingEntry",token:token,entryId:_editingPendingId,
+      api({action:"editPendingEntry",token:token,entryId:_editingPendingId,companyId:curCompany,
         entryType:selType.key,projectId:proj,costHeadId:ssGet("eCostHead"),
         vendorId:ssGet("eVendor"),date:dateVal,amount:amt,
         narration:document.getElementById("eNarration").value},
@@ -717,7 +781,7 @@ function uploadPhoto(file, entryId){
     var dataUrl=e.target.result;
     var base64=dataUrl.split(",")[1];
     var ctype=file.type||"image/jpeg";
-    api({action:"uploadBillPhoto",token:token,entryId:entryId,base64:base64,filename:file.name,contentType:ctype},
+    api({action:"uploadBillPhoto",token:token,entryId:entryId,companyId:curCompany,base64:base64,filename:file.name,contentType:ctype},
     function(d){ if(d.success) toast("📎 Bill photo uploaded.",true); else toast("Photo upload failed: "+d.error,false); });
   };
   reader.readAsDataURL(file);
@@ -953,7 +1017,7 @@ function loadPettyCashLedger(){
   var dateFrom = document.getElementById("pcDateFrom").value;
   var dateTo   = document.getElementById("pcDateTo").value;
 
-  api({action:"getPettyCashLedger", token:token, fyid:curFY}, function(d){
+  api({action:"getPettyCashLedger", token:token, fyid:curFY, companyId:curCompany}, function(d){
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
     _pcLoaded = true;
 
@@ -1043,7 +1107,7 @@ function generateVoucher(){
   var lastDay  = new Date(year,month,0).getDate();
   var dateTo   = year+"-"+String(month).padStart(2,"0")+"-"+String(lastDay).padStart(2,"0");
 
-  api({action:"getPettyCashLedger",token:token,fyid:curFY},function(d){
+  api({action:"getPettyCashLedger",token:token,fyid:curFY,companyId:curCompany},function(d){
     if(!d.success){ toast("Failed to load data: "+d.error,false); return; }
     var rows=d.entries.filter(function(r){
       return r.dateRaw>=new Date(dateFrom).getTime() && r.dateRaw<=new Date(dateTo).getTime()+86399999;
@@ -1073,6 +1137,8 @@ function generateVoucher(){
     });
 
     var uname = localStorage.getItem("bd_username")||"";
+    var coCurr = companyList.find(function(c){return c.id===curCompany;})||{};
+    var coName = coCurr.name||"Blue Door Architects";
 
     var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
       '<title>Petty Cash Voucher — '+monthLabel+'</title>'+
@@ -1104,7 +1170,7 @@ function generateVoucher(){
           '<div class="logo-box">BLUE<br>DOOR<br><span class="logo-sub">ARCHITECTS</span></div>'+
         '</div>'+
         '<div class="firm-info">'+
-          '<div class="firm-name">BLUE DOOR ARCHITECTS</div>'+
+          '<div class="firm-name">'+(coName.toUpperCase()||'BLUE DOOR ARCHITECTS')+'</div>'+
           'Altezza office, Palm Road, Nr. Sargasan Cross Road,<br>'+
           'Gandhinagar, Gujarat 382421.'+
         '</div>'+
