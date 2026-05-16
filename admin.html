@@ -570,6 +570,17 @@ td{padding:9px 10px;vertical-align:top}
       <div class="field"><label>Vendor / Party</label><select id="aVendor"><option value="">— Select Vendor (optional) —</option></select></div>
       <div class="field"><label>Amount (₹)</label><input type="number" id="aAmount" placeholder="0.00" min="1" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Narration / Remarks</label><input type="text" id="aNarration" placeholder="Brief note…"></div>
+      <div class="field" id="aDocField" style="display:none">
+        <label>Document / Bill <span style="color:#7A8BAA;font-weight:400">(optional)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="flex:1;min-width:180px;padding:9px 12px;background:#F7F9FC;border:1.5px dashed #DDE3EE;border-radius:9px;text-align:center;cursor:pointer;font-size:13px;color:#7A8BAA">
+            📎 Choose / Take Photo
+            <input type="file" id="aDocFile" accept="image/*,application/pdf" style="display:none" onchange="previewAdminDoc(this)">
+          </label>
+          <button type="button" id="aDocClearBtn" style="display:none;padding:8px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#B91C1C;font-size:12px;cursor:pointer;font-family:inherit" onclick="clearAdminDoc()">X</button>
+        </div>
+        <div id="aDocPreview" style="display:none;margin-top:8px;font-size:12px;color:#2B5197;font-weight:600"></div>
+      </div>
       <button class="btn-primary btn-full" id="aSaveBtn" onclick="adminSaveEntry()">Save Entry</button>
     </div>
   </div>
@@ -697,8 +708,8 @@ td{padding:9px 10px;vertical-align:top}
     <div class="card">
       <div class="card-label" style="margin-bottom:6px">🏦 Import Bank Statement</div>
       <div style="font-size:12px;color:#7A8BAA;line-height:1.6;margin-bottom:12px">
-        Upload your bank statement (.xls or .csv from HDFC). All rows are imported to Pending Entries.
-        You can then assign Entry Type, Project, Vendor and Cost Head inline before approving.
+        Upload your bank statement (.xls or .csv). All rows are imported to Pending Entries.
+        Assign Entry Type, Project, Vendor and Cost Head inline before approving.
       </div>
       <div style="margin-bottom:12px">
         <label style="display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Select Bank Statement File</label>
@@ -706,9 +717,7 @@ td{padding:9px 10px;vertical-align:top}
       </div>
       <div id="bankParseStatus" style="font-size:12px;color:#7A8BAA;margin-bottom:10px"></div>
       <div id="bankPreview" style="margin-bottom:12px;max-height:300px;overflow-y:auto"></div>
-      <button class="btn-primary btn-full" id="bankImportBtn" onclick="doImportBank()" style="display:none">
-        📥 Import to Pending Entries
-      </button>
+      <button class="btn-primary btn-full" id="bankImportBtn" onclick="doImportBank()" style="display:none">📥 Import to Pending Entries</button>
       <div id="bankImportStatus" style="font-size:12px;color:#7A8BAA;margin-top:8px;text-align:center"></div>
     </div>
   </div>
@@ -717,8 +726,6 @@ td{padding:9px 10px;vertical-align:top}
 <!-- REPORTS -->
 <div id="view-reports" class="hidden">
   <div class="page-title">Reports</div>
-
-  <!-- Project P&L -->
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-label" style="margin-bottom:0">📊 Project P&amp;L Summary</div>
@@ -749,7 +756,6 @@ td{padding:9px 10px;vertical-align:top}
     </div>
     <div id="reportPLStatement"><div class="empty"><div class="empty-icon">📋</div>Loading…</div></div>
   </div>
-
   <!-- Balance Sheet -->
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -758,7 +764,6 @@ td{padding:9px 10px;vertical-align:top}
     </div>
     <div id="reportBS"><div class="empty"><div class="empty-icon">⚖️</div>Loading…</div></div>
   </div>
-
   <!-- FY Closing Balances -->
   <div class="card">
     <div class="card-label" style="margin-bottom:6px">📥 FY Closing Balances</div>
@@ -1338,13 +1343,10 @@ function resetFilters() {
 // ── ADD SUB-TABS ───────────────────────────────────────────
 function switchAddTab(tab,el){
   document.querySelectorAll(".subtab").forEach(b=>b.classList.remove("active")); el.classList.add("active");
-  ["entry","project","vendor","opening","bankimport"].forEach(function(t){
-    var d=document.getElementById("at-"+t); if(d) d.classList[t===tab?"remove":"add"]("hidden");
-  });
-  if(tab==="opening")    { loadOpeningBalances(); loadVendorOBTab(); }
-  if(tab==="project")    loadAllProjects();
-  if(tab==="vendor")     loadAllVendors();
-  if(tab==="bankimport") initBankImport();
+  ["entry","project","vendor","opening"].forEach(t=>document.getElementById("at-"+t).classList[t===tab?"remove":"add"]("hidden"));
+  if(tab==="opening") { loadOpeningBalances(); loadVendorOBTab(); }
+  if(tab==="project") loadAllProjects();
+  if(tab==="vendor")  loadAllVendors();
 }
 
 // ── ADMIN ENTRY FORM ───────────────────────────────────────
@@ -1388,6 +1390,9 @@ function aPickType(el,key){
   aSelType=allEntryTypes[key];
   document.getElementById("aCostHeadField").style.display=(aSelType&&aSelType.needsCH)?"":"none";
   checkAdminProjectRequired();
+  var showDoc = aSelType && aSelType.category==="expense" && key!=="expense_petty_cash";
+  document.getElementById("aDocField").style.display = showDoc?"":"none";
+  if(!showDoc) clearAdminDoc();
 }
 function adminSaveEntry(){
   if(!aSelType){toast("Please select an entry type.",false);return;}
@@ -1477,207 +1482,19 @@ function saveOpeningBalance(){
 // ── REPORTS ────────────────────────────────────────────────
 var _vendorReportData = [];
 
-// Store data for PDF
-var _plData=null, _bsData=null, _plStmtData=null;
-
 function loadReports(){
-  // Project P&L
   api({action:"getProjectPL",token:token,fyid:curFY,companyId:curCompany},function(d){
     var el=document.getElementById("reportPLTable");
-    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No project data.</div>";return;}
-    _plData=d;
-    renderProjectPL(d.projects);
+    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No data.</div>";return;}
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Project</th><th>Client</th><th>Income ₹</th><th>Expense ₹</th><th>P&L ₹</th></tr></thead><tbody>";
+    d.projects.forEach(function(p){ html+="<tr><td><div class='td-main'>"+p.projectName+"</div></td><td style='color:#7A8BAA'>"+p.client+"</td><td class='dr'>"+fmt(p.income)+"</td><td class='cr'>"+fmt(p.expense)+"</td><td style='font-weight:700;color:"+(p.profit>=0?"#15803D":"#B91C1C")+"'>"+fmt(p.profit)+"</td></tr>"; });
+    html+="</tbody></table></div>"; el.innerHTML=html;
   });
-  // Vendor Outstanding
   api({action:"getVendorOutstanding",token:token,fyid:curFY,companyId:curCompany},function(d){
     if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
-    _vendorReportData = d.vendors; renderVendorReport();
+    _vendorReportData = d.vendors;
+    renderVendorReport();
   });
-  // P&L Statement
-  api({action:"getPLStatement",token:token,fyid:curFY,companyId:curCompany},function(d){
-    var el=document.getElementById("reportPLStatement"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    _plStmtData=d; renderPLStatement(d);
-  });
-  // Balance Sheet
-  api({action:"getBalanceSheet",token:token,fyid:curFY,companyId:curCompany},function(d){
-    var el=document.getElementById("reportBS"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
-    _bsData=d; renderBalanceSheet(d);
-  });
-}
-
-// ── PROJECT P&L (collapsible) ──────────────────────────────
-function renderProjectPL(projects){
-  var el=document.getElementById("reportPLTable");
-  // Summary header
-  var totalIn=0,totalEx=0;
-  projects.forEach(function(p){totalIn+=p.income;totalEx+=p.expense;});
-  var html="<div style='display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap'>"+
-    "<div style='background:#DCFCE7;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
-      "<div style='font-size:10px;font-weight:700;color:#15803D;text-transform:uppercase'>Total Income</div>"+
-      "<div style='font-size:15px;font-weight:700;color:#15803D'>₹ "+fmt(totalIn)+"</div></div>"+
-    "<div style='background:#FEE2E2;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
-      "<div style='font-size:10px;font-weight:700;color:#B91C1C;text-transform:uppercase'>Total Expense</div>"+
-      "<div style='font-size:15px;font-weight:700;color:#B91C1C'>₹ "+fmt(totalEx)+"</div></div>"+
-    "<div style='background:#EEF3FF;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
-      "<div style='font-size:10px;font-weight:700;color:#2B5197;text-transform:uppercase'>Net P&L</div>"+
-      "<div style='font-size:15px;font-weight:700;color:"+(totalIn-totalEx>=0?"#2B5197":"#B91C1C")+"'>₹ "+fmt(Math.abs(totalIn-totalEx))+(totalIn-totalEx<0?" (Loss)":"")+"</div></div>"+
-    "</div>";
-
-  // Collapsible rows
-  html+="<div style='border:1px solid #DDE3EE;border-radius:9px;overflow:hidden'>";
-  html+="<div style='display:grid;grid-template-columns:1fr 90px 90px 90px;padding:8px 8px 8px 36px;background:#F7F9FC;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px'>"+
-    "<div>Project</div><div style='text-align:right'>Income ₹</div><div style='text-align:right'>Expense ₹</div><div style='text-align:right'>P&L ₹</div></div>";
-
-  projects.forEach(function(p,idx){
-    var pColor=p.profit>=0?"#15803D":"#B91C1C";
-    html+="<div class='pl-row' id='plrow-"+idx+"'>"+
-      "<div class='pl-row-hdr' onclick='togglePLRow("+idx+")'>"+
-        "<span class='pl-row-chevron' id='plchev-"+idx+"'>▶</span>"+
-        "<div style='flex:1;min-width:0'>"+
-          "<div style='font-size:13px;font-weight:600;color:#1A2D5A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+p.projectName+"</div>"+
-          "<div style='font-size:11px;color:#7A8BAA'>"+p.client+"</div>"+
-        "</div>"+
-        "<div style='width:90px;text-align:right;color:#15803D;font-size:12px;font-weight:600'>₹ "+fmt(p.income)+"</div>"+
-        "<div style='width:90px;text-align:right;color:#B91C1C;font-size:12px;font-weight:600'>₹ "+fmt(p.expense)+"</div>"+
-        "<div style='width:90px;text-align:right;font-weight:700;color:"+pColor+";font-size:12px'>"+
-          "₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" L":"")+"</div>"+
-      "</div>"+
-      "<div class='pl-row-detail' id='pldetail-"+idx+"'>"+
-        // Income breakdown
-        "<div class='pl-detail-section'>"+
-          "<div class='pl-detail-label' style='color:#15803D'>Income</div>";
-    p.incomeLines.forEach(function(line){
-      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#15803D'>₹ "+fmt(line.amount)+"</span></div>";
-    });
-    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Income</span><span style='color:#15803D'>₹ "+fmt(p.income)+"</span></div>"+
-        "</div>"+
-        // Expense breakdown
-        "<div class='pl-detail-section' style='margin-top:10px'>"+
-          "<div class='pl-detail-label' style='color:#B91C1C'>Expenses</div>";
-    p.expenseLines.forEach(function(line){
-      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#B91C1C'>₹ "+fmt(line.amount)+"</span></div>";
-    });
-    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Expense</span><span style='color:#B91C1C'>₹ "+fmt(p.expense)+"</span></div>"+
-        "</div>"+
-        // Net
-        "<div style='display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:8px 0 4px;border-top:2px solid #DDE3EE;margin-top:8px;color:"+pColor+"'>"+
-          "<span>Net P&L</span><span>₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div>"+
-      "</div>"+
-    "</div>";
-  });
-  html+="</div>";
-  el.innerHTML=html;
-}
-
-function togglePLRow(idx){
-  var chev=document.getElementById("plchev-"+idx);
-  var detail=document.getElementById("pldetail-"+idx);
-  var isOpen=chev.classList.contains("open");
-  chev.classList.toggle("open",!isOpen);
-  detail.classList.toggle("open",!isOpen);
-}
-
-// ── P&L STATEMENT ─────────────────────────────────────────
-function renderPLStatement(d){
-  var el=document.getElementById("reportPLStatement");
-  var html="<div class='bs-section'>"+
-    "<div class='bs-section-title' style='color:#15803D'>Income</div>";
-  d.incomeLines.forEach(function(l){
-    html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#15803D'>₹ "+fmt(l.amount)+"</span></div>";
-  });
-  html+="<div class='bs-total'><span>Total Income</span><span style='color:#15803D'>₹ "+fmt(d.totalIncome)+"</span></div></div>"+
-    "<div class='bs-section'>"+
-    "<div class='bs-section-title' style='color:#B91C1C'>Expenses</div>";
-  d.expenseLines.forEach(function(l){
-    html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#B91C1C'>₹ "+fmt(l.amount)+"</span></div>";
-  });
-  html+="<div class='bs-total'><span>Total Expenses</span><span style='color:#B91C1C'>₹ "+fmt(d.totalExpense)+"</span></div></div>"+
-    "<div style='display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:12px;background:"+(d.netProfit>=0?"#DCFCE7":"#FEE2E2")+";border-radius:8px;margin-top:8px;color:"+(d.netProfit>=0?"#15803D":"#B91C1C")+"'>"+
-      "<span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>₹ "+fmt(Math.abs(d.netProfit))+"</span></div>";
-  el.innerHTML=html;
-}
-
-// ── BALANCE SHEET ─────────────────────────────────────────
-function renderBalanceSheet(d){
-  var el=document.getElementById("reportBS");
-  function bsRows(items,normalSide){
-    return items.map(function(a){
-      return "<div class='bs-row'><span>"+a.code+" — "+a.name+"</span><span>₹ "+fmt(a.balance)+"</span></div>";
-    }).join("");
-  }
-  var html="<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>";
-  // Left — Assets
-  html+="<div><div class='bs-section'><div class='bs-section-title'>Assets</div>"+bsRows(d.assets)+"<div class='bs-total'><span>Total Assets</span><span>₹ "+fmt(d.totalAssets)+"</span></div></div></div>";
-  // Right — Liabilities + P&L
-  html+="<div><div class='bs-section'><div class='bs-section-title'>Liabilities</div>"+bsRows(d.liabilities)+"</div>"+
-    "<div class='bs-section'><div class='bs-section-title'>Equity</div>"+bsRows(d.equity)+
-    "<div class='bs-row'><span>Net P&L (Current FY)</span><span style='color:"+(d.netPL>=0?"#15803D":"#B91C1C")+"'>₹ "+fmt(Math.abs(d.netPL))+(d.netPL<0?" L":"")+"</span></div>"+
-    "<div class='bs-total'><span>Total Liabilities + Equity</span><span>₹ "+fmt(d.totalLiabilities)+"</span></div></div></div>";
-  html+="</div>";
-  el.innerHTML=html;
-}
-
-// ── PDF PRINTERS ───────────────────────────────────────────
-function _openPrintWin(title, body){
-  var fyL=(fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
-  var coL=curCompany==="All"?"All Companies":((companyList.find(function(c){return c.id===curCompany;})||{name:curCompany}).name);
-  var win=window.open("","_blank");
-  win.document.write("<html><head><title>"+title+"</title>"+
-    "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}"+
-    "h2{color:#1A2D5A;margin-bottom:2px}h4{color:#7A8BAA;font-weight:normal;margin-bottom:16px}"+
-    ".row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}"+
-    ".section{margin-bottom:16px}.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;padding:5px 0;border-bottom:2px solid #ddd;margin-bottom:6px}"+
-    ".total{display:flex;justify-content:space-between;font-weight:700;padding:7px 0;border-top:2px solid #1A2D5A;margin-top:4px}"+
-    ".grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}"+
-    "@media print{button{display:none}}</style></head><body>"+
-    "<button onclick='window.print()' style='margin-bottom:12px;padding:8px 16px;background:#2B5197;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px'>🖨 Print / Save PDF</button>"+
-    "<h2>Blue Door Architects</h2><h4>"+title+" &mdash; "+fyL+" &mdash; "+coL+
-    "<br><small style='color:#94A3B8'>Generated: "+new Date().toLocaleString("en-IN")+"</small></h4>"+
-    body+"</body></html>");
-  win.document.close();
-}
-
-function printProjectPL(){
-  if(!_plData){toast("Load reports first.",false);return;}
-  var body="";
-  _plData.projects.forEach(function(p){
-    body+="<div class='section'><div class='section-title'>"+p.projectName+" — "+p.client+"</div>"+
-      "<div class='row'><span style='font-weight:700;color:#888'>INCOME</span><span></span></div>";
-    p.incomeLines.forEach(function(l){body+="<div class='row'><span>&nbsp;&nbsp;"+l.label+"</span><span style='color:green'>₹ "+fmt(l.amount)+"</span></div>";});
-    body+="<div class='row'><b>Total Income</b><b style='color:green'>₹ "+fmt(p.income)+"</b></div>"+
-      "<div class='row'><span style='font-weight:700;color:#888'>EXPENSES</span><span></span></div>";
-    p.expenseLines.forEach(function(l){body+="<div class='row'><span>&nbsp;&nbsp;"+l.label+"</span><span style='color:red'>₹ "+fmt(l.amount)+"</span></div>";});
-    body+="<div class='row'><b>Total Expense</b><b style='color:red'>₹ "+fmt(p.expense)+"</b></div>"+
-      "<div class='total'><span>Net P&L</span><span style='color:"+(p.profit>=0?"green":"red")+"'>₹ "+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div></div>";
-  });
-  _openPrintWin("Project P&L Summary",body);
-}
-
-function printPLStatement(){
-  if(!_plStmtData){toast("Load reports first.",false);return;}
-  var d=_plStmtData;
-  var body="<div class='section'><div class='section-title' style='color:green'>Income</div>";
-  d.incomeLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:green'>₹ "+fmt(l.amount)+"</span></div>";});
-  body+="<div class='total'><span>Total Income</span><span style='color:green'>₹ "+fmt(d.totalIncome)+"</span></div></div>"+
-    "<div class='section'><div class='section-title' style='color:red'>Expenses</div>";
-  d.expenseLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:red'>₹ "+fmt(l.amount)+"</span></div>";});
-  body+="<div class='total'><span>Total Expenses</span><span style='color:red'>₹ "+fmt(d.totalExpense)+"</span></div>"+
-    "<div class='total' style='font-size:15px;color:"+(d.netProfit>=0?"green":"red")+"'><span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>₹ "+fmt(Math.abs(d.netProfit))+"</span></div>";
-  _openPrintWin("P&L Statement",body);
-}
-
-function printBalanceSheet(){
-  if(!_bsData){toast("Load reports first.",false);return;}
-  var d=_bsData;
-  function rows(items){return items.map(function(a){return "<div class='row'><span>"+a.code+" — "+a.name+"</span><span>₹ "+fmt(a.balance)+"</span></div>";}).join("");}
-  var body="<div class='grid'>"+
-    "<div><div class='section'><div class='section-title'>Assets</div>"+rows(d.assets)+"<div class='total'><span>Total Assets</span><span>₹ "+fmt(d.totalAssets)+"</span></div></div></div>"+
-    "<div><div class='section'><div class='section-title'>Liabilities</div>"+rows(d.liabilities)+"</div>"+
-    "<div class='section'><div class='section-title'>Equity</div>"+rows(d.equity)+
-    "<div class='row'><span>Net P&L (FY)</span><span style='color:"+(d.netPL>=0?"green":"red")+"'>₹ "+fmt(Math.abs(d.netPL))+"</span></div>"+
-    "<div class='total'><span>Total Liabilities + Equity</span><span>₹ "+fmt(d.totalLiabilities)+"</span></div></div></div>"+
-    "</div>";
-  _openPrintWin("Balance Sheet",body);
 }
 
 function renderVendorReport(){
@@ -2515,7 +2332,6 @@ function loadPendingEntries(){
   var el = document.getElementById("pendingList");
   el.innerHTML = "<div class='empty' style='padding:8px 0'>Loading…</div>";
   api({action:"getPendingEntries",token:token,fyid:curFY,companyId:curCompany,status:""}, function(d){
-    // Filter to Pending + BankImport only
     if(d.success) d.entries=d.entries.filter(function(e){return e.status==="Pending"||e.status==="BankImport";});
     d.pendingCount=(d.entries||[]).filter(function(e){return e.status==="Pending";}).length;
     var badge = document.getElementById("pendingBadge");
@@ -2535,29 +2351,15 @@ function loadPendingEntries(){
         "<div class='pend-sub'>"+e.date+" · "+e.projectName+(e.vendorName?" · "+e.vendorName:"")+(e.costHeadName?" · "+e.costHeadName:"")+"</div>"+
         "<div class='pend-sub'>by "+e.submittedBy+" · "+e.submittedAt+"</div>"+
         (e.narration?"<div class='pend-sub' style='font-style:italic'>"+e.narration+"</div>":"")+
-        (e.status==="BankImport"
-          ? "<div class='pend-actions'><span style='font-size:11px;color:#7A8BAA;font-style:italic'>Assign parameters below to approve →</span></div>"
-          : "<div class='pend-actions'>"+
-              "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
-              "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
-              "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
-              photoBtn+
-            "</div>")+
+        "<div class='pend-actions'>"+
+          "<button class='btn-approve' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' data-amount='"+e.amount+"' onclick='confirmApprove(this.dataset.id,this.dataset.label,this.dataset.amount)'>&#10003; Approve</button>"+
+          "<button class='btn-comment' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openComment(this.dataset.id,this.dataset.label)'>&#128172; Comment</button>"+
+          "<button class='btn-reject' data-id='"+e.entryId+"' data-label='"+esc(e.entryLabel)+"' onclick='openReject(this.dataset.id,this.dataset.label)'>&#10007; Reject</button>"+
+          photoBtn+
+        "</div>"+
         "</div>";
     });
-    // Bank import rows shown ONLY with dropdowns (not in regular list above)
-    var regularHtml = html;
-    var biRows = d.entries.filter(function(e){return e.status==="BankImport";});
-    var biHtml = "";
-    biRows.forEach(function(e){ biHtml += renderBankImportRow(e); });
-    if(biHtml){
-      el.innerHTML = regularHtml +
-        "<div style='margin-top:12px;border-top:2px dashed #F59E0B;padding-top:10px'>"+
-        "<div style='font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:8px'>🏦 Bank Import — Assign Parameters &amp; Approve</div>"+
-        biHtml+"</div>";
-    } else {
-      el.innerHTML = regularHtml;
-    }
+    el.innerHTML=html;
   });
 }
 
@@ -2613,106 +2415,240 @@ function fillSel(id,items,mapFn,ph){
     if(id==="aCostHead"||id==="aProject") checkAdminProjectRequired();
   });
 }
+// ── DOC UPLOAD HELPERS (admin) ──────────────────────────────
+function previewAdminDoc(input){
+  var file=input.files[0]; if(!file) return;
+  document.getElementById("aDocPreview").style.display="";
+  document.getElementById("aDocPreview").textContent="📎 "+file.name+" ("+Math.round(file.size/1024)+"KB)";
+  document.getElementById("aDocClearBtn").style.display="";
+}
+function clearAdminDoc(){
+  var f=document.getElementById("aDocFile"); if(f) f.value="";
+  var p=document.getElementById("aDocPreview"); if(p){p.style.display="none";p.textContent="";}
+  var b=document.getElementById("aDocClearBtn"); if(b) b.style.display="none";
+}
+function uploadAdminDoc(file,entryId,dateVal,vendorName,cb){
+  var parts=dateVal.split("-");
+  var datePart=parts.join("_");
+  var safeVendor=(vendorName||"Expense").replace(/[^a-zA-Z0-9]/g,"_").substring(0,30);
+  var ext=file.name.split(".").pop()||"jpg";
+  var filename=datePart+"_"+safeVendor+"."+ext;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(",")[1];
+    api({action:"uploadBillPhoto",token:token,entryId:entryId,companyId:curCompany,
+         base64:base64,filename:filename,contentType:file.type||"image/jpeg"},
+    function(d){ if(cb) cb(d); });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── REPORTS ────────────────────────────────────────────────
+var _plData=null, _bsData=null, _plStmtData=null;
+
+function loadReports(){
+  api({action:"getProjectPL",token:token,fyid:curFY,companyId:curCompany},function(d){
+    var el=document.getElementById("reportPLTable");
+    if(!d.success||!d.projects.length){el.innerHTML="<div class='empty'>No project data.</div>";return;}
+    _plData=d; renderProjectPL(d.projects);
+  });
+  api({action:"getVendorOutstanding",token:token,fyid:curFY,companyId:curCompany},function(d){
+    if(!d.success){ document.getElementById("reportVendorTable").innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    _vendorReportData = d.vendors; renderVendorReport();
+  });
+  api({action:"getPLStatement",token:token,fyid:curFY,companyId:curCompany},function(d){
+    var el=document.getElementById("reportPLStatement"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    _plStmtData=d; renderPLStatement(d);
+  });
+  api({action:"getBalanceSheet",token:token,fyid:curFY,companyId:curCompany},function(d){
+    var el=document.getElementById("reportBS"); if(!d.success){el.innerHTML="<div class='empty'>"+d.error+"</div>";return;}
+    _bsData=d; renderBalanceSheet(d);
+  });
+}
+
+function renderProjectPL(projects){
+  var el=document.getElementById("reportPLTable");
+  var totalIn=0,totalEx=0;
+  projects.forEach(function(p){totalIn+=p.income;totalEx+=p.expense;});
+  var html="<div style='display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap'>"+
+    "<div style='background:#DCFCE7;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#15803D;text-transform:uppercase'>Total Income</div>"+
+      "<div style='font-size:15px;font-weight:700;color:#15803D'>Rs. "+fmt(totalIn)+"</div></div>"+
+    "<div style='background:#FEE2E2;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#B91C1C;text-transform:uppercase'>Total Expense</div>"+
+      "<div style='font-size:15px;font-weight:700;color:#B91C1C'>Rs. "+fmt(totalEx)+"</div></div>"+
+    "<div style='background:#EEF3FF;border-radius:8px;padding:8px 14px;flex:1;min-width:100px'>"+
+      "<div style='font-size:10px;font-weight:700;color:#2B5197;text-transform:uppercase'>Net P&L</div>"+
+      "<div style='font-size:15px;font-weight:700;color:"+(totalIn-totalEx>=0?"#2B5197":"#B91C1C")+"'>Rs. "+fmt(Math.abs(totalIn-totalEx))+(totalIn-totalEx<0?" (Loss)":"")+"</div></div>"+
+    "</div>";
+  html+="<div style='border:1px solid #DDE3EE;border-radius:9px;overflow:hidden'>";
+  html+="<div style='display:grid;grid-template-columns:1fr 90px 90px 90px;padding:8px 8px 8px 36px;background:#F7F9FC;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px'>"+
+    "<div>Project</div><div style='text-align:right'>Income</div><div style='text-align:right'>Expense</div><div style='text-align:right'>P&L</div></div>";
+  projects.forEach(function(p,idx){
+    var pColor=p.profit>=0?"#15803D":"#B91C1C";
+    html+="<div class='pl-row' id='plrow-"+idx+"'>"+
+      "<div class='pl-row-hdr' onclick='togglePLRow("+idx+")'>"+
+        "<span class='pl-row-chevron' id='plchev-"+idx+"'>&#9654;</span>"+
+        "<div style='flex:1;min-width:0'>"+
+          "<div style='font-size:13px;font-weight:600;color:#1A2D5A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+p.projectName+"</div>"+
+          "<div style='font-size:11px;color:#7A8BAA'>"+p.client+"</div>"+
+        "</div>"+
+        "<div style='width:90px;text-align:right;color:#15803D;font-size:12px;font-weight:600'>"+fmt(p.income)+"</div>"+
+        "<div style='width:90px;text-align:right;color:#B91C1C;font-size:12px;font-weight:600'>"+fmt(p.expense)+"</div>"+
+        "<div style='width:90px;text-align:right;font-weight:700;color:"+pColor+";font-size:12px'>"+fmt(Math.abs(p.profit))+(p.profit<0?" L":"")+"</div>"+
+      "</div>"+
+      "<div class='pl-row-detail' id='pldetail-"+idx+"'>"+
+        "<div class='pl-detail-section'><div class='pl-detail-label' style='color:#15803D'>Income</div>";
+    p.incomeLines.forEach(function(line){
+      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#15803D'>"+fmt(line.amount)+"</span></div>";
+    });
+    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Income</span><span style='color:#15803D'>"+fmt(p.income)+"</span></div></div>"+
+      "<div class='pl-detail-section' style='margin-top:10px'><div class='pl-detail-label' style='color:#B91C1C'>Expenses</div>";
+    p.expenseLines.forEach(function(line){
+      html+="<div class='pl-detail-line'><span>"+line.label+"</span><span style='color:#B91C1C'>"+fmt(line.amount)+"</span></div>";
+    });
+    html+="<div class='pl-detail-line' style='border-top:1px solid #DDE3EE;margin-top:4px'><span>Total Expense</span><span style='color:#B91C1C'>"+fmt(p.expense)+"</span></div></div>"+
+      "<div style='display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:8px 0 4px;border-top:2px solid #DDE3EE;margin-top:8px;color:"+pColor+"'>"+
+        "<span>Net P&L</span><span>"+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div>"+
+      "</div></div>";
+  });
+  html+="</div>";
+  el.innerHTML=html;
+}
+function togglePLRow(idx){
+  document.getElementById("plchev-"+idx).classList.toggle("open");
+  document.getElementById("pldetail-"+idx).classList.toggle("open");
+}
+function renderPLStatement(d){
+  var el=document.getElementById("reportPLStatement");
+  var html="<div class='bs-section'><div class='bs-section-title' style='color:#15803D'>Income</div>";
+  d.incomeLines.forEach(function(l){html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#15803D'>"+fmt(l.amount)+"</span></div>";});
+  html+="<div class='bs-total'><span>Total Income</span><span style='color:#15803D'>"+fmt(d.totalIncome)+"</span></div></div>"+
+    "<div class='bs-section'><div class='bs-section-title' style='color:#B91C1C'>Expenses</div>";
+  d.expenseLines.forEach(function(l){html+="<div class='bs-row'><span>"+l.label+"</span><span style='color:#B91C1C'>"+fmt(l.amount)+"</span></div>";});
+  html+="<div class='bs-total'><span>Total Expenses</span><span style='color:#B91C1C'>"+fmt(d.totalExpense)+"</span></div>"+
+    "<div style='display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:12px;background:"+(d.netProfit>=0?"#DCFCE7":"#FEE2E2")+";border-radius:8px;margin-top:8px;color:"+(d.netProfit>=0?"#15803D":"#B91C1C")+"'>"+
+    "<span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>"+fmt(Math.abs(d.netProfit))+"</span></div>";
+  el.innerHTML=html;
+}
+function renderBalanceSheet(d){
+  var el=document.getElementById("reportBS");
+  function bsRows(items){return items.map(function(a){return "<div class='bs-row'><span>"+a.code+" - "+a.name+"</span><span>"+fmt(a.balance)+"</span></div>";}).join("");}
+  var html="<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>"+
+    "<div><div class='bs-section'><div class='bs-section-title'>Assets</div>"+bsRows(d.assets)+"<div class='bs-total'><span>Total Assets</span><span>"+fmt(d.totalAssets)+"</span></div></div></div>"+
+    "<div><div class='bs-section'><div class='bs-section-title'>Liabilities</div>"+bsRows(d.liabilities)+"</div>"+
+    "<div class='bs-section'><div class='bs-section-title'>Equity</div>"+bsRows(d.equity)+
+    "<div class='bs-row'><span>Net P&L (FY)</span><span style='color:"+(d.netPL>=0?"#15803D":"#B91C1C")+"'>"+fmt(Math.abs(d.netPL))+(d.netPL<0?" L":"")+"</span></div>"+
+    "<div class='bs-total'><span>Total Liab + Equity</span><span>"+fmt(d.totalLiabilities)+"</span></div></div></div></div>";
+  el.innerHTML=html;
+}
+function _openPrintWin(title,body){
+  var fyL=(fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
+  var coL=curCompany==="All"?"All Companies":((companyList.find(function(c){return c.id===curCompany;})||{name:curCompany}).name);
+  var win=window.open("","_blank");
+  win.document.write("<html><head><title>"+title+"</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h2{color:#1A2D5A;margin-bottom:2px}h4{color:#7A8BAA;font-weight:normal;margin-bottom:16px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.section{margin-bottom:16px}.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;padding:5px 0;border-bottom:2px solid #ddd;margin-bottom:6px}.total{display:flex;justify-content:space-between;font-weight:700;padding:7px 0;border-top:2px solid #1A2D5A;margin-top:4px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media print{button{display:none}}</style></head><body>"+
+    "<button onclick='window.print()' style='margin-bottom:12px;padding:8px 16px;background:#2B5197;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px'>Print / Save PDF</button>"+
+    "<h2>Blue Door Architects</h2><h4>"+title+" - "+fyL+" - "+coL+"<br><small style='color:#94A3B8'>Generated: "+new Date().toLocaleString("en-IN")+"</small></h4>"+
+    body+"</body></html>");
+  win.document.close();
+}
+function printProjectPL(){
+  if(!_plData){toast("Load reports first.",false);return;}
+  var body="";
+  _plData.projects.forEach(function(p){
+    body+="<div class='section'><div class='section-title'>"+p.projectName+" - "+p.client+"</div>";
+    p.incomeLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:green'>"+fmt(l.amount)+"</span></div>";});
+    body+="<div class='row'><b>Total Income</b><b style='color:green'>"+fmt(p.income)+"</b></div>";
+    p.expenseLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:red'>"+fmt(l.amount)+"</span></div>";});
+    body+="<div class='row'><b>Total Expense</b><b style='color:red'>"+fmt(p.expense)+"</b></div>"+
+      "<div class='total' style='color:"+(p.profit>=0?"green":"red")+"'><span>Net P&L</span><span>"+fmt(Math.abs(p.profit))+(p.profit<0?" (Loss)":"")+"</span></div></div>";
+  });
+  _openPrintWin("Project P&L Summary",body);
+}
+function printPLStatement(){
+  if(!_plStmtData){toast("Load reports first.",false);return;}
+  var d=_plStmtData;
+  var body="<div class='section'><div class='section-title' style='color:green'>Income</div>";
+  d.incomeLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:green'>"+fmt(l.amount)+"</span></div>";});
+  body+="<div class='total'><span>Total Income</span><span style='color:green'>"+fmt(d.totalIncome)+"</span></div></div>"+
+    "<div class='section'><div class='section-title' style='color:red'>Expenses</div>";
+  d.expenseLines.forEach(function(l){body+="<div class='row'><span>"+l.label+"</span><span style='color:red'>"+fmt(l.amount)+"</span></div>";});
+  body+="<div class='total'><span>Total Expenses</span><span style='color:red'>"+fmt(d.totalExpense)+"</span></div>"+
+    "<div class='total' style='font-size:15px;color:"+(d.netProfit>=0?"green":"red")+"'><span>Net "+(d.netProfit>=0?"Profit":"Loss")+"</span><span>"+fmt(Math.abs(d.netProfit))+"</span></div>";
+  _openPrintWin("P&L Statement",body);
+}
+function printBalanceSheet(){
+  if(!_bsData){toast("Load reports first.",false);return;}
+  var d=_bsData;
+  function rows(items){return items.map(function(a){return "<div class='row'><span>"+a.code+" - "+a.name+"</span><span>"+fmt(a.balance)+"</span></div>";}).join("");}
+  var body="<div class='grid'>"+
+    "<div><div class='section'><div class='section-title'>Assets</div>"+rows(d.assets)+"<div class='total'><span>Total Assets</span><span>"+fmt(d.totalAssets)+"</span></div></div></div>"+
+    "<div><div class='section'><div class='section-title'>Liabilities</div>"+rows(d.liabilities)+"</div>"+
+    "<div class='section'><div class='section-title'>Equity</div>"+rows(d.equity)+
+    "<div class='row'><span>Net P&L (FY)</span><span style='color:"+(d.netPL>=0?"green":"red")+"'>"+fmt(Math.abs(d.netPL))+"</span></div>"+
+    "<div class='total'><span>Total Liab + Equity</span><span>"+fmt(d.totalLiabilities)+"</span></div></div></div></div>";
+  _openPrintWin("Balance Sheet",body);
+}
+
 // ── BANK STATEMENT IMPORT ────────────────────────────────────
-var _bankRows = [];
-
+var _bankRows=[];
 function initBankImport(){
-  document.getElementById("bankFile").onchange = function(e){
-    var file = e.target.files[0]; if(!file) return;
-    document.getElementById("bankParseStatus").textContent = "Parsing…";
-    document.getElementById("bankPreview").innerHTML = "";
-    document.getElementById("bankImportBtn").style.display = "none";
-
-    var reader = new FileReader();
-    reader.onload = function(ev){
-      try {
-        var wb = XLSX.read(ev.target.result, {type:"binary", cellDates:true});
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        var raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
-        parseBankRows(raw, file.name);
-      } catch(err) {
-        document.getElementById("bankParseStatus").textContent = "Parse error: "+err.message;
-      }
+  document.getElementById("bankFile").onchange=function(e){
+    var file=e.target.files[0]; if(!file) return;
+    document.getElementById("bankParseStatus").textContent="Parsing...";
+    document.getElementById("bankPreview").innerHTML="";
+    document.getElementById("bankImportBtn").style.display="none";
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:"binary",cellDates:true});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        parseBankRows(raw,file.name);
+      }catch(err){ document.getElementById("bankParseStatus").textContent="Parse error: "+err.message; }
     };
     reader.readAsBinaryString(file);
   };
 }
-
-function parseBankRows(raw, fname){
-  _bankRows = [];
-  // Find the header row (contains "Date" and "Narration" and "Withdrawal")
-  var headerIdx = -1;
+function parseBankRows(raw,fname){
+  _bankRows=[];
+  var headerIdx=-1;
   for(var i=0;i<raw.length;i++){
-    var r = raw[i].join("|").toLowerCase();
-    if(r.indexOf("date")!==-1 && r.indexOf("narration")!==-1 && r.indexOf("withdrawal")!==-1){
-      headerIdx = i; break;
-    }
+    var r=raw[i].join("|").toLowerCase();
+    if(r.indexOf("date")!==-1&&r.indexOf("narration")!==-1&&r.indexOf("withdrawal")!==-1){headerIdx=i;break;}
   }
-  if(headerIdx===-1){
-    document.getElementById("bankParseStatus").textContent = "Could not find header row. Expected columns: Date, Narration, Withdrawal Amt., Deposit Amt.";
-    return;
-  }
-
-  var headers = raw[headerIdx].map(function(h){return (h||"").toString().toLowerCase().trim();});
-  var iDate  = headers.findIndex(function(h){return h.indexOf("date")!==-1&&h.indexOf("value")===-1;});
-  var iNarr  = headers.findIndex(function(h){return h.indexOf("narration")!==-1;});
-  var iRef   = headers.findIndex(function(h){return h.indexOf("chq")!==-1||h.indexOf("ref")!==-1;});
-  var iWD    = headers.findIndex(function(h){return h.indexOf("withdrawal")!==-1;});
-  var iDep   = headers.findIndex(function(h){return h.indexOf("deposit")!==-1;});
-  var iClBal = headers.findIndex(function(h){return h.indexOf("closing")!==-1;});
-
-  for(var j=headerIdx+2; j<raw.length; j++){  // skip separator row after header
-    var r = raw[j];
-    if(!r) continue;
-    // Stop at separator rows (***...) or STATEMENT SUMMARY
-    var rowStr = r.join("").toString();
-    if(rowStr.replace(/\*/g,"").replace(/,/g,"").trim()==="") continue; // all stars = separator
+  if(headerIdx===-1){document.getElementById("bankParseStatus").textContent="Could not find header row.";return;}
+  var headers=raw[headerIdx].map(function(h){return(h||"").toString().toLowerCase().trim();});
+  var iDate=headers.findIndex(function(h){return h.indexOf("date")!==-1&&h.indexOf("value")===-1;});
+  var iNarr=headers.findIndex(function(h){return h.indexOf("narration")!==-1;});
+  var iRef=headers.findIndex(function(h){return h.indexOf("chq")!==-1||h.indexOf("ref")!==-1;});
+  var iWD=headers.findIndex(function(h){return h.indexOf("withdrawal")!==-1;});
+  var iDep=headers.findIndex(function(h){return h.indexOf("deposit")!==-1;});
+  for(var j=headerIdx+2;j<raw.length;j++){
+    var r=raw[j]; if(!r) continue;
+    var rowStr=r.join("");
+    if(rowStr.replace(/\*/g,"").replace(/,/g,"").trim()==="") continue;
     if(rowStr.indexOf("STATEMENT SUMMARY")!==-1) break;
     if(rowStr.indexOf("Opening Balance")!==-1) break;
     if(rowStr.indexOf("Generated On")!==-1) break;
-    // Stop if date column looks like a star row
-    var dateVal = (r[iDate]||"").toString().trim();
-    if(dateVal.replace(/\*/g,"").trim()==="") break;
-    if(!dateVal || dateVal.indexOf("*")!==-1) continue;
-    var wd  = parseFloat((r[iWD]||"").toString().replace(/,/g,""))||0;
-    var dep = parseFloat((r[iDep]||"").toString().replace(/,/g,""))||0;
-    if(!wd && !dep) continue;
-    // Parse date
-    var rawDate = r[iDate];
-    var dateStr = "";
-    if(rawDate instanceof Date) {
-      dateStr = rawDate.toISOString().split("T")[0];
-    } else {
-      var parts = rawDate.toString().split("/");
-      if(parts.length===3){
-        var yr = parseInt(parts[2]); if(yr<100) yr+=2000;
-        dateStr = yr+"-"+parts[1].padStart(2,"0")+"-"+parts[0].padStart(2,"0");
-      } else dateStr = rawDate.toString();
-    }
-    _bankRows.push({
-      date:        dateStr,
-      narration:   (r[iNarr]||"").toString().trim(),
-      refNo:       (r[iRef]||"").toString().trim(),
-      withdrawal:  wd,
-      deposit:     dep,
-      closingBal:  parseFloat((r[iClBal]||"").toString().replace(/,/g,""))||0
-    });
+    var dateVal=(r[iDate]||"").toString().trim();
+    if(!dateVal||dateVal.indexOf("*")!==-1) continue;
+    var wd=parseFloat((r[iWD]||"").toString().replace(/,/g,""))||0;
+    var dep=parseFloat((r[iDep]||"").toString().replace(/,/g,""))||0;
+    if(!wd&&!dep) continue;
+    var dateStr="";
+    if(r[iDate] instanceof Date){dateStr=r[iDate].toISOString().split("T")[0];}
+    else{var parts=dateVal.split("/");if(parts.length===3){var yr=parseInt(parts[2]);if(yr<100)yr+=2000;dateStr=yr+"-"+parts[1].padStart(2,"0")+"-"+parts[0].padStart(2,"0");}else dateStr=dateVal;}
+    _bankRows.push({date:dateStr,narration:(r[iNarr]||"").toString().trim(),refNo:(r[iRef]||"").toString().trim(),withdrawal:wd,deposit:dep});
   }
-
-  if(!_bankRows.length){
-    document.getElementById("bankParseStatus").textContent = "No transaction rows found.";
-    return;
-  }
-  document.getElementById("bankParseStatus").textContent =
-    "✓ Found "+_bankRows.length+" transactions in "+fname;
+  if(!_bankRows.length){document.getElementById("bankParseStatus").textContent="No transaction rows found.";return;}
+  document.getElementById("bankParseStatus").textContent="Found "+_bankRows.length+" transactions in "+fname;
   renderBankPreview();
-  document.getElementById("bankImportBtn").style.display = "";
+  document.getElementById("bankImportBtn").style.display="";
 }
-
 function renderBankPreview(){
   var html="<div style='font-size:11px;color:#7A8BAA;margin-bottom:6px'>Preview (first 20 rows):</div>"+
-    "<table style='width:100%;border-collapse:collapse;font-size:11px'>"+
-    "<thead><tr style='background:#F7F9FC'>"+
+    "<table style='width:100%;border-collapse:collapse;font-size:11px'><thead><tr style='background:#F7F9FC'>"+
     "<th style='padding:6px 8px;text-align:left;border-bottom:1px solid #DDE3EE;color:#7A8BAA'>Date</th>"+
     "<th style='padding:6px 8px;text-align:left;border-bottom:1px solid #DDE3EE;color:#7A8BAA'>Narration</th>"+
     "<th style='padding:6px 8px;text-align:right;border-bottom:1px solid #DDE3EE;color:#B91C1C'>Withdrawal</th>"+
@@ -2721,119 +2657,94 @@ function renderBankPreview(){
   _bankRows.slice(0,20).forEach(function(r){
     html+="<tr style='border-bottom:1px solid #EEF2F7'>"+
       "<td style='padding:5px 8px;white-space:nowrap'>"+r.date+"</td>"+
-      "<td style='padding:5px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' title='"+esc(r.narration)+"'>"+r.narration+"</td>"+
-      "<td style='padding:5px 8px;text-align:right;color:#B91C1C;font-weight:600'>"+(r.withdrawal>0?"₹ "+fmt(r.withdrawal):"")+"</td>"+
-      "<td style='padding:5px 8px;text-align:right;color:#15803D;font-weight:600'>"+(r.deposit>0?"₹ "+fmt(r.deposit):"")+"</td>"+
+      "<td style='padding:5px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+r.narration+"</td>"+
+      "<td style='padding:5px 8px;text-align:right;color:#B91C1C;font-weight:600'>"+(r.withdrawal>0?"Rs. "+fmt(r.withdrawal):"")+"</td>"+
+      "<td style='padding:5px 8px;text-align:right;color:#15803D;font-weight:600'>"+(r.deposit>0?"Rs. "+fmt(r.deposit):"")+"</td>"+
       "</tr>";
   });
-  if(_bankRows.length>20) html+="<tr><td colspan='4' style='padding:6px 8px;color:#7A8BAA;font-style:italic'>… and "+(_bankRows.length-20)+" more rows</td></tr>";
+  if(_bankRows.length>20) html+="<tr><td colspan='4' style='padding:6px 8px;color:#7A8BAA;font-style:italic'>... and "+(_bankRows.length-20)+" more rows</td></tr>";
   html+="</tbody></table>";
   document.getElementById("bankPreview").innerHTML=html;
 }
-
 function doImportBank(){
-  if(!_bankRows.length){ toast("No rows to import.",false); return; }
-  var btn=document.getElementById("bankImportBtn");
-  var status=document.getElementById("bankImportStatus");
-  btn.disabled=true; btn.textContent="Importing…";
-  status.textContent="";
-  api({action:"importBankStatement",token:token,fyid:curFY,companyId:curCompany,rows:_bankRows},
-  function(d){
-    btn.disabled=false; btn.textContent="📥 Import to Pending Entries";
+  if(!_bankRows.length){toast("No rows to import.",false);return;}
+  var btn=document.getElementById("bankImportBtn"),status=document.getElementById("bankImportStatus");
+  btn.disabled=true;btn.textContent="Importing...";status.textContent="";
+  api({action:"importBankStatement",token:token,fyid:curFY,companyId:curCompany,rows:_bankRows},function(d){
+    btn.disabled=false;btn.textContent="Import to Pending Entries";
     if(d.success){
-      status.textContent="✓ Imported "+d.imported+" rows"+(d.duplicates>0?" · "+d.duplicates+" duplicates skipped":"")+(d.skipped>0?" · "+d.skipped+" empty skipped":"");
-      toast("✓ "+d.imported+" bank rows imported to Pending Entries.",true);
+      status.textContent="Imported "+d.imported+" rows"+(d.duplicates>0?" - "+d.duplicates+" duplicates skipped":"")+(d.skipped>0?" - "+d.skipped+" empty skipped":"");
+      toast("Imported "+d.imported+" bank rows.",true);
       _bankRows=[];
       document.getElementById("bankFile").value="";
       document.getElementById("bankPreview").innerHTML="";
       document.getElementById("bankImportBtn").style.display="none";
       document.getElementById("bankParseStatus").textContent="";
-      loadPendingEntries(); // Refresh home pending list
-    } else {
-      status.textContent="Error: "+d.error;
-      toast(d.error||"Import failed.",false);
-    }
+      loadPendingEntries();
+    }else{status.textContent="Error: "+d.error;toast(d.error||"Import failed.",false);}
   });
 }
-
-// ── INLINE EDIT FOR BANK IMPORT PENDING ROWS ─────────────────
 function renderBankImportRow(e){
-  // Returns HTML for an incomplete bank import pending entry
-  // with inline dropdowns to assign entry type, project, vendor, cost head
-  var drCrHint = e.rejectReason||""; // stored hint e.g. "Cr:BANK" or "Dr:BANK"
-  var isDebit  = drCrHint.indexOf("Cr:BANK")!==-1; // withdrawal = Cr bank
-  var sideLabel= isDebit
-    ? "<span style='color:#B91C1C;font-size:10px;font-weight:700'>WITHDRAWAL (Bank Cr)</span>"
-    : "<span style='color:#15803D;font-size:10px;font-weight:700'>DEPOSIT (Bank Dr)</span>";
-
-  // Filter entry types to those involving BANK account
-  // isDebit = withdrawal = bank is Cr leg; isDeposit = bank is Dr leg
-  var etOpts="<option value=''>— Select Entry Type —</option>";
-  Object.values(allEntryTypes||{}).filter(function(t){
+  var drCrHint=e.rejectReason||"";
+  var isDebit=drCrHint.indexOf("Cr:BANK")!==-1;
+  var sideLabel=isDebit?"<span style='color:#B91C1C;font-size:10px;font-weight:700'>WITHDRAWAL</span>":"<span style='color:#15803D;font-size:10px;font-weight:700'>DEPOSIT</span>";
+  var etOpts="<option value=''>-- Select Entry Type --</option>";
+  var bankETs=Object.values(allEntryTypes||{}).filter(function(t){
     if(!t.active) return false;
-    var dr=(t.dr||"").toUpperCase(), cr=(t.cr||"").toUpperCase();
-    // Include if BANK is one of the legs
-    return dr==="BANK" || cr==="BANK";
-  }).forEach(function(t){
-    etOpts+="<option value='"+t.key+"'>"+t.label+"</option>";
+    var dr=(t.dr||"").toUpperCase(),cr=(t.cr||"").toUpperCase();
+    return dr==="BANK"||cr==="BANK";
   });
-  // Build project options from cache
+  var catOrder=["client","vendor","expense","transfer","drawings"];
+  var catLabels={client:"Client",vendor:"Vendor",expense:"Expense",transfer:"Transfer",drawings:"Drawings"};
+  catOrder.forEach(function(cat){
+    var items=bankETs.filter(function(t){return t.category===cat;});
+    if(!items.length) return;
+    etOpts+="<optgroup label='"+catLabels[cat]+"'>";
+    items.forEach(function(t){etOpts+="<option value='"+t.key+"'>"+t.label+"</option>";});
+    etOpts+="</optgroup>";
+  });
   var prC=lsGet("bd_c_proj")||[];
-  var prOpts="<option value=''>— Project (optional) —</option>";
+  var prOpts="<option value=''>-- Project (optional) --</option>";
   prC.forEach(function(p){prOpts+="<option value='"+p.id+"'>"+p.name+"</option>";});
-  // Vendor options
   var veC=lsGet("bd_c_ve")||[];
-  var veOpts="<option value=''>— Vendor (optional) —</option>";
+  var veOpts="<option value=''>-- Vendor (optional) --</option>";
   veC.forEach(function(v){veOpts+="<option value='"+v.id+"'>"+v.name+"</option>";});
-  // Cost head options
   var chC=lsGet("bd_c_ch")||[];
-  var chOpts="<option value=''>— Cost Head (optional) —</option>";
+  var chOpts="<option value=''>-- Cost Head (optional) --</option>";
   chC.forEach(function(c){chOpts+="<option value='"+c.id+"'>"+c.name+"</option>";});
-
-  var sel=function(id,opts,style){return "<select id='"+id+"_"+e.entryId+"' style='"+
-    "padding:5px 8px;border:1.5px solid #DDE3EE;border-radius:7px;font-size:11px;color:#1A2D5A;"+
-    "background:#F7F9FC;outline:none;font-family:inherit;width:100%;margin-top:3px"+(style?";"+style:"")+"'>"+opts+"</select>";};
-
+  var sel=function(id,opts){return "<select id='"+id+"_"+e.entryId+"' style='padding:5px 8px;border:1.5px solid #DDE3EE;border-radius:7px;font-size:11px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;width:100%;margin-top:3px'>"+opts+"</select>";};
   return "<div class='pend-row' style='background:#FFF9E6;border-left:3px solid #F59E0B'>"+
-    "<div class='pend-main'>🏦 Bank Import — ₹ "+fmt(e.amount)+" &nbsp;"+sideLabel+"</div>"+
-    "<div class='pend-sub' style='margin-bottom:6px'>"+e.date+" · "+e.narration+"</div>"+
+    "<div class='pend-main'>Bank Import - Rs. "+fmt(e.amount)+" "+sideLabel+"</div>"+
+    "<div class='pend-sub' style='margin-bottom:6px'>"+e.date+" - "+e.narration+"</div>"+
     "<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px'>"+
-      "<div>"+sel("bi_et",etOpts)+"</div>"+
-      "<div>"+sel("bi_proj",prOpts)+"</div>"+
-      "<div>"+sel("bi_vend",veOpts)+"</div>"+
-      "<div>"+sel("bi_ch",chOpts)+"</div>"+
+      "<div>"+sel("bi_et",etOpts)+"</div><div>"+sel("bi_proj",prOpts)+"</div>"+
+      "<div>"+sel("bi_vend",veOpts)+"</div><div>"+sel("bi_ch",chOpts)+"</div>"+
     "</div>"+
     "<div style='display:flex;gap:6px'>"+
-      "<button class='btn-approve' data-id='"+e.entryId+"' onclick='approveBankImport(this.dataset.id)'>&#10003; Approve</button>"+
-      "<button style='padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit' data-id='"+e.entryId+"' onclick='deletePendingEntryAdmin(this.dataset.id)'>&#10007; Delete</button>"+
-    "</div>"+
-    "</div>";
+      "<button class='btn-approve' data-id='"+e.entryId+"' onclick='approveBankImport(this.dataset.id)'>Approve</button>"+
+      "<button style='padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit' data-id='"+e.entryId+"' onclick='deletePendingEntryAdmin(this.dataset.id)'>Delete</button>"+
+    "</div></div>";
 }
-
 function approveBankImport(entryId){
   var etEl=document.getElementById("bi_et_"+entryId);
-  if(!etEl||!etEl.value){ toast("Please select an Entry Type first.",false); return; }
-  var entryType=etEl.value;
-  var projectId=(document.getElementById("bi_proj_"+entryId)||{value:""}).value;
-  var vendorId=(document.getElementById("bi_vend_"+entryId)||{value:""}).value;
-  var costHeadId=(document.getElementById("bi_ch_"+entryId)||{value:""}).value;
-  // First update the pending entry with the assigned parameters
+  if(!etEl||!etEl.value){toast("Please select an Entry Type first.",false);return;}
   api({action:"editPendingEntry",token:token,entryId:entryId,
-    entryType:entryType,projectId:projectId,vendorId:vendorId,costHeadId:costHeadId},
+    entryType:etEl.value,
+    projectId:(document.getElementById("bi_proj_"+entryId)||{value:""}).value,
+    vendorId:(document.getElementById("bi_vend_"+entryId)||{value:""}).value,
+    costHeadId:(document.getElementById("bi_ch_"+entryId)||{value:""}).value},
   function(d){
-    if(!d.success){ toast(d.error||"Update failed.",false); return; }
-    // Then approve it
+    if(!d.success){toast(d.error||"Update failed.",false);return;}
     api({action:"approveEntry",token:token,entryId:entryId},function(d2){
-      if(d2.success){ toast("✓ Entry approved: Dr "+d2.dr+" / Cr "+d2.cr,true); loadPendingEntries(); }
+      if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
       else toast(d2.error||"Approve failed.",false);
     });
   });
 }
-
 function deletePendingEntryAdmin(entryId){
   if(!confirm("Delete this pending entry?")) return;
   api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
-    if(d.success){ toast("Deleted.",true); loadPendingEntries(); }
+    if(d.success){toast("Deleted.",true);loadPendingEntries();}
     else toast(d.error||"Failed.",false);
   });
 }
