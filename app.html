@@ -518,9 +518,15 @@ function saveEntry(){
   if(!selType){ toast("Please select an entry type first.",false); return; }
   var proj=ssGet("eProject");
   var amt=parseFloat(document.getElementById("eAmount").value);
-  if(!proj){ toast("Please select a project.",false); return; }
+  var chVal = document.getElementById("eCostHead").value||ssGet("eCostHead")||"";
+  var projOptional = false;
+  if(selType.needsCH && chVal && window._allCostHeads && window._allCostHeads[chVal]){
+    projOptional = OPTIONAL_PROJECT_AC_KEYS.indexOf(window._allCostHeads[chVal].acKey||"")!==-1;
+  }
+  if(selType.category==="transfer"||selType.category==="drawings") projOptional=true;
+  if(!proj&&!projOptional){ toast("Please select a project.",false); return; }
   if(!amt||amt<=0){ toast("Please enter a valid amount.",false); return; }
-  if(selType.needsCH && !document.getElementById("eCostHead").value){ toast("Please select a cost head for this entry type.",false); return; }
+  if(selType.needsCH && !chVal){ toast("Please select a cost head for this entry type.",false); return; }
 
   var projSel=document.getElementById("eProject"); var proj_ss=window._ssInstances["eProject"]; var projName=proj_ss&&proj_ss.getValue()?(proj_ss._inp?proj_ss._inp.value:""):"";
   var vendSel=document.getElementById("eVendor"); var vend_ss=window._ssInstances["eVendor"]; var vendName=vend_ss&&vend_ss.getValue()?(vend_ss._inp?vend_ss._inp.value:""):"";
