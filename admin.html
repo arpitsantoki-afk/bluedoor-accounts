@@ -287,6 +287,13 @@ td{padding:9px 10px;vertical-align:top}
 .bs-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #F1F5F9}
 .bs-total{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:7px 0;border-top:2px solid #1A2D5A;margin-top:4px;color:#1A2D5A}
 .report-pdf-btn{padding:6px 14px;background:#15803D;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.doc-month{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#7A8BAA;padding:10px 0 6px;border-bottom:2px solid #DDE3EE;margin:12px 0 6px}
+.doc-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #F1F5F9}
+.doc-check{margin-top:2px;width:16px;height:16px;cursor:pointer;flex-shrink:0}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:12px;font-weight:600;color:#1A2D5A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:11px;color:#7A8BAA;margin-top:1px}
+.doc-link{font-size:11px;color:#2B5197;font-weight:600;white-space:nowrap;text-decoration:none}
 .conf-row:last-child{border-bottom:none}
 .conf-label{color:#7A8BAA;font-weight:600;flex-shrink:0;width:90px}
 .conf-val{color:#1A2D5A;font-weight:600;text-align:right}
@@ -306,7 +313,7 @@ td{padding:9px 10px;vertical-align:top}
 @media print{
   .header,.fy-panel,.version-bar,.filter-panel,.active-filters,
   .strip-row,#ledgerToolbar,.bottom-nav,.debug-panel,.toast,
-  .btn-del,.nav-item,#view-add,#view-reports,#view-more,#view-home,
+  .btn-del,.nav-item,#view-add,#view-reports,#view-more,#view-home,#view-docs,
   .debug-toggle{display:none!important}
   body{background:#fff;padding:0;font-family:'Segoe UI',sans-serif}
   #view-ledger{display:block!important}
@@ -782,6 +789,46 @@ td{padding:9px 10px;vertical-align:top}
 </div>
 
 <!-- MORE / USERS -->
+<div id="view-docs" class="hidden">
+  <div class="page-title">Documents</div>
+  <!-- Filters -->
+  <div class="card" style="padding-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <div class="field-label">From</div>
+        <input type="date" id="docFrom" style="width:100%;padding:7px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;background:#F7F9FC;outline:none;font-family:inherit">
+      </div>
+      <div>
+        <div class="field-label">To</div>
+        <input type="date" id="docTo" style="width:100%;padding:7px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;background:#F7F9FC;outline:none;font-family:inherit">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div>
+        <div class="field-label">Project</div>
+        <select id="docProject" style="width:100%;padding:7px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;background:#F7F9FC;outline:none;font-family:inherit;color:#1A2D5A">
+          <option value="">All Projects</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Vendor</div>
+        <select id="docVendor" style="width:100%;padding:7px 10px;border:1.5px solid #DDE3EE;border-radius:8px;font-size:13px;background:#F7F9FC;outline:none;font-family:inherit;color:#1A2D5A">
+          <option value="">All Vendors</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn-primary" onclick="applyDocFilters()" style="padding:8px 16px;font-size:12px">Apply Filters</button>
+      <button onclick="resetDocFilters()" style="padding:8px 12px;background:#F1F5F9;border:1px solid #DDE3EE;border-radius:8px;color:#7A8BAA;font-size:12px;cursor:pointer;font-family:inherit">Reset</button>
+      <div style="flex:1"></div>
+      <span id="docSelectedCount" style="font-size:12px;color:#7A8BAA"></span>
+      <button id="docDownloadBtn" onclick="downloadSelectedDocs()" style="display:none;padding:8px 14px;background:#15803D;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⬇ Download ZIP</button>
+    </div>
+  </div>
+  <!-- Document list -->
+  <div id="docList"><div class="empty"><div class="empty-icon">📎</div>Loading…</div></div>
+</div>
+
 <div id="view-more" class="hidden">
   <div class="page-title">Users</div>
   <div class="card">
@@ -854,6 +901,7 @@ td{padding:9px 10px;vertical-align:top}
   <div class="nav-item" onclick="showView('ledger',this)"><span class="nav-icon">📋</span><span class="nav-label">Ledger</span></div>
   <div class="nav-item" onclick="showView('add',this)"><span class="nav-icon">➕</span><span class="nav-label">Add</span></div>
   <div class="nav-item" onclick="showView('reports',this)"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></div>
+  <div class="nav-item" onclick="showView('docs',this)"><span class="nav-icon">📎</span><span class="nav-label">Docs</span></div>
   <div class="nav-item" onclick="showView('more',this)"><span class="nav-icon">···</span><span class="nav-label">More</span></div>
 </nav>
 <div class="toast" id="toast"></div>
@@ -958,6 +1006,7 @@ function setCompany(id){
   if(!document.getElementById("at-opening").classList.contains("hidden")){
     loadOpeningBalances(); loadVendorOBTab();
   }
+  if(!document.getElementById("view-docs").classList.contains("hidden")) loadDocs();
 }
 
 document.addEventListener("click",function(e){
@@ -1675,6 +1724,7 @@ function showView(name,el){
   if(name==="ledger") { if(!allLedger.length) initLedger(); else applyFilters(); }
   if(name==="reports") loadReports();
   if(name==="more") loadUsers();
+  if(name==="docs") loadDocs();
   if(name==="add") rebuildAddDropdowns();
 }
 
@@ -2882,6 +2932,152 @@ function deletePendingEntryAdmin(entryId){
   api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
     if(d.success){toast("Deleted.",true);loadPendingEntries();}
     else toast(d.error||"Failed.",false);
+  });
+}
+
+// ── DOCUMENTS TAB ────────────────────────────────────────────
+var _allDocs = [];
+var _filteredDocs = [];
+
+function loadDocs(){
+  var el = document.getElementById("docList");
+  el.innerHTML = "<div class='empty'><div class='empty-icon'>📎</div>Loading…</div>";
+  // Populate filter dropdowns from cache
+  var prC=lsGet("bd_c_proj")||[], veC=lsGet("bd_c_ve")||[];
+  var dp=document.getElementById("docProject"), dv=document.getElementById("docVendor");
+  if(dp){
+    dp.innerHTML="<option value=''>All Projects</option>";
+    prC.forEach(function(p){dp.innerHTML+="<option value='"+p.id+"'>"+p.name+"</option>";});
+  }
+  if(dv){
+    dv.innerHTML="<option value=''>All Vendors</option>";
+    veC.forEach(function(v){dv.innerHTML+="<option value='"+v.id+"'>"+v.name+"</option>";});
+  }
+  api({action:"getDocuments",token:token,fyid:curFY,companyId:curCompany},function(d){
+    if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
+    _allDocs = d.docs;
+    applyDocFilters();
+  });
+}
+
+function applyDocFilters(){
+  var from  = document.getElementById("docFrom").value;
+  var to    = document.getElementById("docTo").value;
+  var proj  = document.getElementById("docProject").value;
+  var vend  = document.getElementById("docVendor").value;
+  _filteredDocs = _allDocs.filter(function(d){
+    if(from && d.dateSort < from) return false;
+    if(to   && d.dateSort > to)   return false;
+    if(proj && d.projectId !== proj) return false;
+    if(vend && d.vendorId  !== vend) return false;
+    return true;
+  });
+  renderDocs();
+}
+
+function resetDocFilters(){
+  document.getElementById("docFrom").value="";
+  document.getElementById("docTo").value="";
+  document.getElementById("docProject").value="";
+  document.getElementById("docVendor").value="";
+  _filteredDocs = _allDocs.slice();
+  renderDocs();
+}
+
+function renderDocs(){
+  var el = document.getElementById("docList");
+  if(!_filteredDocs.length){
+    el.innerHTML="<div class='empty'><div class='empty-icon'>📎</div>No documents found for the selected filters.</div>";
+    updateDocSelection(); return;
+  }
+  // Group by month
+  var months = {};
+  var monthOrder = [];
+  _filteredDocs.forEach(function(d){
+    if(!months[d.month]){ months[d.month]=[]; monthOrder.push(d.month); }
+    months[d.month].push(d);
+  });
+  var html = "<div style='margin-bottom:80px'>";
+  // Select all row
+  html += "<div style='display:flex;align-items:center;gap:8px;padding:8px 12px;background:#F7F9FC;border-radius:9px;margin-bottom:8px'>"+
+    "<input type='checkbox' id='docSelectAll' onchange='toggleAllDocs(this.checked)' style='width:16px;height:16px;cursor:pointer'>"+
+    "<span style='font-size:12px;font-weight:600;color:#1A2D5A'>Select All ("+_filteredDocs.length+" documents)</span>"+
+    "</div>";
+
+  monthOrder.forEach(function(month){
+    var docs = months[month];
+    // Format month label: yyyy-MM → Month YYYY
+    var parts = month.split("-");
+    var mNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var mLabel = parts.length===2 ? mNames[parseInt(parts[1])-1]+" "+parts[0] : month;
+    html += "<div class='card' style='margin-bottom:10px'>"+
+      "<div class='doc-month'>"+mLabel+" &nbsp;<span style='font-weight:400;color:#94A3B8'>("+docs.length+" doc"+(docs.length>1?"s":"")+")</span></div>";
+
+    docs.forEach(function(d){
+      // Extract filename from URL or use narration
+      var fname = d.narration ? d.narration.substring(0,40) : d.entryId;
+      html += "<div class='doc-row' id='docrow-"+d.entryId+"'>"+
+        "<input type='checkbox' class='doc-check' data-id='"+d.entryId+"' data-url='"+d.driveUrl+"' onchange='updateDocSelection()'>"+
+        "<div class='doc-info'>"+
+          "<div class='doc-name'>"+d.entryLabel+(d.vendorName?" · "+d.vendorName:"")+"</div>"+
+          "<div class='doc-meta'>"+d.date+(d.projectName?" · "+d.projectName:"")+" · ₹ "+fmt(d.amount)+"</div>"+
+          "<div class='doc-meta' style='overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+d.narration+"</div>"+
+        "</div>"+
+        "<a href='"+d.driveUrl+"' target='_blank' class='doc-link'>📎 View</a>"+
+        "</div>";
+    });
+    html += "</div>";
+  });
+  html += "</div>";
+  el.innerHTML = html;
+  updateDocSelection();
+}
+
+function toggleAllDocs(checked){
+  document.querySelectorAll(".doc-check").forEach(function(cb){ cb.checked=checked; });
+  updateDocSelection();
+}
+
+function updateDocSelection(){
+  var checked = document.querySelectorAll(".doc-check:checked");
+  var total   = document.querySelectorAll(".doc-check");
+  var countEl = document.getElementById("docSelectedCount");
+  var btnEl   = document.getElementById("docDownloadBtn");
+  var allCb   = document.getElementById("docSelectAll");
+  if(countEl) countEl.textContent = checked.length ? checked.length+" selected" : "";
+  if(btnEl)   btnEl.style.display = checked.length ? "" : "none";
+  if(allCb)   allCb.indeterminate = checked.length>0 && checked.length<total.length;
+  if(allCb && checked.length===total.length && total.length>0) allCb.checked=true;
+  if(allCb && checked.length===0) allCb.checked=false;
+}
+
+function downloadSelectedDocs(){
+  var checked = document.querySelectorAll(".doc-check:checked");
+  if(!checked.length){ toast("No documents selected.",false); return; }
+  var entryIds = [];
+  checked.forEach(function(cb){ entryIds.push(cb.dataset.id); });
+  var btn = document.getElementById("docDownloadBtn");
+  btn.disabled=true; btn.textContent="Building ZIP…";
+  api({action:"downloadDocsZip",token:token,entryIds:entryIds},function(d){
+    btn.disabled=false; btn.textContent="⬇ Download ZIP";
+    if(!d.success){ toast(d.error||"ZIP failed.",false); return; }
+    // Decode base64 and trigger download
+    try {
+      var binary = atob(d.base64);
+      var bytes  = new Uint8Array(binary.length);
+      for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      var blob   = new Blob([bytes],{type:"application/zip"});
+      var url    = URL.createObjectURL(blob);
+      var a      = document.createElement("a");
+      a.href     = url;
+      a.download = d.filename||"BlueDoor_Documents.zip";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast("Downloaded "+d.count+" files"+(d.errors&&d.errors.length?" ("+d.errors.length+" failed)":""),true);
+    } catch(e){
+      toast("ZIP download failed: "+e.message,false);
+    }
   });
 }
 
