@@ -2754,6 +2754,12 @@ function renderBankImportRow(e){
   var chOpts="<option value=''>-- Cost Head (optional) --</option>";
   chC.forEach(function(c){chOpts+="<option value='"+c.id+"'>"+c.name+"</option>";});
   var sel=function(id,opts){return "<select id='"+id+"_"+e.entryId+"' style='padding:5px 8px;border:1.5px solid #DDE3EE;border-radius:7px;font-size:11px;color:#1A2D5A;background:#F7F9FC;outline:none;font-family:inherit;width:100%;margin-top:3px'>"+opts+"</select>";};
+
+  // Existing drive link if already uploaded
+  var existingDoc = e.driveFileUrl
+    ? "<a href='"+e.driveFileUrl+"' target='_blank' style='font-size:11px;color:#2B5197;display:inline-block;margin-top:4px'>📎 View uploaded doc</a>"
+    : "";
+
   return "<div class='pend-row' style='background:#FFF9E6;border-left:3px solid #F59E0B'>"+
     "<div class='pend-main'>Bank Import - Rs. "+fmt(e.amount)+" "+sideLabel+"</div>"+
     "<div class='pend-sub' style='margin-bottom:6px'>"+e.date+" - "+e.narration+"</div>"+
@@ -2761,27 +2767,82 @@ function renderBankImportRow(e){
       "<div>"+sel("bi_et",etOpts)+"</div><div>"+sel("bi_proj",prOpts)+"</div>"+
       "<div>"+sel("bi_vend",veOpts)+"</div><div>"+sel("bi_ch",chOpts)+"</div>"+
     "</div>"+
+    // Document upload row
+    "<div style='margin-bottom:8px'>"+
+      "<label style='display:block;font-size:10px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px'>Purchase Bill / Document (optional)</label>"+
+      "<div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap'>"+
+        "<label style='padding:5px 12px;background:#F7F9FC;border:1.5px dashed #DDE3EE;border-radius:7px;cursor:pointer;font-size:11px;color:#7A8BAA'>"+
+          "📎 Choose File"+
+          "<input type='file' id='bi_doc_"+e.entryId+"'  data-eid='"+e.entryId+"' accept='image/*,application/pdf' style='display:none' onchange='biBillPreview(this)'>"+
+        "</label>"+
+        "<span id='bi_doc_label_"+e.entryId+"' style='font-size:11px;color:#2B5197'></span>"+
+      "</div>"+
+      existingDoc+
+    "</div>"+
     "<div style='display:flex;gap:6px'>"+
-      "<button class='btn-approve' data-id='"+e.entryId+"' onclick='approveBankImport(this.dataset.id)'>Approve</button>"+
+      "<button class='btn-approve' data-id='"+e.entryId+"' data-date='"+e.date+"' onclick='approveBankImport(this.dataset.id,this.dataset.date)'>Approve</button>"+
       "<button style='padding:5px 10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#B91C1C;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit' data-id='"+e.entryId+"' onclick='deletePendingEntryAdmin(this.dataset.id)'>Delete</button>"+
     "</div></div>";
 }
-function approveBankImport(entryId){
+
+function biBillPreview(input){
+  var entryId=input.dataset.eid; var file=input.files[0]; if(!file) return;
+  var label=document.getElementById("bi_doc_label_"+entryId);
+  if(label) label.textContent=file.name+" ("+Math.round(file.size/1024)+"KB)";
+}
+
+function approveBankImport(entryId, dateVal){
   var etEl=document.getElementById("bi_et_"+entryId);
   if(!etEl||!etEl.value){toast("Please select an Entry Type first.",false);return;}
+  var vendEl=document.getElementById("bi_vend_"+entryId);
+  var vendId=(vendEl||{value:""}).value;
+  // Get vendor name for file naming
+  var veC=lsGet("bd_c_ve")||[];
+  var vendName="Expense";
+  if(vendId){ var vObj=veC.find(function(v){return v.id===vendId;}); if(vObj) vendName=vObj.name; }
+
   api({action:"editPendingEntry",token:token,entryId:entryId,
     entryType:etEl.value,
     projectId:(document.getElementById("bi_proj_"+entryId)||{value:""}).value,
-    vendorId:(document.getElementById("bi_vend_"+entryId)||{value:""}).value,
+    vendorId:vendId,
     costHeadId:(document.getElementById("bi_ch_"+entryId)||{value:""}).value},
   function(d){
     if(!d.success){toast(d.error||"Update failed.",false);return;}
-    api({action:"approveEntry",token:token,entryId:entryId},function(d2){
-      if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
-      else toast(d2.error||"Approve failed.",false);
-    });
+    // Check for document upload
+    var docInput=document.getElementById("bi_doc_"+entryId);
+    var docFile=docInput&&docInput.files[0];
+    if(docFile){
+      // Upload doc first, then approve
+      var parts=(dateVal||"").split("-");
+      var datePart=parts.join("_");
+      var safeVendor=vendName.replace(/[^a-zA-Z0-9]/g,"_").substring(0,30);
+      var ext=docFile.name.split(".").pop()||"jpg";
+      var filename=datePart+"_"+safeVendor+"."+ext;
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        var base64=ev.target.result.split(",")[1];
+        api({action:"uploadBillPhoto",token:token,entryId:entryId,companyId:curCompany,
+             base64:base64,filename:filename,contentType:docFile.type||"image/jpeg"},
+        function(du){
+          if(du&&du.success) toast("📎 Document uploaded.",true);
+          // Now approve
+          api({action:"approveEntry",token:token,entryId:entryId},function(d2){
+            if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
+            else toast(d2.error||"Approve failed.",false);
+          });
+        });
+      };
+      reader.readAsDataURL(docFile);
+    } else {
+      // No doc — just approve
+      api({action:"approveEntry",token:token,entryId:entryId},function(d2){
+        if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
+        else toast(d2.error||"Approve failed.",false);
+      });
+    }
   });
 }
+
 function deletePendingEntryAdmin(entryId){
   if(!confirm("Delete this pending entry?")) return;
   api({action:"deletePendingEntry",token:token,entryId:entryId},function(d){
