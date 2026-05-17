@@ -804,7 +804,8 @@ function api(body,cb){
   var callNum=++_dbTotal;
   var display=Object.assign({},body);
   if(display.token) display.token=display.token.substring(0,8)+"…";
-  var url=API+"?payload="+encodeURIComponent(JSON.stringify(body));
+  var isFileUpload=(body.action==="uploadBillPhoto");
+  var url=isFileUpload?API:API+"?payload="+encodeURIComponent(JSON.stringify(body));
   fetch(url,{method:"POST",redirect:"follow",body:JSON.stringify(body)})
     .then(function(r){return r.json();})
     .then(function(d){
