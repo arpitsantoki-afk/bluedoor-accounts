@@ -671,6 +671,9 @@ td{padding:9px 10px;vertical-align:top}
 
     <div class="card">
       <div class="card-label">Existing Opening Balances — <span id="obFYLabel"></span></div>
+      <div id="obCompanyWarn" style="display:none;font-size:12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:7px;padding:8px 12px;color:#92400E;margin-bottom:8px">
+        ⚠️ Showing all companies. Select a specific company from the header to enter or view company-specific balances.
+      </div>
       <div id="obList"><div class="empty">Loading…</div></div>
     </div>
 
@@ -1464,13 +1467,25 @@ function adminSaveEntry(){
 
 // ── OPENING BALANCES ───────────────────────────────────────
 function loadOpeningBalances(){
-  var fyL=(fyList.find(f=>f.id===curFY)||{label:curFY}).label;
+  var fyL=(fyList.find(function(f){return f.id===curFY;})||{label:curFY}).label;
   document.getElementById("obFYLabel").textContent=fyL;
+  // Warn if All Companies selected
+  var obWarn=document.getElementById("obCompanyWarn");
+  if(obWarn) obWarn.style.display=(curCompany==="All")?"":"none";
   api({action:"getOpeningBalances",token:token,fyid:curFY,companyId:curCompany},function(d){
     var el=document.getElementById("obList");
-    if(!d.success||!d.balances.length){ el.innerHTML="<div class='empty'>No opening balances entered for "+fyL+".</div>"; return; }
-    var html="<div class='tbl-wrap'><table><thead><tr><th>Account</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th></tr></thead><tbody>";
-    d.balances.forEach(function(b){ html+="<tr><td><div class='td-main'>"+b.accountName+"</div><div class='td-sub'>"+b.accountKey+"</div></td><td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td><td style='font-weight:700;color:#1A2D5A'>₹ "+fmt(b.amount)+"</td><td style='color:#7A8BAA;font-size:11px'>"+b.enteredBy+"</td></tr>"; });
+    if(!d.success||!d.balances.length){ el.innerHTML="<div class='empty'>No opening balances entered for "+fyL+(curCompany!=="All"?" ("+curCompany+")":"")+". Add one above.</div>"; return; }
+    var showCo = (curCompany==="All");
+    var html="<div class='tbl-wrap'><table><thead><tr><th>Account</th>"+(showCo?"<th>Company</th>":"")+"<th>Dr/Cr</th><th>Amount ₹</th><th>By</th></tr></thead><tbody>";
+    d.balances.forEach(function(b){
+      html+="<tr>"+
+        "<td><div class='td-main'>"+b.accountName+"</div><div class='td-sub'>"+b.accountKey+"</div></td>"+
+        (showCo?"<td style='font-size:11px;font-weight:700;color:#F59E0B'>"+( b.companyId||"—" )+"</td>":"")+
+        "<td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td>"+
+        "<td style='font-weight:700;color:#1A2D5A'>₹ "+fmt(b.amount)+"</td>"+
+        "<td style='color:#7A8BAA;font-size:11px'>"+b.enteredBy+"</td>"+
+        "</tr>";
+    });
     html+="</tbody></table></div>"; el.innerHTML=html;
   });
 }
@@ -2155,21 +2170,26 @@ function loadVendorOBList() {
   el.innerHTML = "<div class='empty'>Loading…</div>";
   api({action:"getVendorOB",token:token,fyid:curFY,companyId:curCompany}, function(d){
     if(!d.success){ el.innerHTML="<div class='empty'>"+d.error+"</div>"; return; }
-    if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances for this FY.</div>"; return; }
-    // Build vendor name map from cache
+    if(!d.balances.length){ el.innerHTML="<div class='empty'>No vendor opening balances"+(curCompany!=="All"?" for "+curCompany:"")+". Add one above.</div>"; return; }
     var vMap={};
     var veC=lsGet("bd_c_ve")||[];
     veC.forEach(function(v){ vMap[v.id]=v.name; });
-    // Also try from the dropdown as fallback
     document.querySelectorAll("#vobVendor option").forEach(function(o){ if(o.value&&!vMap[o.value]) vMap[o.value]=o.textContent; });
-    var html="<table><thead><tr><th>Vendor</th><th>Dr/Cr</th><th>Amount ₹</th><th>By</th><th>Date</th></tr></thead><tbody>";
+    var showCo=(curCompany==="All");
+    var html="<table style='width:100%;border-collapse:collapse'><thead><tr style='background:#F7F9FC'>"+
+      "<th style='padding:7px 8px;text-align:left;font-size:11px;color:#7A8BAA;border-bottom:1px solid #DDE3EE'>Vendor</th>"+
+      (showCo?"<th style='padding:7px 8px;font-size:11px;color:#7A8BAA;border-bottom:1px solid #DDE3EE'>Co.</th>":"")+
+      "<th style='padding:7px 8px;font-size:11px;color:#7A8BAA;border-bottom:1px solid #DDE3EE'>Dr/Cr</th>"+
+      "<th style='padding:7px 8px;font-size:11px;color:#7A8BAA;border-bottom:1px solid #DDE3EE'>Amount ₹</th>"+
+      "<th style='padding:7px 8px;font-size:11px;color:#7A8BAA;border-bottom:1px solid #DDE3EE'>By</th>"+
+      "</tr></thead><tbody>";
     d.balances.forEach(function(b){
-      html+="<tr>"+
-        "<td style='font-size:12px;font-weight:600;color:#1A2D5A'>"+(vMap[b.vendorId]||b.vendorId)+"</td>"+
-        "<td><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td>"+
-        "<td class='"+(b.drCr==="Dr"?"dr":"cr")+"'>₹ "+fmt(b.amount)+"</td>"+
-        "<td style='font-size:11px;color:#7A8BAA'>"+b.enteredBy+"</td>"+
-        "<td style='font-size:11px;color:#7A8BAA;white-space:nowrap'>"+b.enteredAt+"</td>"+
+      html+="<tr style='border-bottom:1px solid #EEF2F7'>"+
+        "<td style='padding:7px 8px;font-size:12px;font-weight:600;color:#1A2D5A'>"+(vMap[b.vendorId]||b.vendorId)+"</td>"+
+        (showCo?"<td style='padding:7px 8px;font-size:11px;font-weight:700;color:#F59E0B'>"+(b.companyId||"—")+"</td>":"")+
+        "<td style='padding:7px 8px'><span class='badge "+(b.drCr==="Dr"?"badge-dr":"badge-cr")+"'>"+b.drCr+"</span></td>"+
+        "<td style='padding:7px 8px;font-weight:700;color:"+(b.drCr==="Dr"?"#1D4ED8":"#B91C1C")+"'>₹ "+fmt(b.amount)+"</td>"+
+        "<td style='padding:7px 8px;font-size:11px;color:#7A8BAA'>"+b.enteredBy+"</td>"+
         "</tr>";
     });
     html+="</tbody></table>";
