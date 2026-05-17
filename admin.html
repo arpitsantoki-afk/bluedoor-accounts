@@ -2896,8 +2896,9 @@ function api(body, cb) {
   var display = Object.assign({}, body);
   if (display.token) display.token = display.token.substring(0,8)+"…";
 
-  // Append payload as query param — survives GAS POST→GET redirect
-  var url = API + "?payload=" + encodeURIComponent(JSON.stringify(body));
+  // File uploads: skip URL param (base64 too large for URL), POST body only
+  var isFileUpload = (body.action === "uploadBillPhoto");
+  var url = isFileUpload ? API : API + "?payload=" + encodeURIComponent(JSON.stringify(body));
   fetch(url, { method:"POST", redirect:"follow", body:JSON.stringify(body) })
     .then(function(r){ return r.json(); })
     .then(function(d){
