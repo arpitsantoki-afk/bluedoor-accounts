@@ -954,6 +954,10 @@ function setCompany(id){
   loadDashboard(); loadPendingEntries();
   if(!document.getElementById("view-ledger").classList.contains("hidden")) initLedger();
   if(!document.getElementById("view-reports").classList.contains("hidden")) loadReports();
+  // Reload opening balances if that subtab is visible
+  if(!document.getElementById("at-opening").classList.contains("hidden")){
+    loadOpeningBalances(); loadVendorOBTab();
+  }
 }
 
 document.addEventListener("click",function(e){
