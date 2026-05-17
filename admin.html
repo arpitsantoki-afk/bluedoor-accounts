@@ -1726,7 +1726,8 @@ function doDelete(entryId) {
   api({ action:"deleteEntry", token:token, entryId:entryId }, function(d){
     if(d.success){
       var msg = "Entry "+entryId+" deleted.";
-      if(d.restored) msg += " Bank import row restored to Pending — re-assign and approve.";
+      if(d.fileDeleted) msg += " Attached file removed from Drive.";
+      if(d.restored) msg += " Bank import restored to Pending — re-assign and approve.";
       toast(msg, true);
       // Remove from in-memory ledger and re-render
       allLedger = allLedger.filter(function(r){ return r.entryId !== entryId; });
