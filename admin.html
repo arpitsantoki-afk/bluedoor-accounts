@@ -1725,10 +1725,14 @@ function doDelete(entryId) {
   closeConfirm();
   api({ action:"deleteEntry", token:token, entryId:entryId }, function(d){
     if(d.success){
-      toast("✓ Entry "+entryId+" deleted ("+d.deleted+" rows removed).", true);
+      var msg = "Entry "+entryId+" deleted.";
+      if(d.restored) msg += " Bank import row restored to Pending — re-assign and approve.";
+      toast(msg, true);
       // Remove from in-memory ledger and re-render
       allLedger = allLedger.filter(function(r){ return r.entryId !== entryId; });
       applyFilters();
+      // Refresh pending card in case a bank import was restored
+      if(d.restored) loadPendingEntries();
     } else {
       toast(d.error || "Delete failed.", false);
     }
