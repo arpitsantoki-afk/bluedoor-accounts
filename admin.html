@@ -2791,28 +2791,64 @@ function biBillPreview(input){
   if(label) label.textContent=file.name+" ("+Math.round(file.size/1024)+"KB)";
 }
 
+// Track in-progress approvals to prevent double submission
+var _biApproving = {};
+
 function approveBankImport(entryId, dateVal){
+  // ── Guard: prevent double-click / re-submission ──────────
+  if(_biApproving[entryId]){ toast("Already processing, please wait...",false); return; }
+  _biApproving[entryId] = true;
+
   var etEl=document.getElementById("bi_et_"+entryId);
-  if(!etEl||!etEl.value){toast("Please select an Entry Type first.",false);return;}
+  if(!etEl||!etEl.value){
+    delete _biApproving[entryId];
+    toast("Please select an Entry Type first.",false); return;
+  }
+
+  // ── Disable button + show progress ───────────────────────
+  var btn = document.querySelector("[data-id='"+entryId+"'].btn-approve");
+  if(btn){ btn.disabled=true; btn.textContent="Processing..."; }
+  function setBtnState(label, disabled){
+    if(btn){ btn.disabled=disabled; btn.textContent=label; }
+  }
+  function done(){ delete _biApproving[entryId]; setBtnState("Approve",false); }
+
   var vendEl=document.getElementById("bi_vend_"+entryId);
   var vendId=(vendEl||{value:""}).value;
-  // Get vendor name for file naming
   var veC=lsGet("bd_c_ve")||[];
   var vendName="Expense";
   if(vendId){ var vObj=veC.find(function(v){return v.id===vendId;}); if(vObj) vendName=vObj.name; }
 
+  // ── Step 1: Save parameters ───────────────────────────────
+  setBtnState("Saving...", true);
   api({action:"editPendingEntry",token:token,entryId:entryId,
     entryType:etEl.value,
     projectId:(document.getElementById("bi_proj_"+entryId)||{value:""}).value,
     vendorId:vendId,
     costHeadId:(document.getElementById("bi_ch_"+entryId)||{value:""}).value},
   function(d){
-    if(!d.success){toast(d.error||"Update failed.",false);return;}
-    // Check for document upload
+    if(!d.success){ done(); toast(d.error||"Update failed.",false); return; }
+
     var docInput=document.getElementById("bi_doc_"+entryId);
     var docFile=docInput&&docInput.files[0];
+
+    function doApprove(){
+      // ── Step 3: Post to ledger ──────────────────────────
+      setBtnState("Posting...", true);
+      api({action:"approveEntry",token:token,entryId:entryId},function(d2){
+        done();
+        if(d2.success){
+          toast("Approved: Dr "+d2.dr+" / Cr "+d2.cr,true);
+          loadPendingEntries(); // refresh list — clears the row
+        } else {
+          toast(d2.error||"Approve failed.",false);
+        }
+      });
+    }
+
     if(docFile){
-      // Upload doc first, then approve
+      // ── Step 2: Upload document ─────────────────────────
+      setBtnState("Uploading doc...", true);
       var parts=(dateVal||"").split("-");
       var datePart=parts.join("_");
       var safeVendor=vendName.replace(/[^a-zA-Z0-9]/g,"_").substring(0,30);
@@ -2824,21 +2860,14 @@ function approveBankImport(entryId, dateVal){
         api({action:"uploadBillPhoto",token:token,entryId:entryId,companyId:curCompany,
              base64:base64,filename:filename,contentType:docFile.type||"image/jpeg"},
         function(du){
-          if(du&&du.success) toast("📎 Document uploaded.",true);
-          // Now approve
-          api({action:"approveEntry",token:token,entryId:entryId},function(d2){
-            if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
-            else toast(d2.error||"Approve failed.",false);
-          });
+          if(du&&du.success) toast("Document uploaded to Drive.",true);
+          else toast("Doc upload failed — approving anyway.",false);
+          doApprove();
         });
       };
       reader.readAsDataURL(docFile);
     } else {
-      // No doc — just approve
-      api({action:"approveEntry",token:token,entryId:entryId},function(d2){
-        if(d2.success){toast("Approved: Dr "+d2.dr+" Cr "+d2.cr,true);loadPendingEntries();}
-        else toast(d2.error||"Approve failed.",false);
-      });
+      doApprove();
     }
   });
 }
