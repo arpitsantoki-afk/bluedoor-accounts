@@ -1499,7 +1499,7 @@ function adminSaveEntry(){
   document.getElementById("entryConfirmOKBtn").onclick = function(){
     document.getElementById("entryConfirmOverlay").classList.add("hidden");
     var btn=document.getElementById("aSaveBtn"); btn.disabled=true; btn.textContent="Saving…";
-    api({action:"saveEntry",token:token,fyid:curFY,entryType:aSelType.key,projectId:proj,
+    api({action:"saveEntry",token:token,fyid:curFY,companyId:curCompany,entryType:aSelType.key,projectId:proj,
       costHeadId:chSel.value,vendorId:vendSel.value,
       date:dateVal,amount:amt,narration:document.getElementById("aNarration").value},
     function(d){
