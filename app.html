@@ -635,7 +635,7 @@ function saveEntry(){
       return;
     }
 
-    api({action:"saveEntry",token:token,fyid:curFY,entryType:selType.key,projectId:proj,
+    api({action:"saveEntry",token:token,fyid:curFY,companyId:curCompany,entryType:selType.key,projectId:proj,
       costHeadId:ssGet("eCostHead"), vendorId:ssGet("eVendor"),
       date:dateVal, amount:amt, narration:document.getElementById("eNarration").value},
     function(d){
