@@ -1449,7 +1449,11 @@ function aPickType(el,key){
   aSelType=allEntryTypes[key];
   document.getElementById("aCostHeadField").style.display=(aSelType&&aSelType.needsCH)?"":"none";
   checkAdminProjectRequired();
-  var showDoc = aSelType && aSelType.category==="expense" && key!=="expense_petty_cash";
+  // Show doc upload for: all vendor entries (bills) + expense entries except petty cash
+  var showDoc = aSelType && (
+    aSelType.category==="vendor" ||
+    (aSelType.category==="expense" && key!=="expense_petty_cash")
+  );
   document.getElementById("aDocField").style.display = showDoc?"":"none";
   if(!showDoc) clearAdminDoc();
 }
