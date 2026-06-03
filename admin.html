@@ -1305,7 +1305,7 @@ function renderFilteredLedger(rows) {
   // Closing balance row (filtered mode only, non-zero only)
   // Closing = opening + totalDr - totalCr
   // Place closing on opposite side so Dr total = Cr total
-  var closing = ob + totalDr - totalCr;
+  var closing = totalDr - totalCr;
   if (filtered && Math.abs(closing) > 0.001) {
     var clAbs   = Math.abs(closing);
     // closing > 0 means Dr side is heavier → put closing on Cr side
@@ -1315,7 +1315,7 @@ function renderFilteredLedger(rows) {
     var clLabel = closing > 0 ? "Closing Balance (Dr)" : "Closing Balance (Cr)";
     // Add to totals for the final balance row
     if (closing > 0) totalCr += clAbs;
-    else             totalCr += clAbs;
+    else             totalDr += clAbs;
     html += "<tr style='background:#EEF3FF;font-weight:600;border-top:2px solid #C7D7FF'>"+
       "<td style='font-size:12px;color:#1D4ED8'></td>"+
       "<td style='font-size:11px;color:#1D4ED8'></td>"+
@@ -1820,7 +1820,7 @@ function downloadCSV() {
       csvEsc(r.projectName),csvEsc(r.vendorName),csvEsc(r.costHeadName)].join(","));
   });
 
-  var closing = ob + totalDr - totalCr;
+  var closing = totalDr - totalCr;
   var grandDr = totalDr + (ob>0?Math.abs(ob):0), grandCr = totalCr + (ob<0?Math.abs(ob):0);
   if (filtered && Math.abs(closing) > 0.001) {
     var clAbs = Math.abs(closing);
