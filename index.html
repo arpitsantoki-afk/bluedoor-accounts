@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2B5197">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BD Accounts">
+<title>Blue Door Architects</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#EEF2F7;min-height:100vh;display:flex;flex-direction:column}
+.header{background:#2B5197;padding:16px 20px 14px;display:flex;align-items:center;gap:12px}
+.header-icon{width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.header-title{color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.2px}
+.header-sub{color:rgba(255,255,255,0.65);font-size:11px;margin-top:1px}
+.page{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 20px}
+.card{background:#fff;border-radius:16px;border:1px solid #DDE3EE;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(43,81,151,0.08)}
+.card h2{font-size:16px;font-weight:700;color:#1A2D5A;margin-bottom:4px}
+.card .sub{font-size:13px;color:#7A8BAA;margin-bottom:22px}
+/* Google */
+.btn-google{width:100%;padding:11px 14px;background:#fff;border:1.5px solid #DDE3EE;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;font-weight:600;color:#1A2D5A;cursor:pointer;transition:background .2s,border-color .2s;font-family:inherit}
+.btn-google:hover{background:#F7F9FC;border-color:#2B5197}
+/* Divider */
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0}
+.divider hr{flex:1;border:none;border-top:1px solid #DDE3EE}
+.divider span{font-size:11px;color:#B0BED4;font-weight:600;white-space:nowrap}
+/* Fields */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:#7A8BAA;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px}
+.field input{width:100%;padding:11px 13px;border:1.5px solid #DDE3EE;border-radius:10px;font-size:14px;color:#1A2D5A;background:#F7F9FC;outline:none;transition:border-color .2s,background .2s;font-family:inherit}
+.field input:focus{border-color:#2B5197;background:#fff}
+/* Remember */
+.remember-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;user-select:none}
+.remember-row input[type=checkbox]{width:16px;height:16px;accent-color:#2B5197;cursor:pointer;flex-shrink:0}
+.remember-row span{font-size:13px;color:#7A8BAA}
+/* Submit */
+.btn-login{width:100%;padding:13px;background:#2B5197;border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.2px;transition:background .2s,transform .1s;font-family:inherit}
+.btn-login:hover{background:#224080}
+.btn-login:active{transform:scale(0.98)}
+.btn-login:disabled{background:#B0BED4;cursor:not-allowed}
+/* Error */
+.error-box{margin-top:12px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;color:#B91C1C;font-size:13px;display:none}
+/* Version */
+.version{text-align:center;margin-top:20px;font-size:11px;color:#B0BED4;letter-spacing:0.3px}
+</style>
+<script>
+// ── Auto-update: check for new version on every load ────────
+(function(){
+  if(window.location.hostname !== "arpitsantoki-afk.github.io") return;
+  var CACHE_KEY = "bd_app_version";
+  var reloadedFor = sessionStorage.getItem("bd_reloaded_for");
+  fetch("/bluedoor-accounts/version.json?t="+Date.now(), {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var badge = document.getElementById("versionBadge");
+      if(badge) badge.textContent = d.version;
+      var cached = localStorage.getItem(CACHE_KEY);
+      if(cached !== d.version && reloadedFor !== d.version) {
+        localStorage.setItem(CACHE_KEY, d.version);
+        ["bd_c_fylist","bd_c_et","bd_c_coa","bd_c_proj","bd_c_ch","bd_c_ve"].forEach(function(k){
+          localStorage.removeItem(k);
+        });
+        sessionStorage.setItem("bd_reloaded_for", d.version);
+        window.location.reload(true);
+      } else {
+        localStorage.setItem(CACHE_KEY, d.version);
+      }
+    }).catch(function(){});
+})();
+</script>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🏠</div>
+  <div>
+    <div class="header-title">Blue Door Architects</div>
+    <div class="header-sub">Accounts Management</div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="card">
+    <h2>Sign In</h2>
+    <p class="sub">Access your accounts platform</p>
+
+    <!-- Google Sign-In -->
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="divider"><hr><span>or sign in with username</span><hr></div>
+
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="your username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <label class="remember-row">
+      <input type="checkbox" id="rememberMe">
+      <span>Remember me for 30 days</span>
+    </label>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="error-box" id="errBox"></div>
+
+    <div class="version">Blue Door Accounts · <span id="versionBadge">…</span></div>
+  </div>
+</div>
+
+<script>
+var API = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec";
+
+// ── On load: restore remembered username, redirect if session active ──
+(function(){
+  var token = localStorage.getItem("bd_token");
+  if (token) { redirect(localStorage.getItem("bd_role")); return; }
+  var rem = safeJSON(localStorage.getItem("bd_remember"));
+  if (rem && rem.expiry && new Date(rem.expiry) > new Date()) {
+    document.addEventListener("DOMContentLoaded", function(){
+      document.getElementById("username").value  = rem.username || "";
+      document.getElementById("rememberMe").checked = true;
+    });
+  }
+})();
+
+// ── Username / Password login ─────────────────────────────
+function doLogin() {
+  var u = document.getElementById("username").value.trim();
+  var p = document.getElementById("password").value;
+  if (!u || !p) { showErr("Please enter username and password."); return; }
+  setLoading(true);
+  fetch(API, { method:"POST", body: JSON.stringify({ action:"login", username:u, password:p }) })
+    .then(r => r.json())
+    .then(d => {
+      setLoading(false);
+      if (d.success) { saveSession(d, u); redirect(d.role); }
+      else showErr(d.error || "Login failed. Please check your credentials.");
+    })
+    .catch(() => { setLoading(false); showErr("Connection error. Please check your network."); });
+}
+
+// ── Google Sign-In ────────────────────────────────────────
+var GOOGLE_CLIENT_ID = "449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.googleusercontent.com";
+
+function signInWithGoogle() {
+  if (typeof google === "undefined") {
+    showErr("Google Sign-In is still loading. Please try again in a moment."); return;
+  }
+  if (typeof google === "undefined") {
+    showErr("Google Sign-In is still loading. Please wait a moment and try again."); return;
+  }
+  google.accounts.id.initialize({
+    client_id:   GOOGLE_CLIENT_ID,
+    callback:    handleGoogleCredential,
+    auto_select: false
+  });
+  google.accounts.id.prompt(function(n){
+    if (n.isNotDisplayed() || n.isSkippedMoment()) {
+      // Fallback: open popup
+      google.accounts.id.renderButton(document.querySelector(".btn-google"),
+        { theme:"outline", size:"large", text:"continue_with", width:332 });
+    }
+  });
+}
+
+function handleGoogleCredential(response) {
+  setLoading(true);
+  fetch(API, { method:"POST", body: JSON.stringify({ action:"loginGoogle", idToken: response.credential }) })
+    .then(r => r.json())
+    .then(d => {
+      setLoading(false);
+      if (d.success) { saveSession(d, d.username); redirect(d.role); }
+      else showErr(d.error || "Your Google account is not registered in the system.");
+    })
+    .catch(() => { setLoading(false); showErr("Connection error."); });
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function saveSession(d, username) {
+  localStorage.setItem("bd_token",    d.token);
+  localStorage.setItem("bd_role",     d.role);
+  localStorage.setItem("bd_username", d.username);
+  if (document.getElementById("rememberMe") && document.getElementById("rememberMe").checked) {
+    var exp = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+    localStorage.setItem("bd_remember", JSON.stringify({ username: username, expiry: exp.toISOString() }));
+  } else {
+    localStorage.removeItem("bd_remember");
+  }
+}
+function redirect(role) { window.location.href = role === "Admin" ? "admin.html" : "app.html"; }
+function setLoading(on) {
+  var b = document.getElementById("loginBtn");
+  b.disabled = on; b.textContent = on ? "Signing in…" : "Sign In";
+  document.getElementById("errBox").style.display = "none";
+}
+function showErr(msg) { var e=document.getElementById("errBox"); e.textContent=msg; e.style.display="block"; }
+function safeJSON(s) { try { return JSON.parse(s); } catch(e) { return null; } }
+document.addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  var allowedHosts = ["arpitsantoki-afk.github.io"];
+  if (allowedHosts.indexOf(window.location.hostname) !== -1) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker.register("sw.js")
+        .then(function(reg) { console.log("SW registered:", reg.scope); })
+        .catch(function(err){ console.log("SW error:", err); });
+    });
+  }
+}
+</script>
+</body>
+</html>
