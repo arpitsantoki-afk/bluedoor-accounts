@@ -1273,6 +1273,8 @@ function renderFilteredLedger(rows) {
       "<td class='no-print'></td>"+
       "</tr>";
   }
+    // Include opening balance in column totals so Dr total = Cr total
+    if (ob > 0) totalDr += Math.abs(ob); else totalCr += Math.abs(ob);
 
   // Transaction rows
   rows.forEach(function(r){
@@ -1308,11 +1310,11 @@ function renderFilteredLedger(rows) {
     var clAbs   = Math.abs(closing);
     // closing > 0 means Dr side is heavier → put closing on Cr side
     // closing < 0 means Cr side is heavier → put closing on Dr side
-    var clDr    = closing < 0 ? "₹ "+fmt(clAbs) : "—";
-    var clCr    = closing > 0 ? "₹ "+fmt(clAbs) : "—";
+    var clDr    = closing > 0 ? "₹ "+fmt(clAbs) : "—";
+    var clCr    = closing < 0 ? "₹ "+fmt(clAbs) : "—";
     var clLabel = closing > 0 ? "Closing Balance (Dr)" : "Closing Balance (Cr)";
     // Add to totals for the final balance row
-    if (closing < 0) totalDr += clAbs;
+    if (closing > 0) totalDr += clAbs;
     else             totalCr += clAbs;
     html += "<tr style='background:#EEF3FF;font-weight:600;border-top:2px solid #C7D7FF'>"+
       "<td style='font-size:12px;color:#1D4ED8'></td>"+
@@ -1819,7 +1821,7 @@ function downloadCSV() {
   });
 
   var closing = ob + totalDr - totalCr;
-  var grandDr = totalDr, grandCr = totalCr;
+  var grandDr = totalDr + (ob>0?Math.abs(ob):0), grandCr = totalCr + (ob<0?Math.abs(ob):0);
   if (filtered && Math.abs(closing) > 0.001) {
     var clAbs = Math.abs(closing);
     lines.push(["","","",closing>0?"Closing Balance (Dr)":"Closing Balance (Cr)",
