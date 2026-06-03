@@ -1273,6 +1273,8 @@ function renderFilteredLedger(rows) {
       "<td class='no-print'></td>"+
       "</tr>";
   }
+    // Include opening balance in column totals so Dr total = Cr total
+    if (ob > 0) totalDr += Math.abs(ob); else totalCr += Math.abs(ob);
 
   // Transaction rows
   rows.forEach(function(r){
@@ -1819,7 +1821,7 @@ function downloadCSV() {
   });
 
   var closing = ob + totalDr - totalCr;
-  var grandDr = totalDr, grandCr = totalCr;
+  var grandDr = totalDr + (ob>0?Math.abs(ob):0), grandCr = totalCr + (ob<0?Math.abs(ob):0);
   if (filtered && Math.abs(closing) > 0.001) {
     var clAbs = Math.abs(closing);
     lines.push(["","","",closing>0?"Closing Balance (Dr)":"Closing Balance (Cr)",
